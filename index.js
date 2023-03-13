@@ -6,10 +6,15 @@ app.use(cors());
 app.use(express.json());
 
 const connection = mysql.createConnection({
-    host: '89.117.7.204',
-    user: 'u296765781_john',
-    password: '28Liverpo@@',
-    database: 'u296765781_john_finance'
+    // host: 'localhost',
+    // user: 'root',
+    // password: '',
+    // database: 'u296765781_john_finance',
+
+    host: '189.113.13.186',
+    user: 'sispreci_sisprecisacom',
+    password: 'rwSMx1G4w0TQqt#m^h^SJj3Ay9SgSq&rY4y',
+    database: 'sisprecisacom_ged_nutrivital',
 });
 
 app.get('/register', (request, response) => {
