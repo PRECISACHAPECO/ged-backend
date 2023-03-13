@@ -10,6 +10,7 @@ const connection = mysql.createConnection({
     // user: 'root',
     // password: '',
     // database: 'u296765781_john_finance',
+    
 
     host: '189.113.13.186',
     user: 'sispreci_sisprecisacom',
