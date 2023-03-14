@@ -11,7 +11,6 @@ const connection = mysql.createConnection({
     // password: '',
     // database: 'u296765781_john_finance',
     
-
     host: '189.113.13.186',
     user: 'sispreci_sisprecisacom',
     password: 'rwSMx1G4w0TQqt#m^h^SJj3Ay9SgSq&rY4y',
