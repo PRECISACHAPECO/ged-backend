@@ -1,7 +1,6 @@
 const mysql2 = require("mysql2");
 
-
-
+console.log('env: ', process.env.DB_HOST)
 
 const db = mysql2.createConnection({
     'host': '189.113.13.186', // process.env.MYSQL_HOST,
