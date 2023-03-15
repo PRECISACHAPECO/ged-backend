@@ -2,7 +2,7 @@ const db = require('../config/db');
 
 class AtividadeController {    
     getList(req, res) {
-        db.query("SELECT * FROM register", (err, result) => {
+        db.query("SELECT atividadeID AS id, nome, status FROM atividade", (err, result) => {
             if (err) {
                 res.status(500).json(err);
             } else {
