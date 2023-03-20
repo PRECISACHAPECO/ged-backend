@@ -1,12 +1,13 @@
+require('dotenv/config')
 const mysql2 = require("mysql2");
 
-console.log('env: ', process.env.DB_HOST)
+console.log('Server rodando...')
 
 const db = mysql2.createConnection({
-    'host': '189.113.13.186', // process.env.MYSQL_HOST,
-    'user': 'sispreci_sisprecisacom', //process.env.MYSQL_USER,
-    'password': 'rwSMx1G4w0TQqt#m^h^SJj3Ay9SgSq&rY4y', //process.env.MYSQL_PASSWORD,
-    'database': 'sisprecisacom_ged_nutrivital', //process.env.MYSQL_DATABASE,
+    'host': process.env.DB_HOST,
+    'user': process.env.DB_USER,
+    'password': process.env.DB_PASSWORD,
+    'database': process.env.DB_DATABASE,
 });
 
 module.exports = db;
