@@ -22,16 +22,29 @@ class AtividadeController {
     }
 
     insertData(req, res) {
-        const { description } = req.body
-        db.query("INSERT INTO register(description) VALUES (?)", [description], (err, result) => {
+        const { nome } = req.body;
+        db.query("SELECT * FROM atividade", (err, result) => {
             if (err) {
-                res.status(500).json(err);
+                console.log(err);
+                res.status(500).json({ message: "Erro interno do servidor." });
             } else {
-                res.status(200).json(result);
+                const atividades = result.find(atividade => atividade.nome === nome);
+                if (atividades) {
+                    res.status(409).json({ message: "Atividade já cadastrada!" });
+                } else {
+                    db.query("INSERT INTO atividade (nome) VALUES (?)", [nome], (err, result) => {
+                        if (err) {
+                            console.log(err);
+                            res.status(500).json({ message: "Erro interno do servidor." });
+                        } else {
+                            res.status(201).json(result);
+                        }
+                    });
+                }
             }
-        })
-    }
+        });
 
+    }
     updateData(req, res) {
         const { id } = req.params
         const { nome, status } = req.body

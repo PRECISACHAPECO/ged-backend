@@ -8,14 +8,7 @@ atividadeRoutes.get("/atividade", atividadeController.getList);
 atividadeRoutes.get("/atividade/:id", atividadeController.getData);
 atividadeRoutes.put("/atividade/:id", atividadeController.updateData);
 atividadeRoutes.delete("/atividade/:id", atividadeController.deleteData);
+atividadeRoutes.post("/atividade/novo", atividadeController.insertData);
 
-
-
-
-
-
-atividadeRoutes.post("/atividade", atividadeController.insertData);
-// registerRoutes.post("/register/:userID", registerController.create);
-// registerRoutes.get("/register/:registerID", registerController.listiD);
 
 module.exports = atividadeRoutes;
