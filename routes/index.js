@@ -4,10 +4,8 @@ const routes = Router();
 const urlBase = '/api'
 
 const atividadeRouter = require("./atividadeRoutes");
-const registerRouter = require("./registerRoutes");
 
-routes.use(urlBase, atividadeRouter);
-routes.use(urlBase, registerRouter);
+routes.use(urlBase+'/cadastros', atividadeRouter);
 
 module.exports = routes;
 
