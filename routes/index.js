@@ -1,11 +1,13 @@
 const { Router } = require('express');
 const routes = Router();
 
+const urlBase = '/api'
+
 const atividadeRouter = require("./atividadeRoutes");
 const registerRouter = require("./registerRoutes");
 
-routes.use("/", atividadeRouter);
-routes.use("/", registerRouter);
+routes.use(urlBase, atividadeRouter);
+routes.use(urlBase, registerRouter);
 
 module.exports = routes;
 
