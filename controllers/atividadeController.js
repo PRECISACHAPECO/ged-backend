@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const hasPending = require('../config/defaultConfig');
 
 class AtividadeController {
     getList(req, res) {
@@ -26,16 +27,16 @@ class AtividadeController {
         db.query("SELECT * FROM atividade", (err, result) => {
             if (err) {
                 console.log(err);
-                res.status(500).json({ message: "Erro interno do servidor." });
+                res.status(500).json(err);
             } else {
                 const atividades = result.find(atividade => atividade.nome === nome);
                 if (atividades) {
-                    res.status(409).json({ message: "Atividade já cadastrada!" });
+                    res.status(409).json(err);
                 } else {
                     db.query("INSERT INTO atividade (nome) VALUES (?)", [nome], (err, result) => {
                         if (err) {
                             console.log(err);
-                            res.status(500).json({ message: "Erro interno do servidor." });
+                            res.status(500).json(err);
                         } else {
                             res.status(201).json(result);
                         }
@@ -43,29 +44,56 @@ class AtividadeController {
                 }
             }
         });
-
     }
+
     updateData(req, res) {
         const { id } = req.params
         const { nome, status } = req.body
-        db.query("UPDATE atividade SET nome = ?, status = ?  WHERE atividadeID = ?", [nome, status, id], (err, result) => {
+        db.query("SELECT * FROM atividade", (err, result) => {
             if (err) {
+                console.log(err);
                 res.status(500).json(err);
             } else {
-                res.status(200).json(result);
+                // Verifica se já existe um registro com o mesmo nome e id diferente
+                const atividades = result.find(atividade => atividade.nome == nome && atividade.atividadeID != id);
+                if (atividades) {
+                    res.status(409).json({ message: "Dados já cadastrada!" });
+                } else {
+                    // Passou na validação, atualiza os dados
+                    db.query("UPDATE atividade SET nome = ?, status = ? WHERE atividadeID = ?", [nome, status, id], (err, result) => {
+                        if (err) {
+                            console.log(err);
+                            res.status(500).json(err);
+                        } else {
+                            res.status(200).json(result);
+                        }
+                    });
+                }
             }
         })
     }
 
-    deleteData(req, res) {
+    async deleteData(req, res) {
         const { id } = req.params
-        db.query("DELETE FROM atividade WHERE atividadeID = ?", [id], (err, result) => {
-            if (err) {
+
+        hasPending(id, 'atividadeID', ['fornecedoravaliacao_atividade'])
+            .then((hasPending) => {
+                if (hasPending) {
+                    res.status(409).json({ message: "Dado possui pendência." });
+                } else {
+                    db.query("DELETE FROM atividade WHERE atividadeID = ?", [id], (err, result) => {
+                        if (err) {
+                            res.status(500).json(err);
+                        } else {
+                            res.status(200).json(result);
+                        }
+                    });
+                }
+            })
+            .catch((err) => {
+                console.log(err);
                 res.status(500).json(err);
-            } else {
-                res.status(200).json(result);
-            }
-        })
+            });
     }
 }
 
