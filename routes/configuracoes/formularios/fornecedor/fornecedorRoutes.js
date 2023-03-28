@@ -8,8 +8,7 @@ const route = '/formularios/fornecedor';
 
 // fornecedorRoutes.get(`${route}`, fornecedorController.getList);
 fornecedorRoutes.get(`${route}/`, fornecedorController.getData);
-fornecedorRoutes.put(`${route}/:id`, fornecedorController.updateData);
+fornecedorRoutes.put(`${route}/`, fornecedorController.updateData);
 fornecedorRoutes.delete(`${route}/:id`, fornecedorController.deleteData);
-fornecedorRoutes.post(`${route}/novo`, fornecedorController.insertData);
 
 module.exports = fornecedorRoutes;
