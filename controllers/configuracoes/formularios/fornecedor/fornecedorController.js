@@ -32,8 +32,6 @@ class FornecedorController {
     updateData(req, res) {
         const unidadeID = 1
         const data = req.body
-        console.log('data: ', data)
-
         // Varre data e verifica o campo "mostra", se "mostra" for true, então realiza insert em "par_fornecedor_unidade" se não houver registro, se houver, atualiza o campo "obrigatorio", se não tiver "mostra" ou "mostra" for false, então realiza delete em "par_fornecedor_unidade" se houver registro
         data.forEach((item) => {
             if (item) {
@@ -43,12 +41,10 @@ class FornecedorController {
                     SELECT COUNT(*) AS count
                     FROM par_fornecedor_unidade AS pfu
                     WHERE pfu.parFornecedorID = ? AND pfu.unidadeID = ?`
-                    // Verificar numero de linhas do sql 
+                    // Verifica numero de linhas do sql 
                     db.query(sql, [item.parFornecedorID, unidadeID], (err, result) => {
                         if (err) { res.status(500).json(err); }
-                        if (result.length == 0) { // Insert 
-                            console.log('parID: ', item.parFornecedorID)
-                            
+                        if (result[0].count == 0) { // Insert 
                             const sql = `
                             INSERT INTO par_fornecedor_unidade (parFornecedorID, unidadeID, obrigatorio)
                             VALUES (?, ?, ?)`
@@ -65,7 +61,6 @@ class FornecedorController {
                             });
                         }
                     })
-                    console.log('Mostra')
                 } else { // Deleta
                     const sql = `
                     DELETE FROM par_fornecedor_unidade
@@ -74,11 +69,9 @@ class FornecedorController {
                     db.query(sql, [item.parFornecedorID, unidadeID], (err, result) => {
                         if (err) { res.status(500).json(err); }
                     })
-                    console.log('Remove')
                 }
             }
         })
-
         res.status(200).json({ message: "Dados atualizados com sucesso." });
     }
 
