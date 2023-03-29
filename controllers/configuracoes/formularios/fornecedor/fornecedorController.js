@@ -10,11 +10,13 @@ class FornecedorController {
         SELECT pf.*, 
             (SELECT IF(COUNT(*) > 0, 1, 0)
             FROM par_fornecedor_unidade AS pfu 
-            WHERE pf.parFornecedorID = pfu.parFornecedorID AND pfu.unidadeID = ?) AS mostra,
+            WHERE pf.parFornecedorID = pfu.parFornecedorID AND pfu.unidadeID = ?
+            LIMIT 1) AS mostra,
             
             COALESCE((SELECT pfu.obrigatorio
             FROM par_fornecedor_unidade AS pfu 
-            WHERE pf.parFornecedorID = pfu.parFornecedorID AND pfu.unidadeID = ?), 0) AS obrigatorio            
+            WHERE pf.parFornecedorID = pfu.parFornecedorID AND pfu.unidadeID = ?
+            LIMIT 1), 0) AS obrigatorio            
         FROM par_fornecedor AS pf 
         ORDER BY pf.ordem ASC;`
 
@@ -32,62 +34,52 @@ class FornecedorController {
         const data = req.body
         console.log('data: ', data)
 
-        const sql = `SELECT * FROM par_fornecedor`
-
-        db.query(sql, [unidadeID], (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                // Laço em result com todas as opçõies disponiveis no BD 
-                for (let i = 0; i < result.length; i++) {
-                    let selected = 0;
-                    // Varre objeto vindo do frontend
-                    for (const prop in data) {
-                        if(result[i]['nomeColuna'] == prop && data[prop] === true) selected = 1;
-                    }
-                    if(selected == 1){ // Marcou pra mostrar no formulário
-                        // Verifica se ainda nao existe na minha unidade
-                        const sqlSelect = `SELECT * FROM par_fornecedor_unidade AS t1 JOIN par_fornecedor t2 ON t1.parFornecedorID = t2.parFornecedorID WHERE t2.nomeColuna = ? AND t1.unidadeID = ?`                        
-                        db.query(sqlSelect, [result[i]['nomeColuna'], unidadeID], (errSelect, resSelect) => {
-                            if (err) {
-                                console.log('erro ao selecionar')
-                            } else {
-                                
-                                if(resSelect.length == 0){ // Precisa inserir
-                                    const sqlInsert = `INSERT INTO par_fornecedor_unidade (parFornecedorID, unidadeID) VALUES (?, ?)`
-                                    db.query(sqlInsert, [result[i]['parFornecedorID'], unidadeID], (errInsert, resInsert) => {
-                                        if (err) {
-                                            console.log('erro ao inserir')
-                                        } else {
-                                            console.log(result[i]['nomeColuna'] + ' foi inserido')
-                                        }
-                                    })
-                                }else{
-                                    console.log(result[i]['nomeColuna'] + ' já existe')
-                                }
-                            }
-                        })                                    
-
-                        // Se ainda nao existe, insere
-                        console.log(result[i]['nomeColuna'] + ' mostra no formulário')
-                        const sqlInsert = `INSERT INTO par_fornecedor_unidade (parFornecedorID, unidadeID) VALUES (?, ?)`       
-                    }else{
-                        // Deletar
-                        if(result && result[i]['nomeColuna']){
-                            console.log('script pra deletar a coluna: ', result[i]['nomeColuna'])
-                            const sqlDelete = `DELETE t1 FROM par_fornecedor_unidade t1 JOIN par_fornecedor t2 ON t1.parFornecedorID = t2.parFornecedorID WHERE t2.nomeColuna = ? AND t1.unidadeID = ?`
-                            db.query(sqlDelete, [result[i]['nomeColuna'], unidadeID], (errDelete, resDelete) => {
-                                if (err) {
-                                    console.log('erro ao excluir')
-                                } else {
-                                    console.log(result[i]['nomeColuna'] + ' foi excluido')
-                                }
-                            })
+        // Varre data e verifica o campo "mostra", se "mostra" for true, então realiza insert em "par_fornecedor_unidade" se não houver registro, se houver, atualiza o campo "obrigatorio", se não tiver "mostra" ou "mostra" for false, então realiza delete em "par_fornecedor_unidade" se houver registro
+        data.forEach((item) => {
+            if (item) {
+                if (item.mostra) {
+                    // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
+                    const sql = `
+                    SELECT COUNT(*) AS count
+                    FROM par_fornecedor_unidade AS pfu
+                    WHERE pfu.parFornecedorID = ? AND pfu.unidadeID = ?`
+                    // Verificar numero de linhas do sql 
+                    db.query(sql, [item.parFornecedorID, unidadeID], (err, result) => {
+                        if (err) { res.status(500).json(err); }
+                        if (result.length == 0) { // Insert 
+                            console.log('parID: ', item.parFornecedorID)
+                            
+                            const sql = `
+                            INSERT INTO par_fornecedor_unidade (parFornecedorID, unidadeID, obrigatorio)
+                            VALUES (?, ?, ?)`
+                            db.query(sql, [item.parFornecedorID, unidadeID, (item.obrigatorio ? 1 : 0)], (err, result) => {
+                                if (err) { res.status(500).json(err); }
+                            });
+                        } else { // Update obrigatorio
+                            const sql = `
+                            UPDATE par_fornecedor_unidade
+                            SET obrigatorio = ?
+                            WHERE parFornecedorID = ? AND unidadeID = ?`
+                            db.query(sql, [(item.obrigatorio ? 1 : 0), item.parFornecedorID, unidadeID], (err, result) => {
+                                if (err) { res.status(500).json(err); }
+                            });
                         }
-                    }
+                    })
+                    console.log('Mostra')
+                } else { // Deleta
+                    const sql = `
+                    DELETE FROM par_fornecedor_unidade
+                    WHERE parFornecedorID = ? AND unidadeID = ?;`
+
+                    db.query(sql, [item.parFornecedorID, unidadeID], (err, result) => {
+                        if (err) { res.status(500).json(err); }
+                    })
+                    console.log('Remove')
                 }
             }
-        })        
+        })
+
+        res.status(200).json({ message: "Dados atualizados com sucesso." });
     }
 
     deleteData(req, res) {
