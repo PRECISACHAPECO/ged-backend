@@ -51,26 +51,27 @@ class UnidadeController {
         const { id } = req.params
         const data = req.body
 
-        db.query("SELECT * FROM unidade WHERE unidadeID = ?", [id], (err, result) => {
+        console.log(data)
+
+        db.query("SELECT * FROM unidade", (err, result) => {
             if (err) {
+                console.log(err);
                 res.status(500).json(err);
-            }
-
-            // TODO - A VERIFICAÇÃO NÃO ESTÁ FUNCIONANDO
-
-            
-            const rows = result.filter(row => row.cnpj == data.cnpj && row.unidadeID != id)
-
-            if (rows.length > 0) {
-                res.status(409).json({ message: 'CNPJ já cadastrado' });
             } else {
-                db.query("UPDATE unidade SET ? WHERE unidadeID = ?", [data, id], (err, result) => {
-                    if (err) {
-                        res.status(500).json(err);
-                    } else {
-                        res.status(200).json({ message: 'Unidade atualizada com sucesso!' });
-                    }
-                })
+                const rows = result.find(row => row.cnpj == data.cnpj && row.unidadeID !== id);
+                if (rows > 0) {
+                    res.status(409).json({ message: "CNPJ já cadastrado!" });
+                } else {
+                    // Passou na validação, atualiza os dados
+                    db.query("UPDATE unidade SET ? WHERE unidadeID = ?", [data, id], (err, result) => {
+                        if (err) {
+                            console.log(err);
+                            res.status(500).json(err);
+                        } else {
+                            res.status(200).json({ message: 'Unidade atualizada com sucesso!' });
+                        }
+                    });
+                }
             }
         })
     }
