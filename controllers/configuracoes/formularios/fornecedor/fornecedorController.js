@@ -4,33 +4,52 @@ const { hasPending, deleteItem } = require('../../../../config/defaultConfig');
 class FornecedorController {
 
     getData(req, res) {
-        const unidadeID = 1;
+        const functionName = req.headers['function-name'];
+        const unidadeID = req.params.id;
 
-        const sql = `
-        SELECT pf.*, 
-            (SELECT IF(COUNT(*) > 0, 1, 0)
-            FROM par_fornecedor_unidade AS pfu 
-            WHERE pf.parFornecedorID = pfu.parFornecedorID AND pfu.unidadeID = ?
-            LIMIT 1) AS mostra,
-            
-            COALESCE((SELECT pfu.obrigatorio
-            FROM par_fornecedor_unidade AS pfu 
-            WHERE pf.parFornecedorID = pfu.parFornecedorID AND pfu.unidadeID = ?
-            LIMIT 1), 0) AS obrigatorio            
-        FROM par_fornecedor AS pf 
-        ORDER BY pf.ordem ASC;`
+        switch(functionName) {
+            // Obtém cabeçalho do formulário
+            case 'getHeader':                
+                const sql1 = `
+                SELECT pf.*, 
+                    (SELECT IF(COUNT(*) > 0, 1, 0)
+                    FROM par_fornecedor_unidade AS pfu 
+                    WHERE pf.parFornecedorID = pfu.parFornecedorID AND pfu.unidadeID = ?
+                    LIMIT 1) AS mostra,
+                    
+                    COALESCE((SELECT pfu.obrigatorio
+                    FROM par_fornecedor_unidade AS pfu 
+                    WHERE pf.parFornecedorID = pfu.parFornecedorID AND pfu.unidadeID = ?
+                    LIMIT 1), 0) AS obrigatorio            
+                FROM par_fornecedor AS pf 
+                ORDER BY pf.ordem ASC;`
+        
+                db.query(sql1, [unidadeID, unidadeID], (err, result) => {
+                    if (err) {
+                        res.status(500).json(err);
+                    } else {
+                        res.status(200).json(result);
+                    }
+                })
+            break;
 
-        db.query(sql, [unidadeID, unidadeID], (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                res.status(200).json(result);
-            }
-        })
+            // Obtém blocos do formulário
+            case 'getBlocks':
+                const sql2 = `SELECT * FROM par_fornecedor_bloco WHERE unidadeID = ?`
+
+                db.query(sql2, [unidadeID], (err, result) => {
+                    if (err) {
+                        res.status(500).json(err);
+                    } else {
+                        res.status(200).json(result);
+                    }
+                })
+            break;
+        }
     }
 
     updateData(req, res) {
-        const unidadeID = 1
+        const unidadeID = req.params.id;
         const data = req.body
         // Varre data e verifica o campo "mostra", se "mostra" for true, então realiza insert em "par_fornecedor_unidade" se não houver registro, se houver, atualiza o campo "obrigatorio", se não tiver "mostra" ou "mostra" for false, então realiza delete em "par_fornecedor_unidade" se houver registro
         data.forEach((item) => {
