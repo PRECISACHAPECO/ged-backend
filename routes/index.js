@@ -12,9 +12,12 @@ routes.use(urlBase + '/cadastros', itemRouter);
 const formularios = require("./configuracoes/formularios/formulariosRoutes");
 const formularioFornecedor = require("./configuracoes/formularios/fornecedor/fornecedorRoutes");
 const unidade = require("./configuracoes/unidade/unidadeRoutes");
-
 routes.use(urlBase + '/configuracoes', formularios);
 routes.use(urlBase + '/configuracoes', formularioFornecedor);
 routes.use(urlBase + '/configuracoes', unidade);
+
+// Autenticação
+const auth = require("./auth/authRoutes");
+routes.use(urlBase + '/', auth);
 
 module.exports = routes;
