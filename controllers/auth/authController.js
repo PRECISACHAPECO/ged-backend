@@ -15,7 +15,7 @@ class AuthController {
         const { email, password } = req.body;
 
         let error = {
-            email: ['Algo está errado!']
+            email: ['Algo está errado!!']
         }
 
         db.query("SELECT * FROM usuario WHERE email = ? AND senha = ?", [email, password], (err, result) => {
@@ -35,7 +35,7 @@ class AuthController {
                 error = {
                     email: ['E-mail ou senha inválidos!']
                 }
-                
+
                 res.status(400).json(error);
             }
         })
