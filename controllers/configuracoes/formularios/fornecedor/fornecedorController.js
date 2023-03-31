@@ -36,10 +36,10 @@ class FornecedorController {
             case 'getBlocks':
                 try {
                     const blocks = [];
-                    const sql2 = `SELECT * FROM par_fornecedor_bloco WHERE unidadeID = ? ORDER BY ordem ASC`;
-                    const [result2] = await db.promise().query(sql2, [unidadeID]);
+                    const sqlBloco = `SELECT * FROM par_fornecedor_bloco WHERE unidadeID = ? ORDER BY ordem ASC`;
+                    const [resultBloco] = await db.promise().query(sqlBloco, [unidadeID]);
 
-                    const sql3 = `
+                    const sqlAtividade = `
                     SELECT a.*, 
                         (SELECT IF(COUNT(*) > 0, 1, 0)
                         FROM par_fornecedor_bloco_atividade AS pfba 
@@ -47,13 +47,27 @@ class FornecedorController {
                     FROM atividade AS a 
                     ORDER BY a.nome ASC;`;
 
+                    const sqlItem = `
+                    SELECT * 
+                    FROM par_fornecedor_bloco_item AS pfbi 
+                        JOIN item AS i ON (pfbi.itemID = i.itemID)
+                    WHERE pfbi.parFornecedorBlocoID = ? 
+                    ORDER BY pfbi.ordem ASC`
+
                     // Varre bloco
-                    for (const item of result2) {
-                        const [result3] = await db.promise().query(sql3, [item.parFornecedorBlocoID, unidadeID]);
+                    for (const item of resultBloco) {
+                        const [resultAtividade] = await db.promise().query(sqlAtividade, [item.parFornecedorBlocoID, unidadeID]);
+                        const [resultItem] = await db.promise().query(sqlItem, [item.parFornecedorBlocoID]);
+
+                        // Varre cada item e obtém array com as opções de alternativa 
+                        // for (const item2 of resultItem) {
+                        //     const sqlAlternativa = `SELECT * FROM par_fornecedor_bloco_item_alternativa AS pfbia JOIN alternativa AS a ON (pfbia.alternativaID = a.alternativaID) WHERE pfbia.parFornecedorBlocoItemID = ? ORDER BY a.nome ASC;`;
+                        //     const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.parFornecedorBlocoItemID]);
+                        // }
 
                         const objData = {
                             dados: item,
-                            atividades: result3,
+                            atividades: resultAtividade,
                             categrias: [
                                 {
                                     id: 1,
@@ -66,6 +80,7 @@ class FornecedorController {
                                     checked: 0
                                 }
                             ],
+                            itens: resultItem
                         };
 
                         blocks.push(objData);

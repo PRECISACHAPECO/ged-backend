@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.0
+-- version 5.1.1
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 31-Mar-2023 às 13:25
--- Versão do servidor: 10.4.27-MariaDB
--- versão do PHP: 8.2.0
+-- Tempo de geração: 31-Mar-2023 às 22:33
+-- Versão do servidor: 10.4.22-MariaDB
+-- versão do PHP: 7.4.27
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -31,7 +31,7 @@ CREATE TABLE `alternativa` (
   `alternativaID` int(11) NOT NULL,
   `nome` varchar(255) NOT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Extraindo dados da tabela `alternativa`
@@ -55,7 +55,7 @@ CREATE TABLE `alternativa_item` (
   `alternativaItemID` int(11) NOT NULL,
   `alternativaID` int(11) NOT NULL,
   `nome` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Extraindo dados da tabela `alternativa_item`
@@ -83,7 +83,7 @@ CREATE TABLE `atividade` (
   `atividadeID` int(11) NOT NULL,
   `nome` text NOT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Extraindo dados da tabela `atividade`
@@ -126,7 +126,7 @@ CREATE TABLE `fornecedor` (
   `principaisClientes` varchar(255) DEFAULT NULL,
   `registroMapa` int(11) DEFAULT 0 COMMENT '1->Sim, 0->Não',
   `unidadeID` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Extraindo dados da tabela `fornecedor`
@@ -145,7 +145,7 @@ CREATE TABLE `item` (
   `itemID` int(11) NOT NULL,
   `nome` varchar(255) NOT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Extraindo dados da tabela `item`
@@ -167,7 +167,7 @@ CREATE TABLE `par_formulario` (
   `parFormularioID` int(11) NOT NULL,
   `nome` varchar(255) NOT NULL,
   `tabela` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Extraindo dados da tabela `par_formulario`
@@ -190,7 +190,7 @@ CREATE TABLE `par_fornecedor` (
   `nomeCampo` varchar(255) NOT NULL,
   `nomeColuna` varchar(255) NOT NULL COMMENT 'Nome da coluna no BD',
   `obs` text DEFAULT NULL COMMENT 'Obs para desenvolvimento'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Extraindo dados da tabela `par_fornecedor`
@@ -225,18 +225,45 @@ INSERT INTO `par_fornecedor` (`parFornecedorID`, `ordem`, `nomeCampo`, `nomeColu
 
 CREATE TABLE `par_fornecedor_bloco` (
   `parFornecedorBlocoID` int(11) NOT NULL,
+  `ordem` int(11) NOT NULL COMMENT 'Ordem de exibição',
   `nome` varchar(255) NOT NULL,
   `obs` int(11) NOT NULL DEFAULT 1 COMMENT '1->Possui obs no bloco, 0->Não possui obs',
+  `unidadeID` int(11) NOT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Extraindo dados da tabela `par_fornecedor_bloco`
 --
 
-INSERT INTO `par_fornecedor_bloco` (`parFornecedorBlocoID`, `nome`, `obs`, `status`) VALUES
-(1, 'Itens Avaliados', 1, 1),
-(2, 'Itens avaliados 2', 1, 1);
+INSERT INTO `par_fornecedor_bloco` (`parFornecedorBlocoID`, `ordem`, `nome`, `obs`, `unidadeID`, `status`) VALUES
+(1, 1, 'Itens Avaliados', 1, 1, 1),
+(2, 2, 'Itens avaliados 2', 1, 1, 1),
+(3, 1, 'Itens Avaliados', 1, 2, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `par_fornecedor_bloco_atividade`
+--
+
+CREATE TABLE `par_fornecedor_bloco_atividade` (
+  `parFornecedorBlocoAtividadeID` int(11) NOT NULL,
+  `parFornecedorBlocoID` int(11) NOT NULL,
+  `atividadeID` int(11) NOT NULL,
+  `unidadeID` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `par_fornecedor_bloco_atividade`
+--
+
+INSERT INTO `par_fornecedor_bloco_atividade` (`parFornecedorBlocoAtividadeID`, `parFornecedorBlocoID`, `atividadeID`, `unidadeID`) VALUES
+(1, 1, 1, 1),
+(2, 1, 3, 1),
+(3, 2, 4, 1),
+(4, 1, 5, 1),
+(5, 1, 3, 2);
 
 -- --------------------------------------------------------
 
@@ -252,40 +279,18 @@ CREATE TABLE `par_fornecedor_bloco_item` (
   `alternativaID` int(11) NOT NULL COMMENT 'Forma de resposta no formulário',
   `obs` int(11) NOT NULL DEFAULT 1 COMMENT '1->Possui obs, 0->Não possui obs',
   `obrigatorio` int(11) NOT NULL DEFAULT 0 COMMENT '1->Obrigatório, 0->Não obrigatório',
-  `unidadeID` int(11) NOT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Extraindo dados da tabela `par_fornecedor_bloco_item`
 --
 
-INSERT INTO `par_fornecedor_bloco_item` (`parFornecedorBlocoItemID`, `parFornecedorBlocoID`, `ordem`, `itemID`, `alternativaID`, `obs`, `obrigatorio`, `unidadeID`, `status`) VALUES
-(1, 1, 1, 1, 1, 1, 1, 1, 1),
-(2, 1, 2, 2, 1, 1, 1, 1, 1),
-(3, 1, 3, 3, 1, 1, 0, 1, 1),
-(4, 1, 1, 1, 1, 1, 0, 2, 1);
-
--- --------------------------------------------------------
-
---
--- Estrutura da tabela `par_fornecedor_bloco_unidade`
---
-
-CREATE TABLE `par_fornecedor_bloco_unidade` (
-  `parFornecedorBlocoUnidadeID` int(11) NOT NULL,
-  `parFornecedorBlocoID` int(11) NOT NULL,
-  `unidadeID` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Extraindo dados da tabela `par_fornecedor_bloco_unidade`
---
-
-INSERT INTO `par_fornecedor_bloco_unidade` (`parFornecedorBlocoUnidadeID`, `parFornecedorBlocoID`, `unidadeID`) VALUES
-(1, 1, 1),
-(2, 2, 1),
-(3, 1, 2);
+INSERT INTO `par_fornecedor_bloco_item` (`parFornecedorBlocoItemID`, `parFornecedorBlocoID`, `ordem`, `itemID`, `alternativaID`, `obs`, `obrigatorio`, `status`) VALUES
+(1, 1, 1, 1, 1, 1, 1, 1),
+(2, 1, 2, 2, 1, 1, 1, 1),
+(3, 1, 3, 3, 1, 1, 0, 1),
+(5, 3, 1, 5, 1, 1, 0, 1);
 
 -- --------------------------------------------------------
 
@@ -298,16 +303,19 @@ CREATE TABLE `par_fornecedor_unidade` (
   `parFornecedorID` int(11) NOT NULL,
   `unidadeID` int(11) NOT NULL,
   `obrigatorio` int(11) NOT NULL DEFAULT 1 COMMENT '1->Obrigatório, 0->Não obrigatório'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Extraindo dados da tabela `par_fornecedor_unidade`
 --
 
 INSERT INTO `par_fornecedor_unidade` (`parFornecedorUnidadeID`, `parFornecedorID`, `unidadeID`, `obrigatorio`) VALUES
-(38, 1, 1, 0),
 (39, 17, 1, 0),
-(40, 2, 1, 0);
+(40, 2, 1, 0),
+(41, 19, 1, 1),
+(43, 18, 1, 0),
+(44, 16, 1, 0),
+(45, 1, 1, 0);
 
 -- --------------------------------------------------------
 
@@ -333,14 +341,14 @@ CREATE TABLE `unidade` (
   `uf` varchar(2) DEFAULT NULL,
   `dataCadastro` date DEFAULT current_timestamp(),
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Extraindo dados da tabela `unidade`
 --
 
 INSERT INTO `unidade` (`unidadeID`, `nomeFantasia`, `razaoSocial`, `cnpj`, `telefone1`, `telefone2`, `email`, `responsavel`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `uf`, `dataCadastro`, `status`) VALUES
-(15, 'Precisa Tecnologia', NULL, '22.761.856/0001-12', '49984356670', NULL, 'jonatankalmeidakk5@gmail.com', 'Rodrigo Piozevan', '89801-200', 'Rua Minas Gerais', '533', 'sala 206', 'Precidente Médice', 'Chapecó', 'SC', '2023-03-30', 1),
+(15, 'Precisa Tecnologia uppp', NULL, '22.761.856/0001-12', '49984356670', NULL, 'jonatankalmeidakk5@gmail.com', 'Rodrigo Piozevan', '89812-600', 'Rua Euclides Prade', '533', 'sala 206', 'Santa Maria', 'Chapecó', 'SC', '2023-03-30', 1),
 (16, 'testetetete', NULL, '24.823.262/0001-14', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2023-03-30', 1),
 (17, 'JONATAN DOS SANTOS DE ALMEIDAgtrrt', NULL, '74.852.665/0001-60', '49984356670', NULL, 'jonatankalmeidakk5@gmail.com', NULL, '18087-149', 'Avenida Fernando Stecca', NULL, NULL, 'Iporanga', 'Sorocaba', 'SP', '2023-03-30', 1);
 
@@ -352,18 +360,20 @@ INSERT INTO `unidade` (`unidadeID`, `nomeFantasia`, `razaoSocial`, `cnpj`, `tele
 
 CREATE TABLE `usuario` (
   `usuarioID` int(11) NOT NULL,
-  `usarname` varchar(255) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `role` varchar(255) NOT NULL
+  `nome` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `cpf` varchar(14) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `senha` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `unidadeID` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Extraindo dados da tabela `usuario`
 --
 
-INSERT INTO `usuario` (`usuarioID`, `usarname`, `email`, `password`, `role`) VALUES
-(1, 'Jonatanh', 'jonatan@gmail.com', '12345', 'admin');
+INSERT INTO `usuario` (`usuarioID`, `nome`, `cpf`, `email`, `senha`, `role`, `unidadeID`) VALUES
+(1, 'Jonatanh', '089.092.569-07', 'admin@materialize.com', 'admin', 'admin', 1);
 
 --
 -- Índices para tabelas despejadas
@@ -418,16 +428,16 @@ ALTER TABLE `par_fornecedor_bloco`
   ADD PRIMARY KEY (`parFornecedorBlocoID`);
 
 --
+-- Índices para tabela `par_fornecedor_bloco_atividade`
+--
+ALTER TABLE `par_fornecedor_bloco_atividade`
+  ADD PRIMARY KEY (`parFornecedorBlocoAtividadeID`);
+
+--
 -- Índices para tabela `par_fornecedor_bloco_item`
 --
 ALTER TABLE `par_fornecedor_bloco_item`
   ADD PRIMARY KEY (`parFornecedorBlocoItemID`);
-
---
--- Índices para tabela `par_fornecedor_bloco_unidade`
---
-ALTER TABLE `par_fornecedor_bloco_unidade`
-  ADD PRIMARY KEY (`parFornecedorBlocoUnidadeID`);
 
 --
 -- Índices para tabela `par_fornecedor_unidade`
@@ -497,25 +507,25 @@ ALTER TABLE `par_fornecedor`
 -- AUTO_INCREMENT de tabela `par_fornecedor_bloco`
 --
 ALTER TABLE `par_fornecedor_bloco`
-  MODIFY `parFornecedorBlocoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `parFornecedorBlocoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT de tabela `par_fornecedor_bloco_atividade`
+--
+ALTER TABLE `par_fornecedor_bloco_atividade`
+  MODIFY `parFornecedorBlocoAtividadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de tabela `par_fornecedor_bloco_item`
 --
 ALTER TABLE `par_fornecedor_bloco_item`
-  MODIFY `parFornecedorBlocoItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
-
---
--- AUTO_INCREMENT de tabela `par_fornecedor_bloco_unidade`
---
-ALTER TABLE `par_fornecedor_bloco_unidade`
-  MODIFY `parFornecedorBlocoUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `parFornecedorBlocoItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de tabela `par_fornecedor_unidade`
 --
 ALTER TABLE `par_fornecedor_unidade`
-  MODIFY `parFornecedorUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `parFornecedorUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT de tabela `unidade`
