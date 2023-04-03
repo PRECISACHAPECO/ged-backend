@@ -32,6 +32,24 @@ class FornecedorController {
                 }
                 break;
 
+            // Obtem as opções pra seleção da listagem dos selects de itens e alternativas
+            case 'getOptionsItens':
+                const sqlItem = `SELECT * FROM item ORDER BY nome ASC;`;
+                const sqlAlternativa = `SELECT alternativaID, nome AS alternativa FROM alternativa ORDER BY nome ASC;`;
+                // Montar objeto com os resultados das queries
+                try {
+                    const resultItem = await db.promise().query(sqlItem);
+                    const resultAlternativa = await db.promise().query(sqlAlternativa);
+                    const objData = {
+                        itens: resultItem[0],
+                        alternativas: resultAlternativa[0]
+                    };
+                    res.status(200).json(objData);
+                } catch (err) {
+                    res.status(500).json(err);
+                }
+                break;
+
             // Obtém blocos do formulário
             case 'getBlocks':
                 try {
@@ -48,22 +66,17 @@ class FornecedorController {
                     ORDER BY a.nome ASC;`;
 
                     const sqlItem = `
-                    SELECT * 
+                    SELECT pfbi.*, i.*, a.nome AS alternativa 
                     FROM par_fornecedor_bloco_item AS pfbi 
-                        JOIN item AS i ON (pfbi.itemID = i.itemID)
-                    WHERE pfbi.parFornecedorBlocoID = ? 
+                        LEFT JOIN item AS i ON (pfbi.itemID = i.itemID)
+                        LEFT JOIN alternativa AS a ON (pfbi.alternativaID = a.alternativaID)
+                    WHERE pfbi.parFornecedorBlocoID = ?
                     ORDER BY pfbi.ordem ASC`
 
                     // Varre bloco
                     for (const item of resultBloco) {
                         const [resultAtividade] = await db.promise().query(sqlAtividade, [item.parFornecedorBlocoID, unidadeID]);
                         const [resultItem] = await db.promise().query(sqlItem, [item.parFornecedorBlocoID]);
-
-                        // Varre cada item e obtém array com as opções de alternativa 
-                        // for (const item2 of resultItem) {
-                        //     const sqlAlternativa = `SELECT * FROM par_fornecedor_bloco_item_alternativa AS pfbia JOIN alternativa AS a ON (pfbia.alternativaID = a.alternativaID) WHERE pfbia.parFornecedorBlocoItemID = ? ORDER BY a.nome ASC;`;
-                        //     const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.parFornecedorBlocoItemID]);
-                        // }
 
                         const objData = {
                             dados: item,
@@ -91,70 +104,16 @@ class FornecedorController {
                     res.status(500).json(err);
                 }
                 break;
+
+            case 'getOrientacoes':
+                // Obtem orientacoes da tabela par_formulario e retorna 
+                const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 1`;
+                const resultOrientacoes = db.query(sqlOrientacoes, []);
+                res.status(200).json(resultOrientacoes[0]);
+                break;
+
         }
     }
-
-    // getData(req, res) {
-    //     const functionName = req.headers['function-name'];
-    //     const unidadeID = req.params.id;
-
-    //     switch (functionName) {
-    //         // Obtém cabeçalho do formulário
-    //         case 'getHeader':
-    //             const sql1 = `
-    //             SELECT pf.*, 
-    //                 (SELECT IF(COUNT(*) > 0, 1, 0)
-    //                 FROM par_fornecedor_unidade AS pfu 
-    //                 WHERE pf.parFornecedorID = pfu.parFornecedorID AND pfu.unidadeID = ?
-    //                 LIMIT 1) AS mostra,
-
-    //                 COALESCE((SELECT pfu.obrigatorio
-    //                 FROM par_fornecedor_unidade AS pfu 
-    //                 WHERE pf.parFornecedorID = pfu.parFornecedorID AND pfu.unidadeID = ?
-    //                 LIMIT 1), 0) AS obrigatorio            
-    //             FROM par_fornecedor AS pf 
-    //             ORDER BY pf.ordem ASC;`
-
-    //             db.query(sql1, [unidadeID, unidadeID], (err, result) => {
-    //                 if (err) {
-    //                     res.status(500).json(err);
-    //                 } else {
-    //                     res.status(200).json(result);
-    //                 }
-    //             })
-    //             break;
-
-    //         // Obtém blocos do formulário
-    //         case 'getBlocks':
-    //             try {
-    //                 const blocks = [];
-    //                 const sql2 = `SELECT * FROM par_fornecedor_bloco WHERE unidadeID = ?`;
-    //                 const result = db.query(sql2, [unidadeID]);
-
-    //                 const sql3 = `SELECT * FROM par_fornecedor_bloco_atividade AS pfba JOIN atividade AS a ON (pfba.atividadeID = a.atividadeID) WHERE pfba.parFornecedorBlocoID = ? ORDER BY a.nome ASC`;
-
-    //                 // Varre bloco
-    //                 for (const item of result) {
-    //                     const result2 = db.query(sql3, [item.parFornecedorBlocoID]);
-
-    //                     console.log('==> ', result2[0]['nome'])
-
-    //                     // inserir em blocks o result e result2 dentro do array atividades em blocks 
-    //                     const novoObjeto = {
-    //                         dados: item,
-    //                         atividades: result2,
-    //                     };
-
-    //                     blocks.push(novoObjeto);
-    //                 }
-
-    //                 res.status(200).json(blocks);
-    //             } catch (err) {
-    //                 res.status(500).json(err);
-    //             }
-    //             break;
-    //     }
-    // }
 
     updateData(req, res) {
         const unidadeID = req.params.id;
