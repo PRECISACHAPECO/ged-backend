@@ -108,8 +108,9 @@ class FornecedorController {
             case 'getOrientacoes':
                 // Obtem orientacoes da tabela par_formulario e retorna 
                 const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 1`;
-                const resultOrientacoes = db.query(sqlOrientacoes, []);
+                const [resultOrientacoes] = await db.promise().query(sqlOrientacoes)
                 res.status(200).json(resultOrientacoes[0]);
+
                 break;
 
         }
