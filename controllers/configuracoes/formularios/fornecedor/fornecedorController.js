@@ -81,14 +81,14 @@ class FornecedorController {
                         const objData = {
                             dados: item,
                             atividades: resultAtividade,
-                            categrias: [
+                            categorias: [
                                 {
-                                    id: 1,
+                                    categoriaID: 1,
                                     nome: 'Fabricante',
                                     checked: 1
                                 },
                                 {
-                                    id: 2,
+                                    categoriaID: 2,
                                     nome: 'Importador',
                                     checked: 0
                                 }
@@ -118,9 +118,10 @@ class FornecedorController {
 
     updateData(req, res) {
         const unidadeID = req.params.id;
-        const data = req.body
-        // Varre data e verifica o campo "mostra", se "mostra" for true, então realiza insert em "par_fornecedor_unidade" se não houver registro, se houver, atualiza o campo "obrigatorio", se não tiver "mostra" ou "mostra" for false, então realiza delete em "par_fornecedor_unidade" se houver registro
-        data.forEach((item) => {
+        const { header, blocks, orientacoes } = req.body
+
+        // Header
+        header && header.forEach((item) => {
             if (item) {
                 if (item.mostra) {
                     // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
@@ -159,6 +160,90 @@ class FornecedorController {
                 }
             }
         })
+
+        // Blocos 
+        blocks && blocks.forEach((block, index) => {
+            if (block) {
+                const sql = `
+                UPDATE par_fornecedor_bloco
+                SET ordem = ?, nome = ?, obs = ?, status = ?
+                WHERE parFornecedorBlocoID = ?`
+
+                db.query(sql, [block.sequencia, block.nome, (block.obs ? 1 : 0), (block.status ? 1 : 0), block.parFornecedorBlocoID], (err, result) => {
+                    if (err) { res.status(500).json(err); }
+                })
+
+                // Atividades
+                block.atividades && block.atividades.forEach((atividade, indexAtividade) => {
+                    if (atividade) {
+                        if (atividade.checked) {
+                            // Verifica se já existe registro em "par_fornecedor_bloco_atividade" para o fornecedor e unidade
+                            const sql = `
+                            SELECT COUNT(*) AS count
+                            FROM par_fornecedor_bloco_atividade AS pfba
+                            WHERE pfba.parFornecedorBlocoID = ? AND pfba.atividadeID = ? AND pfba.unidadeID = ?`
+                            // Verifica numero de linhas do sql
+                            db.query(sql, [block.parFornecedorBlocoID, atividade.atividadeID, unidadeID], (err, result) => {
+
+                                if (err) { res.status(500).json(err); }
+                                if (result[0].count == 0) { // Insert 
+                                    const sql = `
+                                    INSERT INTO par_fornecedor_bloco_atividade (parFornecedorBlocoID, atividadeID, unidadeID)
+                                    VALUES (?, ?, ?)`
+                                    db.query(sql, [block.parFornecedorBlocoID, atividade.atividadeID, unidadeID], (err2, result2) => {
+                                        if (err2) { res.status(500).json(err2); }
+                                    });
+                                }
+                            })
+                        } else { // Deleta
+                            const sql = `
+                            DELETE FROM par_fornecedor_bloco_atividade
+                            WHERE parFornecedorBlocoID = ? AND atividadeID = ? AND unidadeID = ?;`
+
+                            db.query(sql, [block.parFornecedorBlocoID, atividade.atividadeID, unidadeID], (err, result) => {
+                                if (err) { res.status(503).json(err); }
+                            })
+                        }
+                    }
+                })
+
+                // Itens 
+                // Varre itens e verifica se existe parFornecedorBlocoItemID, se sim, faz update na tabela par_fornecedor_bloco_item, se nao, faz insert
+                block.itens && block.itens.forEach((item, indexItem) => {
+                    if (item) {
+                        if (item.parFornecedorBlocoItemID) {
+                            // Update
+                            const sql = `
+                            UPDATE par_fornecedor_bloco_item
+                            SET ordem = ?, ${item.itemID ? 'itemID = ?, ' : ''} ${item.alternativaID ? 'alternativaID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
+                            WHERE parFornecedorBlocoItemID = ?`
+
+                            db.query(sql, [item.sequencia, ...(item.itemID ? [item.itemID] : []), ...(item.alternativaID ? [item.alternativaID] : []), (item.obs ? 1 : 0), (item.obrigatorio ? 1 : 0), (item.status ? 1 : 0), item.parFornecedorBlocoItemID], (err, result) => { if (err) { res.status(500).json(err); } })
+                        } else {
+                            // Insert
+                            const sql = `
+                            INSERT INTO par_fornecedor_bloco_item (parFornecedorBlocoID, ordem, itemID, alternativaID, obs, obrigatorio, status)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)`
+
+                            db.query(sql, [block.parFornecedorBlocoID, item.sequencia, item.itemID, item.alternativaID, (item.obs ? 1 : 0), (item.obrigatorio ? 1 : 0), (item.status ? 1 : 0)], (err, result) => {
+                                if (err) { res.status(500).json(err); }
+                            })
+                        }
+                    }
+                })
+            }
+        })
+
+        // Orientações
+        const sql = `
+        UPDATE par_formulario
+        SET obs = ? 
+        WHERE parFormularioID = 1`
+
+        db.query(sql, [orientacoes], (err, result) => {
+            if (err) { res.status(500).json(err); }
+        })
+
         res.status(200).json({ message: "Dados atualizados com sucesso." });
     }
 
@@ -183,7 +268,6 @@ class FornecedorController {
                 }
             })
             .catch((err) => {
-                console.log(err);
                 res.status(500).json(err);
             });
     }
