@@ -2,6 +2,14 @@ const { Router } = require('express');
 const routes = Router();
 const urlBase = '/api'
 
+// Autenticação
+const auth = require("./auth/authRoutes");
+routes.use(urlBase + '/', auth);
+
+// Pop-01
+const fornecedorRouter = require("./pop01/fornecedor/fornecedorRoutes");
+routes.use(urlBase + '/pop01', fornecedorRouter);
+
 // Cadastros 
 const atividadeRouter = require("./cadastros/atividade/atividadeRoutes");
 const itemRouter = require("./cadastros/item/itemRoutes");
@@ -15,9 +23,5 @@ const unidade = require("./configuracoes/unidade/unidadeRoutes");
 routes.use(urlBase + '/configuracoes', formularios);
 routes.use(urlBase + '/configuracoes', formularioFornecedor);
 routes.use(urlBase + '/configuracoes', unidade);
-
-// Autenticação
-const auth = require("./auth/authRoutes");
-routes.use(urlBase + '/', auth);
 
 module.exports = routes;
