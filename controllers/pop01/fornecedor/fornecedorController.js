@@ -3,7 +3,7 @@ const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class FornecedorController {
 
-    getData(req, res) {
+    async getData(req, res) {
         const functionName = req.headers['function-name'];
         const unidadeID = req.params.id
 
@@ -18,29 +18,90 @@ class FornecedorController {
 
             case 'getData':
                 const { id } = req.params
-                db.query("SELECT * FROM par_fornecedor AS pf JOIN par_fornecedor_unidade AS pfu ON (pf.parFornecedorID = pfu.parFornecedorID) WHERE pfu.unidadeID = ? ORDER BY pf.ordem ASC", [unidadeID], (err, result) => {
-                    if (err) { res.status(500).json(err); }
 
-                    // Varrer result, pegando nomeColuna e inserir em um array 
-                    // Exemplo: result = [{ nomeColuna: 'nome', valor: 'Fornecedor 1' }, { nomeColuna: 'cnpj', valor: '123456789' }, ...]
-                    // Será gerado o seguinte array: ['nome', 'cnpj', ...]
-                    const columns = result.map(row => row.nomeColuna);
+                // Fields do header
+                const sqlFields = `
+                SELECT * 
+                FROM par_fornecedor AS pf 
+                    JOIN par_fornecedor_unidade AS pfu ON (pf.parFornecedorID = pfu.parFornecedorID) 
+                WHERE pfu.unidadeID = ? 
+                ORDER BY pf.ordem ASC`
+                const [resultFields] = await db.promise().query(sqlFields, [unidadeID])
+                if (resultFields.length === 0) { res.status(500).json('Error'); }
 
-                    // Montar select na tabela fornecedor, onde as colunas do select serão as colunas do array columns
-                    // Exemplo: columns = ['nome', 'cnpj', ...]
-                    // Será gerado o seguinte SQL: SELECT nome, cnpj, ... FROM fornecedor WHERE fornecedorID = id
-                    const sql = `SELECT ${columns.join(', ')} FROM fornecedor WHERE fornecedorID = ?`;
-                    db.query(sql, [id], (errData, resultData) => {
-                        if (errData) { res.status(500).json(errData); }
+                // Varrer result, pegando nomeColuna e inserir em um array 
+                const columns = resultFields.map(row => row.nomeColuna);
 
-                        const data = {
-                            fields: result,
-                            data: resultData[0]
-                        }
+                // Montar select na tabela fornecedor, onde as colunas do select serão as colunas do array columns
+                const sqlData = `SELECT ${columns.join(', ')} FROM fornecedor WHERE fornecedorID = ?`;
+                const [resultData] = await db.promise().query(sqlData, [id])
+                if (resultData.length === 0) { res.status(500).json('Error'); }
 
-                        res.status(200).json(data);
-                    })
-                })
+                // Atividades 
+                const sqlAtividade = `
+                SELECT a.*, 
+                    (SELECT IF(COUNT(*) > 0, 1, 0)
+                    FROM fornecedor_atividade AS fa 
+                    WHERE fa.atividadeID = a.atividadeID AND fa.fornecedorID = ?) AS checked
+                FROM atividade AS a 
+                ORDER BY a.nome ASC;`
+                const [resultAtividade] = await db.promise().query(sqlAtividade, [id])
+                if (resultAtividade.length === 0) { res.status(500).json('Error'); }
+
+                // Sistemas de qualidade 
+                const sqlSistemaQualidade = `
+                SELECT s.*, 
+                    (SELECT IF(COUNT(*) > 0, 1, 0)
+                    FROM fornecedor_sistemaqualidade AS fs
+                    WHERE fs.sistemaQualidadeID = s.sistemaQualidadeID AND fs.fornecedorID = ?) AS checked
+                FROM sistemaqualidade AS s
+                ORDER BY s.nome ASC;`
+                const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id])
+                if (resultSistemaQualidade.length === 0) { res.status(500).json('Error'); }
+
+                // Blocos 
+                const sqlBlocos = `
+                SELECT * 
+                FROM par_fornecedor_bloco
+                WHERE unidadeID = ? AND status = 1
+                ORDER BY ordem ASC`
+                const [resultBlocos] = await db.promise().query(sqlBlocos, [unidadeID])
+
+                // Itens
+                const sqlItem = `
+                SELECT pfbi.*, i.*, a.nome AS alternativa 
+                FROM par_fornecedor_bloco_item AS pfbi 
+                    LEFT JOIN item AS i ON (pfbi.itemID = i.itemID)
+                    LEFT JOIN alternativa AS a ON (pfbi.alternativaID = a.alternativaID)
+                WHERE pfbi.parFornecedorBlocoID = ?
+                ORDER BY pfbi.ordem ASC`
+                for (const item of resultBlocos) {
+                    const [resultItem] = await db.promise().query(sqlItem, [item.parFornecedorBlocoID])
+
+                    // Obter alternativas para cada item 
+                    const sqlAlternativa = `
+                    SELECT *
+                    FROM par_fornecedor_bloco_item AS pfbi 
+                        JOIN alternativa AS a ON (pfbi.alternativaID = a.alternativaID)
+                        JOIN alternativa_item AS ai ON (a.alternativaID = ai.alternativaID)
+                    WHERE pfbi.itemID = ?`
+                    for (const item2 of resultItem) {
+                        const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.itemID])
+                        item2.alternativas = resultAlternativa
+                    }
+
+                    item.itens = resultItem
+                }
+
+                const data = {
+                    fields: resultFields,
+                    data: resultData[0],
+                    atividades: resultAtividade,
+                    sistemasQualidade: resultSistemaQualidade,
+                    blocos: resultBlocos
+                }
+
+                res.status(200).json(data);
                 break;
         }
     }
@@ -72,19 +133,14 @@ class FornecedorController {
     updateData(req, res) {
         const { id } = req.params
         const data = req.body
-        console.log('id: ', id)
-        console.log('data: ', data)
+        console.log('Header: ', data.header)
 
-        // Variavel data é um objeto, onde cada key do objeto será o nome da coluna e o valor será o valor da coluna da tabela fornecedor que será atualizada
-        // Exemplo: data = { nome: 'Fornecedor 1', cnpj: '123456789', ... }
-        // Será gerado o seguinte SQL: UPDATE fornecedor SET nome = 'Fornecedor 1', cnpj = '123456789', ... WHERE fornecedorID = id
         const sql = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id}`;
-        db.query(sql, [data], (err, result) => {
+        db.query(sql, [data.header], (err, result) => {
             if (err) { res.status(500).json(err); }
             // Ok
             res.status(200).json(result);
         });
-
 
     }
 
