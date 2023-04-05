@@ -93,12 +93,23 @@ class FornecedorController {
                     item.itens = resultItem
                 }
 
+                // Observação e resultado
+                const sqlOtherInformations = `
+                SELECT obs, resultado
+                FROM fornecedor
+                WHERE fornecedorID = ?`
+                const [resultOtherInformations] = await db.promise().query(sqlOtherInformations, [id])
+
                 const data = {
                     fields: resultFields,
                     data: resultData[0],
                     atividades: resultAtividade,
                     sistemasQualidade: resultSistemaQualidade,
-                    blocos: resultBlocos
+                    blocos: resultBlocos,
+                    info: {
+                        obs: resultOtherInformations[0].obs,
+                        resultado: resultOtherInformations[0].resultado,
+                    }
                 }
 
                 res.status(200).json(data);
