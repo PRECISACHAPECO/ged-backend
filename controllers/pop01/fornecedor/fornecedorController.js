@@ -69,14 +69,27 @@ class FornecedorController {
 
                 // Itens
                 const sqlItem = `
-                SELECT pfbi.*, i.*, a.nome AS alternativa 
+                SELECT pfbi.*, i.*, a.nome AS alternativa,
+
+                    (SELECT fr.respostaID
+                    FROM fornecedor_resposta AS fr 
+                    WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS respostaID,
+                    
+                    (SELECT fr.resposta
+                    FROM fornecedor_resposta AS fr 
+                    WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS resposta,
+
+                    (SELECT fr.obs
+                    FROM fornecedor_resposta AS fr 
+                    WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS observacao
+
                 FROM par_fornecedor_bloco_item AS pfbi 
                     LEFT JOIN item AS i ON (pfbi.itemID = i.itemID)
                     LEFT JOIN alternativa AS a ON (pfbi.alternativaID = a.alternativaID)
                 WHERE pfbi.parFornecedorBlocoID = ?
                 ORDER BY pfbi.ordem ASC`
                 for (const item of resultBlocos) {
-                    const [resultItem] = await db.promise().query(sqlItem, [item.parFornecedorBlocoID])
+                    const [resultItem] = await db.promise().query(sqlItem, [id, id, id, item.parFornecedorBlocoID])
 
                     // Obter alternativas para cada item 
                     const sqlAlternativa = `
@@ -141,18 +154,73 @@ class FornecedorController {
         });
     }
 
-    updateData(req, res) {
+    async updateData(req, res) {
         const { id } = req.params
         const data = req.body
-        console.log('Header: ', data.header)
 
-        const sql = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id}`;
-        db.query(sql, [data.header], (err, result) => {
-            if (err) { res.status(500).json(err); }
-            // Ok
-            res.status(200).json(result);
-        });
+        // Header 
+        const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id}`;
+        const [resultHeader] = await db.promise().query(sqlHeader, [data.header])
+        if (resultHeader.length === 0) { res.status(500).json('Error'); }
 
+        // Atividades
+        for (const atividade of data.atividades) {
+            if (atividade.checked) {
+                // Verifica se já existe registro desse dado na tabela fornecedor_atividade
+                const sqlAtividade = `SELECT * FROM fornecedor_atividade WHERE fornecedorID = ? AND atividadeID = ?`
+                const [resultSelectAtividade] = await db.promise().query(sqlAtividade, [id, atividade.atividadeID])
+                // Se ainda não houver registro, fazer insert na tabela 
+                if (resultSelectAtividade.length === 0) {
+                    const sqlAtividade2 = `INSERT INTO fornecedor_atividade (fornecedorID, atividadeID) VALUES (?, ?)`
+                    const [resultAtividade] = await db.promise().query(sqlAtividade2, [id, atividade.atividadeID])
+                    if (resultAtividade.length === 0) { res.status(500).json('Error'); }
+                }
+            } else {
+                const sqlAtividade = `DELETE FROM fornecedor_atividade WHERE fornecedorID = ? AND atividadeID = ?`
+                const [resultAtividade] = await db.promise().query(sqlAtividade, [id, atividade.atividadeID])
+                if (resultAtividade.length === 0) { res.status(500).json('Error'); }
+            }
+        }
+
+        // Sistemas de qualidade 
+        for (const sistema of data.sistemasQualidade) {
+            if (sistema.checked) {
+                // Verifica se já existe registro desse dado na tabela fornecedor_sistemaqualidade
+                const sqlSistemaQualidade = `SELECT * FROM fornecedor_sistemaqualidade WHERE fornecedorID = ? AND sistemaQualidadeID = ?`
+                const [resultSelectSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id, sistema.sistemaQualidadeID])
+                // Se ainda não houver registro, fazer insert na tabela
+                if (resultSelectSistemaQualidade.length === 0) {
+                    const sqlSistemaQualidade2 = `INSERT INTO fornecedor_sistemaqualidade (fornecedorID, sistemaQualidadeID) VALUES (?, ?)`
+                    const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade2, [id, sistema.sistemaQualidadeID])
+                    if (resultSistemaQualidade.length === 0) { res.status(500).json('Error'); }
+                }
+            } else {
+                const sqlSistemaQualidade = `DELETE FROM fornecedor_sistemaqualidade WHERE fornecedorID = ? AND sistemaQualidadeID = ?`
+                const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id, sistema.sistemaQualidadeID])
+                if (resultSistemaQualidade.length === 0) { res.status(500).json('Error'); }
+            }
+        }
+
+        // Blocos 
+        for (const bloco of data.blocos) {
+            // Itens 
+            for (const item of bloco.itens) {
+                if (item.alternativa || item.observacao) {
+                    console.log('bloco: ', bloco)
+                    console.log('item: ', item)
+                    // update na tabela fornecedor_resposta 
+                    const sqlResposta = `
+                    UPDATE fornecedor_resposta 
+                    SET ${item.alternativa ? 'resposta = ?, ' : ''} ${item.alternativaID ? 'respostaID = ?, ' : ''} ${item.observacao ? 'obs = ?, ' : ''} fornecedorID = ?
+                    WHERE fornecedorID = ? AND parFornecedorBlocoID = ? AND itemID = ?`
+                    const [resultResposta] = await db.promise().query(sqlResposta, [...(item.alternativa ? [item.alternativa] : []), ...(item.alternativaID ? [item.alternativaID] : []), ...(item.observacao ? [item.observacao] : []), id, id, bloco.parFornecedorBlocoID, item.itemID])
+
+                }
+            }
+        }
+
+        console.log('Até aqui ok!')
+        res.status(200).json(resultHeader)
     }
 
     deleteData(req, res) {
