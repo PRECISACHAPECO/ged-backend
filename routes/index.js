@@ -13,8 +13,10 @@ routes.use(urlBase + '/pop01', fornecedorRouter);
 // Cadastros 
 const atividadeRouter = require("./cadastros/atividade/atividadeRoutes");
 const itemRouter = require("./cadastros/item/itemRoutes");
+const sistemaQualidadeRouter = require("./cadastros/sistemaQualidade/sistemaQualidadeRoutes");
 routes.use(urlBase + '/cadastros', atividadeRouter);
 routes.use(urlBase + '/cadastros', itemRouter);
+routes.use(urlBase + '/cadastros', sistemaQualidadeRouter);
 
 // Confifuracoes
 const formularios = require("./configuracoes/formularios/formulariosRoutes");
