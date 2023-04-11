@@ -7,11 +7,10 @@ const db = require('../../config/db');
 async function gerarPDF(request, response) {
     const { fornecedorID, unidadeID } = request.query
 
-    console.log(fornecedorID, unidadeID);
 
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto('http://localhost:3333/teste', {
+    await page.goto(`http://localhost:3333/fornecedor?fornecedorIDD=${fornecedorID}&unidadeIDD=${unidadeID}`, {
         waitUntil: 'networkidle0'
     });
     const pdf = await page.pdf({
@@ -34,12 +33,17 @@ async function renderizarHTML(request, response) {
     const unidadeID = 1;
     const fornecedorID = 1;
 
+    const { fornecedorIDD, unidadeIDD } = request.query
+
+    console.log("Fixo", fornecedorID, unidadeID);
+    console.log("Query", fornecedorIDD, unidadeIDD);
+
     try {
         const [colunsFornecedor] = await db.promise().query(`
         SELECT * 
         FROM par_fornecedor a 
             JOIN par_fornecedor_unidade b ON (a.parFornecedorID = b.parFornecedorID) 
-        WHERE b.unidadeID = ${unidadeID} ORDER BY a.ordem ASC`);
+        WHERE b.unidadeID = ? ORDER BY a.ordem ASC`, [unidadeID]);
 
         // Varrer result, pegando nomeColuna e inserir em um array 
         const columns = colunsFornecedor.map(row => row.nomeColuna);
@@ -64,9 +68,9 @@ async function renderizarHTML(request, response) {
                 });
             }
         }
-        const [atividades] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as atividade FROM atividade a  LEFT JOIN fornecedor_atividade b on (a.atividadeID = b.atividadeID) WHERE b.fornecedorID = ${fornecedorID}`);
-        const [sistemaQualidade] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as sistemaQualidade FROM sistemaqualidade a  LEFT JOIN fornecedor_sistemaqualidade b on (a.sistemaQualidadeID = b.sistemaQualidadeID) WHERE b.fornecedorID = ${fornecedorID}`);
-        const [blocos] = await db.promise().query(`SELECT * FROM par_fornecedor_bloco a WHERE a.unidadeID = ${unidadeID} `);
+        const [atividades] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as atividade FROM atividade a  LEFT JOIN fornecedor_atividade b on (a.atividadeID = b.atividadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
+        const [sistemaQualidade] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as sistemaQualidade FROM sistemaqualidade a  LEFT JOIN fornecedor_sistemaqualidade b on (a.sistemaQualidadeID = b.sistemaQualidadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
+        const [blocos] = await db.promise().query(`SELECT * FROM par_fornecedor_bloco a WHERE a.unidadeID = ? `, [unidadeID]);
 
         const resultBlocos = []
         for (let i = 0; i < blocos.length; i++) {
