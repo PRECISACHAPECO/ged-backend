@@ -204,7 +204,7 @@ class FornecedorController {
         for (const bloco of data.blocos) {
             // Itens 
             for (const item of bloco.itens) {
-                if (item.alternativa || item.observacao) {
+                if (item.resposta || item.observacao) {
 
                     console.log('==> ', item)
 
@@ -216,7 +216,7 @@ class FornecedorController {
                         console.log('Insere resposta')
                         // insert na tabela fornecedor_resposta
                         const sqlInsert = `INSERT INTO fornecedor_resposta (fornecedorID, parFornecedorBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [id, bloco.parFornecedorBlocoID, item.itemID, (item.alternativa ?? ''), (item.alternativaID ?? 0), (item.observacao ?? '')])
+                        const [resultInsert] = await db.promise().query(sqlInsert, [id, bloco.parFornecedorBlocoID, item.itemID, (item.resposta ?? ''), (item.respostaID ?? 0), (item.observacao ?? '')])
                         if (resultInsert.length === 0) { res.status(500).json('Error'); }
                     } else {
                         console.log('Altera resposta')
@@ -224,14 +224,22 @@ class FornecedorController {
                         const sqlUpdate = `
                         UPDATE 
                             fornecedor_resposta 
-                        SET ${item.alternativa ? 'resposta = ?, ' : ''} 
-                            ${item.alternativaID ? 'respostaID = ?, ' : ''} 
+                        SET ${item.resposta ? 'resposta = ?, ' : ''} 
+                            ${item.respostaID ? 'respostaID = ?, ' : ''} 
                             ${item.observacao != undefined ? 'obs = ?, ' : ''} 
                             fornecedorID = ?
                         WHERE fornecedorID = ? 
                             AND parFornecedorBlocoID = ? 
                             AND itemID = ?`
-                        const [resultUpdate] = await db.promise().query(sqlUpdate, [...(item.alternativa ? [item.alternativa] : []), ...(item.alternativaID ? [item.alternativaID] : []), ...(item.observacao != undefined ? [item.observacao] : []), id, id, bloco.parFornecedorBlocoID, item.itemID])
+                        const [resultUpdate] = await db.promise().query(sqlUpdate, [
+                            ...(item.resposta ? [item.resposta] : []),
+                            ...(item.respostaID ? [item.respostaID] : []),
+                            ...(item.observacao != undefined ? [item.observacao] : []),
+                            id,
+                            id,
+                            bloco.parFornecedorBlocoID,
+                            item.itemID
+                        ])
                         if (resultUpdate.length === 0) { res.status(500).json('Error'); }
                     }
                 }
@@ -267,6 +275,8 @@ class FornecedorController {
                 res.status(500).json(err);
             });
     }
+
 }
+
 
 module.exports = FornecedorController;
