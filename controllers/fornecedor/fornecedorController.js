@@ -1,5 +1,5 @@
-const db = require('../../../config/db');
-const { hasPending, deleteItem } = require('../../../config/defaultConfig');
+const db = require('../../config/db');
+const { hasPending, deleteItem } = require('../../config/defaultConfig');
 
 class FornecedorController {
     async getData(req, res) {
@@ -105,9 +105,9 @@ class FornecedorController {
                     item.itens = resultItem
                 }
 
-                // Observação e resultado
+                // Observação e status
                 const sqlOtherInformations = `
-                SELECT obs, resultado
+                SELECT obs, status
                 FROM fornecedor
                 WHERE fornecedorID = ?`
                 const [resultOtherInformations] = await db.promise().query(sqlOtherInformations, [id])
@@ -120,7 +120,7 @@ class FornecedorController {
                     blocos: resultBlocos,
                     info: {
                         obs: resultOtherInformations[0].obs,
-                        resultado: resultOtherInformations[0].resultado,
+                        status: resultOtherInformations[0].status,
                     }
                 }
 
@@ -244,6 +244,12 @@ class FornecedorController {
                     }
                 }
             }
+
+            // Observação
+            const sqlUpdateObs = `UPDATE fornecedor SET obs = ?, status = ? WHERE fornecedorID = ?`
+            const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, data.status, id])
+            if (resultUpdateObs.length === 0) { res.status(500).json('Error'); }
+
         }
 
         console.log('Até aqui ok!')
