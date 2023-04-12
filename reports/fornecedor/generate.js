@@ -36,6 +36,29 @@ async function reportFornecedor(req, res) {
     }
 
     const [blocos] = await db.promise().query(`SELECT * FROM par_fornecedor_bloco a WHERE a.unidadeID = ? `, [unidadeID]);
+    const resultBlocos = []
+    for (let i = 0; i < blocos.length; i++) {
+        const [resultTemp] = await db.promise().query(`
+            SELECT a.*, b.*,
+                (SELECT fr.resposta 
+                    FROM fornecedor_resposta fr 
+                WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = a.parFornecedorBlocoID AND fr.itemID = a.itemID) AS resposta,
+                (SELECT fr.obs 
+                    FROM fornecedor_resposta fr 
+                WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = a.parFornecedorBlocoID AND fr.itemID = a.itemID) AS obsResposta
+            FROM par_fornecedor_bloco_item a 
+                JOIN item b ON (a.itemID = b.itemID)
+            WHERE a.parFornecedorBlocoID = ? AND a.status = 1
+            ORDER BY a.ordem ASC`, [fornecedorID, fornecedorID, blocos[i].parFornecedorBlocoID]);
+
+        resultBlocos.push({
+            parFornecedorBlocoID: blocos[i].parFornecedorBlocoID,
+            nome: blocos[i].nome,
+            obs: blocos[i].obs,
+            itens: resultTemp
+        });
+    }
+
     const [atividades] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as atividade FROM atividade a  LEFT JOIN fornecedor_atividade b on (a.atividadeID = b.atividadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
     const [sistemaQualidade] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as sistemaQualidade FROM sistemaqualidade a  LEFT JOIN fornecedor_sistemaqualidade b on (a.sistemaQualidadeID = b.sistemaQualidadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
 
@@ -43,7 +66,7 @@ async function reportFornecedor(req, res) {
         const browser = await puppeteer.launch();
         const page = await browser.newPage();
 
-        const html = await generateContent(fornecedorID, unidadeID, blocos, resultData, atividades, sistemaQualidade);
+        const html = await generateContent(fornecedorID, unidadeID, blocos, resultData, atividades, sistemaQualidade, resultBlocos);
         await page.setContent(html);
 
         res.setHeader('Content-Type', 'application/pdf');
