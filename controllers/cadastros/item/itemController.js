@@ -5,7 +5,7 @@ class ItemController {
     getList(req, res) {
         db.query("SELECT itemID AS id, a.nome, a.status, b.nome AS formulario FROM item AS a LEFT JOIN par_formulario b ON (a.parFormularioID = b.parFormularioID) ORDER BY b.parFormularioID ASC, a.itemID ASC", (err, result) => {
             if (err) {
-                res.status(500).json(err);
+                res.status(502).json(err);
             } else {
                 res.status(200).json(result);
             }

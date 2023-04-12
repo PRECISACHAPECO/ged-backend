@@ -46,10 +46,22 @@ async function reportFornecedor(req, res) {
         const html = await generateContent(fornecedorID, unidadeID, blocos, resultData, atividades, sistemaQualidade);
         await page.setContent(html);
 
-        const pdfBuffer = await page.pdf();
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="meu_relatorio.pdf"`);
+
+        const pdfBuffer = await page.pdf({
+            printBackground: true,
+            format: 'A4',
+            margin: {
+                top: '30px',
+                bottom: '20px',
+                left: '50px',
+                right: '50px'
+            }
+        });
         await browser.close();
 
-        res.setHeader('Content-Type', 'application/pdf');
+
         res.send(pdfBuffer);
     } catch (err) {
         console.error(err);
