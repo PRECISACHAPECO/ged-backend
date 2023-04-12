@@ -26,6 +26,4 @@ routes.use(urlBase + '/configuracoes', formularios);
 routes.use(urlBase + '/configuracoes', formularioFornecedor);
 routes.use(urlBase + '/configuracoes', unidade);
 
-
-
 module.exports = routes;

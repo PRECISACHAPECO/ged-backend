@@ -4,13 +4,29 @@ const path = require('path');
 const puppeteer = require('puppeteer');
 const db = require('../../config/db');
 
+
+const http = require('http');
+const url = require('url');
+const querystring = require('querystring');
+
 async function gerarPDF(request, response) {
-    const { fornecedorID, unidadeID } = request.query
+
+
+
+
+    const { pathname, query } = url.parse(request.url);
+
+    console.log(pathname, query)
+    const { unidadeID, fornecedorID } = querystring.parse(query);
+
+    console.log("gerarPDF", fornecedorID, unidadeID)
+
+    // ...
 
 
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto(`http://localhost:3333/fornecedor?fornecedorIDD=${fornecedorID}&unidadeIDD=${unidadeID}`, {
+    await page.goto(`http://localhost:3333/fornecedor?fornecedorID=${fornecedorID}&unidadeID=${unidadeID}`, {
         waitUntil: 'networkidle0'
     });
     const pdf = await page.pdf({
@@ -30,13 +46,14 @@ async function gerarPDF(request, response) {
 
 async function renderizarHTML(request, response) {
     const filePath = path.join(__dirname, "fornecedor.ejs");
-    const unidadeID = 1;
-    const fornecedorID = 1;
+    // const unidadeID = 1;
+    // const fornecedorID = 1;
 
-    const { fornecedorIDD, unidadeIDD } = request.query
+    const { fornecedorID, unidadeID } = request.query
+    console.log("renderizaHTML", fornecedorID, unidadeID)
 
-    console.log("Fixo", fornecedorID, unidadeID);
-    console.log("Query", fornecedorIDD, unidadeIDD);
+
+
 
     try {
         const [colunsFornecedor] = await db.promise().query(`
