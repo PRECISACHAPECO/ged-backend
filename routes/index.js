@@ -25,9 +25,11 @@ routes.use(urlBase + '/cadastros', transportadorRouter);
 // Confifuracoes
 const formularios = require("./configuracoes/formularios/formulariosRoutes");
 const formularioFornecedor = require("./configuracoes/formularios/fornecedor/fornecedorRoutes");
+const formularioRecebimentoMp = require("./configuracoes/formularios/recebimentoMp/recebimentoMpRoutes");
 const unidade = require("./configuracoes/unidade/unidadeRoutes");
 routes.use(urlBase + '/configuracoes', formularios);
 routes.use(urlBase + '/configuracoes', formularioFornecedor);
+routes.use(urlBase + '/configuracoes', formularioRecebimentoMp);
 routes.use(urlBase + '/configuracoes', unidade);
 
 module.exports = routes;

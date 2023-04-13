@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 13-Abr-2023 às 13:52
+-- Tempo de geração: 13-Abr-2023 às 23:04
 -- Versão do servidor: 10.4.22-MariaDB
 -- versão do PHP: 7.4.27
 
@@ -76,6 +76,28 @@ INSERT INTO `alternativa_item` (`alternativaItemID`, `alternativaID`, `nome`) VA
 -- --------------------------------------------------------
 
 --
+-- Estrutura da tabela `apresentacao`
+--
+
+CREATE TABLE `apresentacao` (
+  `apresentacaoID` int(11) NOT NULL,
+  `nome` varchar(200) NOT NULL,
+  `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo. 0->Inativo',
+  `dataCadastro` date NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `apresentacao`
+--
+
+INSERT INTO `apresentacao` (`apresentacaoID`, `nome`, `status`, `dataCadastro`) VALUES
+(1, 'Sacos', 1, '2022-09-23'),
+(2, 'Big Bags', 1, '2022-09-23'),
+(3, 'Granel', 1, '2022-09-23');
+
+-- --------------------------------------------------------
+
+--
 -- Estrutura da tabela `atividade`
 --
 
@@ -135,7 +157,7 @@ CREATE TABLE `fornecedor` (
 --
 
 INSERT INTO `fornecedor` (`fornecedorID`, `dataAvaliacao`, `cnpj`, `razaoSocial`, `nomeFantasia`, `email`, `telefone`, `brasil`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `pais`, `ie`, `responsavel`, `principaisClientes`, `registroMapa`, `obs`, `unidadeID`, `status`) VALUES
-(1, '1899-11-30', '94.750.797/0001-98', 'Tozzo Alimentos', 'Tozzo Alimentos', 'contato@tozzo.com.br', '', 0, 'aa', 'Rua Minas Gerais', 'aa33aa444', 'Sala 206', 'aa233', 'quilombo555', 'SC', 'Brasil', '545787824', 'aa', 'aa', 0, '', 1, 0);
+(1, '1899-11-30', '4545454545454545', 'Tozzo Alimentos', 'Tozzo Alimentos', 'contato@tozzo.com.br', '', 0, 'aa', 'Rua Minas Gerais', 'aa33aa444', 'Sala 206', 'aa233', 'quilombo555', 'SC', 'Brasil', '545787824', 'aa', 'aa', 0, '', 1, 0);
 
 -- --------------------------------------------------------
 
@@ -245,8 +267,8 @@ CREATE TABLE `par_formulario` (
 --
 
 INSERT INTO `par_formulario` (`parFormularioID`, `nome`, `tabela`, `obs`) VALUES
-(1, 'Fornecedor', 'par_fornecedor', ''),
-(2, 'Recepção', 'par_recepcao', NULL),
+(1, 'Fornecedor', 'par_fornecedor', NULL),
+(2, 'Recebimento MP', 'par_recebimentomp', NULL),
 (3, 'Não Conformidade', 'par_naoconformidade', NULL);
 
 -- --------------------------------------------------------
@@ -396,7 +418,194 @@ INSERT INTO `par_fornecedor_unidade` (`parFornecedorUnidadeID`, `parFornecedorID
 (52, 5, 1, 0),
 (53, 6, 1, 0),
 (55, 8, 1, 0),
-(56, 10, 1, 1);
+(56, 10, 1, 1),
+(57, 7, 1, 0),
+(58, 9, 1, 0),
+(59, 11, 1, 0),
+(60, 12, 1, 0),
+(61, 13, 1, 0),
+(62, 14, 1, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `par_recebimentomp`
+--
+
+CREATE TABLE `par_recebimentomp` (
+  `parRecebimentoMpID` int(11) NOT NULL,
+  `ordem` int(11) NOT NULL COMMENT 'Ordem de exibição no formulário',
+  `nomeCampo` varchar(255) NOT NULL,
+  `nomeColuna` varchar(255) NOT NULL,
+  `tipo` varchar(10) NOT NULL,
+  `obs` text DEFAULT NULL COMMENT 'Obs pra desenvolvimento'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `par_recebimentomp`
+--
+
+INSERT INTO `par_recebimentomp` (`parRecebimentoMpID`, `ordem`, `nomeCampo`, `nomeColuna`, `tipo`, `obs`) VALUES
+(1, 1, 'Profissional', 'pessoaID', 'int', NULL),
+(2, 2, 'Tipo de Operação', 'tipoOperacaoID', 'int', NULL),
+(3, 3, 'Data', 'data', 'date', NULL),
+(4, 4, 'NF', 'nf', 'string', NULL),
+(5, 5, 'Fornecedor', 'fornecedorID', 'int', NULL),
+(6, 6, 'Transportador', 'transportadorID', 'int', NULL),
+(7, 7, 'Placa', 'placa', 'string', NULL),
+(8, 8, 'Motorista', 'motorista', 'string', NULL),
+(9, 9, 'Tipo de Veículo', 'tipoVeiculoID', 'int', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `par_recebimentomp_bloco`
+--
+
+CREATE TABLE `par_recebimentomp_bloco` (
+  `parRecebimentoMpBlocoID` int(11) NOT NULL,
+  `ordem` int(11) NOT NULL COMMENT 'Ordem de exibição',
+  `nome` varchar(255) NOT NULL,
+  `obs` int(11) NOT NULL DEFAULT 1 COMMENT '1->Possui obs no bloco, 0->Não possui obs',
+  `unidadeID` int(11) NOT NULL,
+  `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `par_recebimentomp_bloco`
+--
+
+INSERT INTO `par_recebimentomp_bloco` (`parRecebimentoMpBlocoID`, `ordem`, `nome`, `obs`, `unidadeID`, `status`) VALUES
+(1, 1, 'INSPEÇÃO DO VEÍCULO TRANSPORTADOR', 1, 1, 1),
+(2, 2, 'INSPEÇÃO DE PROTEÇÃO DE CARGA', 1, 1, 1),
+(3, 3, 'INSPEÇÃO DOS PRODUTOS', 0, 1, 1),
+(4, 4, 'INSPEÇÃO DE DOCUMENTAÇÃO', 1, 1, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `par_recebimentomp_bloco_item`
+--
+
+CREATE TABLE `par_recebimentomp_bloco_item` (
+  `parRecebimentoMpBlocoItemID` int(11) NOT NULL,
+  `parRecebimentoMpBlocoID` int(11) NOT NULL,
+  `ordem` int(11) NOT NULL,
+  `itemID` int(11) NOT NULL,
+  `alternativaID` int(11) NOT NULL COMMENT 'Forma de resposta no formulário',
+  `obs` int(11) NOT NULL DEFAULT 1 COMMENT '1->Possui obs, 0->Não possui obs',
+  `obrigatorio` int(11) NOT NULL DEFAULT 0 COMMENT '1->Obrigatório, 0->Não obrigatório',
+  `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `par_recebimentomp_bloco_item`
+--
+
+INSERT INTO `par_recebimentomp_bloco_item` (`parRecebimentoMpBlocoItemID`, `parRecebimentoMpBlocoID`, `ordem`, `itemID`, `alternativaID`, `obs`, `obrigatorio`, `status`) VALUES
+(1, 1, 1, 1, 1, 0, 1, 1),
+(2, 2, 200, 3, 5, 1, 1, 1),
+(3, 1, 99, 2, 6, 1, 0, 1),
+(5, 3, 1, 5, 1, 1, 0, 1),
+(6, 1, 4, 4, 5, 1, 1, 1),
+(7, 1, 3, 3, 4, 1, 1, 1),
+(8, 4, 5, 12, 5, 0, 1, 1),
+(9, 2, 2, 4, 4, 1, 1, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `par_recebimentomp_produto`
+--
+
+CREATE TABLE `par_recebimentomp_produto` (
+  `parRecebimentoMpProdutoID` int(11) NOT NULL,
+  `ordem` int(11) NOT NULL,
+  `nomeCampo` varchar(255) NOT NULL,
+  `nomeColuna` varchar(255) NOT NULL,
+  `tipo` varchar(10) NOT NULL,
+  `obs` text DEFAULT NULL COMMENT 'Obs pra desenvolvimento'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `par_recebimentomp_produto`
+--
+
+INSERT INTO `par_recebimentomp_produto` (`parRecebimentoMpProdutoID`, `ordem`, `nomeCampo`, `nomeColuna`, `tipo`, `obs`) VALUES
+(1, 1, 'Produto', 'produtoID', 'int', NULL),
+(2, 2, 'Apresentação', 'apresentacaoID', 'int', NULL),
+(3, 3, 'Quantidade', 'quantidade', 'float', NULL),
+(4, 4, 'Possui Laudo?', 'possuiLaudo', 'checkbox', '');
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `par_recebimentomp_produto_unidade`
+--
+
+CREATE TABLE `par_recebimentomp_produto_unidade` (
+  `parRecebimentoMpProdutoUnidadeID` int(11) NOT NULL,
+  `parRecebimentoMpProdutoID` int(11) NOT NULL,
+  `unidadeID` int(11) NOT NULL,
+  `obrigatorio` int(11) NOT NULL DEFAULT 0 COMMENT '1->Obrigatório, 0->Não obrigatório'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `par_recebimentomp_produto_unidade`
+--
+
+INSERT INTO `par_recebimentomp_produto_unidade` (`parRecebimentoMpProdutoUnidadeID`, `parRecebimentoMpProdutoID`, `unidadeID`, `obrigatorio`) VALUES
+(1, 1, 1, 1),
+(4, 2, 1, 0),
+(5, 3, 1, 0),
+(6, 4, 1, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `par_recebimentomp_unidade`
+--
+
+CREATE TABLE `par_recebimentomp_unidade` (
+  `parRecebimentoMpUnidadeID` int(11) NOT NULL,
+  `parRecebimentoMpID` int(11) NOT NULL,
+  `unidadeID` int(11) NOT NULL,
+  `obrigatorio` int(11) NOT NULL DEFAULT 0 COMMENT '1->Obrigatório, 0->Não obrigatório'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `par_recebimentomp_unidade`
+--
+
+INSERT INTO `par_recebimentomp_unidade` (`parRecebimentoMpUnidadeID`, `parRecebimentoMpID`, `unidadeID`, `obrigatorio`) VALUES
+(4, 5, 1, 1),
+(5, 3, 1, 1),
+(6, 4, 1, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `produto`
+--
+
+CREATE TABLE `produto` (
+  `produtoID` int(11) NOT NULL,
+  `nome` varchar(200) NOT NULL,
+  `unidadeMedida` varchar(20) DEFAULT NULL,
+  `unidadeID` int(11) NOT NULL,
+  `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo. 0->Inativo',
+  `dataCadastro` date NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `produto`
+--
+
+INSERT INTO `produto` (`produtoID`, `nome`, `unidadeMedida`, `unidadeID`, `status`, `dataCadastro`) VALUES
+(1, 'Soja', 'Kg', 1, 1, '2022-09-23'),
+(2, 'Milho', 'Kg', 1, 1, '2022-09-23'),
+(3, 'Potássio', 'Kg', 1, 1, '2022-09-23'),
+(4, 'Trigo', 'Kg', 1, 1, '2022-09-23');
 
 -- --------------------------------------------------------
 
@@ -455,7 +664,7 @@ CREATE TABLE `transportador` (
   `nome` varchar(200) NOT NULL,
   `unidadeID` int(11) NOT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo. 0->Inativo',
-  `dataCadastro` date NOT NULL
+  `dataCadastro` date NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -464,7 +673,8 @@ CREATE TABLE `transportador` (
 
 INSERT INTO `transportador` (`transportadorID`, `nome`, `unidadeID`, `status`, `dataCadastro`) VALUES
 (1, 'Lunardi', 1, 1, '2022-09-23'),
-(2, 'Tozzo', 1, 1, '2022-09-23');
+(2, 'Tozzo', 1, 1, '2022-09-23'),
+(4, 'Express', 2, 1, '2023-04-13');
 
 -- --------------------------------------------------------
 
@@ -541,6 +751,12 @@ ALTER TABLE `alternativa_item`
   ADD PRIMARY KEY (`alternativaItemID`);
 
 --
+-- Índices para tabela `apresentacao`
+--
+ALTER TABLE `apresentacao`
+  ADD PRIMARY KEY (`apresentacaoID`);
+
+--
 -- Índices para tabela `atividade`
 --
 ALTER TABLE `atividade`
@@ -613,6 +829,48 @@ ALTER TABLE `par_fornecedor_unidade`
   ADD PRIMARY KEY (`parFornecedorUnidadeID`);
 
 --
+-- Índices para tabela `par_recebimentomp`
+--
+ALTER TABLE `par_recebimentomp`
+  ADD PRIMARY KEY (`parRecebimentoMpID`);
+
+--
+-- Índices para tabela `par_recebimentomp_bloco`
+--
+ALTER TABLE `par_recebimentomp_bloco`
+  ADD PRIMARY KEY (`parRecebimentoMpBlocoID`);
+
+--
+-- Índices para tabela `par_recebimentomp_bloco_item`
+--
+ALTER TABLE `par_recebimentomp_bloco_item`
+  ADD PRIMARY KEY (`parRecebimentoMpBlocoItemID`);
+
+--
+-- Índices para tabela `par_recebimentomp_produto`
+--
+ALTER TABLE `par_recebimentomp_produto`
+  ADD PRIMARY KEY (`parRecebimentoMpProdutoID`);
+
+--
+-- Índices para tabela `par_recebimentomp_produto_unidade`
+--
+ALTER TABLE `par_recebimentomp_produto_unidade`
+  ADD PRIMARY KEY (`parRecebimentoMpProdutoUnidadeID`);
+
+--
+-- Índices para tabela `par_recebimentomp_unidade`
+--
+ALTER TABLE `par_recebimentomp_unidade`
+  ADD PRIMARY KEY (`parRecebimentoMpUnidadeID`);
+
+--
+-- Índices para tabela `produto`
+--
+ALTER TABLE `produto`
+  ADD PRIMARY KEY (`produtoID`);
+
+--
 -- Índices para tabela `sistemaqualidade`
 --
 ALTER TABLE `sistemaqualidade`
@@ -657,6 +915,12 @@ ALTER TABLE `alternativa`
 --
 ALTER TABLE `alternativa_item`
   MODIFY `alternativaItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT de tabela `apresentacao`
+--
+ALTER TABLE `apresentacao`
+  MODIFY `apresentacaoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de tabela `atividade`
@@ -728,25 +992,67 @@ ALTER TABLE `par_fornecedor_bloco_item`
 -- AUTO_INCREMENT de tabela `par_fornecedor_unidade`
 --
 ALTER TABLE `par_fornecedor_unidade`
-  MODIFY `parFornecedorUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
+  MODIFY `parFornecedorUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
+
+--
+-- AUTO_INCREMENT de tabela `par_recebimentomp`
+--
+ALTER TABLE `par_recebimentomp`
+  MODIFY `parRecebimentoMpID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+
+--
+-- AUTO_INCREMENT de tabela `par_recebimentomp_bloco`
+--
+ALTER TABLE `par_recebimentomp_bloco`
+  MODIFY `parRecebimentoMpBlocoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT de tabela `par_recebimentomp_bloco_item`
+--
+ALTER TABLE `par_recebimentomp_bloco_item`
+  MODIFY `parRecebimentoMpBlocoItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+
+--
+-- AUTO_INCREMENT de tabela `par_recebimentomp_produto`
+--
+ALTER TABLE `par_recebimentomp_produto`
+  MODIFY `parRecebimentoMpProdutoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT de tabela `par_recebimentomp_produto_unidade`
+--
+ALTER TABLE `par_recebimentomp_produto_unidade`
+  MODIFY `parRecebimentoMpProdutoUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT de tabela `par_recebimentomp_unidade`
+--
+ALTER TABLE `par_recebimentomp_unidade`
+  MODIFY `parRecebimentoMpUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT de tabela `produto`
+--
+ALTER TABLE `produto`
+  MODIFY `produtoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de tabela `sistemaqualidade`
 --
 ALTER TABLE `sistemaqualidade`
-  MODIFY `sistemaQualidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `sistemaQualidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de tabela `tipoveiculo`
 --
 ALTER TABLE `tipoveiculo`
-  MODIFY `tipoVeiculoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `tipoVeiculoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de tabela `transportador`
 --
 ALTER TABLE `transportador`
-  MODIFY `transportadorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `transportadorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de tabela `unidade`
