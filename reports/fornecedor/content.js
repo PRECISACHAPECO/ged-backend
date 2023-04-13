@@ -1,18 +1,12 @@
 async function generateContent(
-    fornecedorID,
-    unidadeID,
-    blocos,
-    resultData,
-    atividades,
-    sistemaQualidade,
-    resultBlocos
+  resultData,
+  atividades,
+  sistemaQualidade,
+  resultBlocos
 ) {
-    let html = `
+  let html = `
     <html>
       <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Questionário de Auto Avaliação do Fornecedor</title>
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css"
@@ -34,85 +28,89 @@ async function generateContent(
           }
         </style>
       </head>
-      <body>
-        <!-- Cabeçalho -->
-        <h1 class="text-lg font-bold text-center bg-red-600">
+      <body>`;
+  //  Cabeçalho 
+  html += `
+        <h1 class="text-lg font-bold text-center">
           QUESTIONÁRIO DE AUTO AVALIAÇÃO DO FORNECEDOR
         </h1>
 
         <div class="divider mt-10"></div>
         <div class="grid grid-cols-3 padding">`;
 
-    let contador = 0;
-    resultData.forEach((row, i) => {
-        if (contador % 3 === 0 && contador > 0) {
-            html += `
+  let contador = 0;
+  resultData.forEach((row) => {
+    if (contador % 3 === 0 && contador > 0) {
+      html += `
         </div>
         <div class="divider"></div>
         <div class="grid grid-cols-3 padding">`;
-        }
-        html += `
-        <div class="pt-1 col-span-1">
-          <p class="fontBaseTitle">${row.title}</p>
-          <p class="fontBase">${row.value}</p>
-        </div>`;
-        contador++;
-    });
-
+    }
     html += `
+          <div class="pt-1 col-span-1">
+            <p class="fontBaseTitle">${row.title}</p>
+            <p class="fontBase">${row.value}</p>
+          </div>`;
+    contador++;
+  });
+
+  // Fecha laço dos dados dinamicos do fornecedor
+  html += `
         </div>
-      
+
         <div class="divider"></div>
-    <div class="grid grid-cols-1 padding">
-      <div class="pt-1">
-        <p class="fontBaseTitle">Atividades</p>
-        <p class="fontBase"> ${atividades[0].atividade}</p>
-      </div>
-    </div>
-    <div class="divider"></div>
-    <div class="grid grid-cols-1 padding">
-      <div class="pt-1">
-        <p class="fontBaseTitle">Sistemas de qualidade</p>
-        <p class="fontBase"> ${sistemaQualidade[0].sistemaQualidade}</p>
-      </div>
-    </div>`;
+        <div class="grid grid-cols-1 padding">
+          <div class="pt-1">
+            <p class="fontBaseTitle">Atividades</p>
+            <p class="fontBase"> ${atividades[0].atividade}</p>
+          </div>
+        </div>
 
+          <div class="divider"></div>
+          <div class="grid grid-cols-1 padding">
+            <div class="pt-1">
+              <p class="fontBaseTitle">Sistemas de qualidade</p>
+              <p class="fontBase"> ${sistemaQualidade[0].sistemaQualidade}</p>
+            </div>
+          </div>
+        </div>`;
 
-    //  Tabela com os blocos 
-    resultBlocos.forEach((row, i) => {
-        html += ` <table class="table-auto w-full mt-4">
+  //  Tabela com os blocos
+  resultBlocos.forEach((bloco) => {
+    html += `
+        <table class="table-auto w-full mt-4">
           <thead>
             <tr class="bg-gray-100">
-              <th class="border px-2 py-2 fontBaseTitle text-left">
-                < row.nome 
-              </th>
+              <th class="border px-2 py-2 fontBaseTitle text-left">${bloco.nome}</th>
               <th class="border px-2 py-2 fontBaseTitle">Resposta</th>
               <th class="border px-2 py-2 fontBaseTitle">Observações</th>
             </tr>
           </thead>
           <tbody>`;
-        //  Itens dos blocos 
-        row.itens.forEach((item, i) => {
-            html += ` <tr>
-              <td class="border px-2 py-2 text-xs">${item.nome}</td>
-              <td class="border px-2 py-2 text-xs">${item.resposta}</td>
-              <td class="border px-2 py-2 text-xs">${item.obsResposta}</td>
+    //  Itens dos blocos
+    bloco.itens.forEach((item) => {
+      html += `
+            <tr>
+              <td class="border px-2 py-2 text-xs"><span class="opacity-80">${item.ordem} - </span>${item.nome}</td>
+              <td class="border px-2 py-2 text-xs">${item.resposta ? item.resposta : '--'}</td>
+              <td class="border px-2 py-2 text-xs">${item.obsResposta ? item.obsResposta : '--'}</td>
             </tr>`;
-        });
-        html += ` </tbody>
-        </table>`;
     });
+    html += ` 
+          </tbody>
+        </table>`;
+  });
+  html += `
+        `;
 
-
-
-
-
-
-    html += ` </body>
+  // Assinatura Rodapé
+  html += `
+        <p class="text-center mx-auto mt-28 w-3/6" style="border-top: 1px solid black">Assinatura do profissional</p>
+      </body>
     </html>
   `;
-
-    return html;
+  // Retorna os dados em html para serem renderizados no pdf pelo puppeteer no arquivo generate.js
+  return html;
 }
 
-module.exports = { generateContent };
+module.exports = { generateContent, };

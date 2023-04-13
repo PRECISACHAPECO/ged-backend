@@ -1,5 +1,6 @@
 const express = require('express');
 const routerReports = express.Router();
+const urlBase = '/api';
 
 // Fornecedor
 const { reportFornecedor } = require('../reports/fornecedor/generate');

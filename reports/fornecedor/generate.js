@@ -39,17 +39,26 @@ async function reportFornecedor(req, res) {
     const resultBlocos = []
     for (let i = 0; i < blocos.length; i++) {
         const [resultTemp] = await db.promise().query(`
-            SELECT a.*, b.*,
-                (SELECT fr.resposta 
-                    FROM fornecedor_resposta fr 
-                WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = a.parFornecedorBlocoID AND fr.itemID = a.itemID) AS resposta,
-                (SELECT fr.obs 
-                    FROM fornecedor_resposta fr 
-                WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = a.parFornecedorBlocoID AND fr.itemID = a.itemID) AS obsResposta
-            FROM par_fornecedor_bloco_item a 
-                JOIN item b ON (a.itemID = b.itemID)
-            WHERE a.parFornecedorBlocoID = ? AND a.status = 1
-            ORDER BY a.ordem ASC`, [fornecedorID, fornecedorID, blocos[i].parFornecedorBlocoID]);
+        SELECT 
+            a.*, b.*,
+            case 
+                when (SELECT al.nome
+                FROM alternativa al 
+            WHERE al.alternativaID = a.alternativaID) = 'Data' 
+            then (SELECT DATE_FORMAT(fr.resposta, '%d/%m/%Y') 
+                FROM fornecedor_resposta fr 
+            WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = a.parFornecedorBlocoID AND fr.itemID = a.itemID)
+            else  (SELECT fr.resposta 
+                FROM fornecedor_resposta fr 
+            WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = a.parFornecedorBlocoID AND fr.itemID = a.itemID)
+            END as resposta,
+            (SELECT fr.obs 
+                FROM fornecedor_resposta fr 
+            WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = a.parFornecedorBlocoID AND fr.itemID = a.itemID) AS obsResposta
+        FROM par_fornecedor_bloco_item a 
+            JOIN item b ON (a.itemID = b.itemID)
+        WHERE a.parFornecedorBlocoID = ? AND a.status = 1
+        ORDER BY a.ordem ASC`, [fornecedorID, fornecedorID, fornecedorID, blocos[i].parFornecedorBlocoID]);
 
         resultBlocos.push({
             parFornecedorBlocoID: blocos[i].parFornecedorBlocoID,
@@ -66,7 +75,7 @@ async function reportFornecedor(req, res) {
         const browser = await puppeteer.launch();
         const page = await browser.newPage();
 
-        const html = await generateContent(fornecedorID, unidadeID, blocos, resultData, atividades, sistemaQualidade, resultBlocos);
+        const html = await generateContent(resultData, atividades, sistemaQualidade, resultBlocos);
         await page.setContent(html);
 
         res.setHeader('Content-Type', 'application/pdf');
