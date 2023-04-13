@@ -6,9 +6,9 @@ const urlBase = '/api'
 const auth = require("./auth/authRoutes");
 routes.use(urlBase + '/', auth);
 
-// Pop-01
-const fornecedorRouter = require("./pop01/fornecedor/fornecedorRoutes");
-routes.use(urlBase + '/pop01', fornecedorRouter);
+// Fornecedor
+const fornecedorRouter = require("./fornecedor/fornecedorRoutes");
+routes.use(urlBase, fornecedorRouter);
 
 // Cadastros 
 const atividadeRouter = require("./cadastros/atividade/atividadeRoutes");

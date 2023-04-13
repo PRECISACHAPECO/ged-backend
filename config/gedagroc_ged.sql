@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 05-Abr-2023 às 13:12
+-- Tempo de geração: 13-Abr-2023 às 13:52
 -- Versão do servidor: 10.4.22-MariaDB
 -- versão do PHP: 7.4.27
 
@@ -125,16 +125,17 @@ CREATE TABLE `fornecedor` (
   `responsavel` varchar(255) DEFAULT NULL COMMENT 'Nome do fornecedor\r\nresponsável pelo preenchimento',
   `principaisClientes` varchar(255) DEFAULT NULL,
   `registroMapa` int(11) DEFAULT 0 COMMENT '1->Sim, 0->Não',
+  `obs` text DEFAULT NULL COMMENT 'Obs do formulário',
   `unidadeID` int(11) NOT NULL,
-  `status` int(11) NOT NULL DEFAULT 1
+  `status` int(11) NOT NULL DEFAULT 10 COMMENT '10->Pendente (fornecedor não preencheu ainda)\r\n20->Acessou o link\r\n30->Em preenchimento (já salvou)\r\n40->Fornecedor concluiu preenchimento\r\n50->Reprovado\r\n60->Aprovado Parcial\r\n70->Aprovado\r\n'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Extraindo dados da tabela `fornecedor`
 --
 
-INSERT INTO `fornecedor` (`fornecedorID`, `dataAvaliacao`, `cnpj`, `razaoSocial`, `nomeFantasia`, `email`, `telefone`, `brasil`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `pais`, `ie`, `responsavel`, `principaisClientes`, `registroMapa`, `unidadeID`, `status`) VALUES
-(1, '1899-11-30', '62.159.265/0001-94', 'BRF Alimentos', 'abcdsds', 'brf@brf.com.br', '(49) 3322-0587', 0, '89.801-200', 'Rua Minas Gerais', '533E', 'Sala 206', 'Presidente Médici', 'quilombo555', 'SC', 'Brasil', '545787824', 'aaasdds', 'Nostra Casa, Santa Maria e Fenix', 1, 1, 1);
+INSERT INTO `fornecedor` (`fornecedorID`, `dataAvaliacao`, `cnpj`, `razaoSocial`, `nomeFantasia`, `email`, `telefone`, `brasil`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `pais`, `ie`, `responsavel`, `principaisClientes`, `registroMapa`, `obs`, `unidadeID`, `status`) VALUES
+(1, '1899-11-30', '94.750.797/0001-98', 'Tozzo Alimentos', 'Tozzo Alimentos', 'contato@tozzo.com.br', '', 0, 'aa', 'Rua Minas Gerais', 'aa33aa444', 'Sala 206', 'aa233', 'quilombo555', 'SC', 'Brasil', '545787824', 'aa', 'aa', 0, '', 1, 0);
 
 -- --------------------------------------------------------
 
@@ -155,7 +156,33 @@ CREATE TABLE `fornecedor_atividade` (
 INSERT INTO `fornecedor_atividade` (`fornecedorAtividadeID`, `fornecedorID`, `atividadeID`) VALUES
 (1, 1, 1),
 (2, 1, 3),
-(3, 1, 4);
+(4, 1, 6);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `fornecedor_resposta`
+--
+
+CREATE TABLE `fornecedor_resposta` (
+  `fornecedorRespostaID` int(11) NOT NULL,
+  `fornecedorID` int(11) NOT NULL,
+  `parFornecedorBlocoID` int(11) NOT NULL COMMENT 'ID do bloco',
+  `itemID` int(11) NOT NULL,
+  `resposta` varchar(255) NOT NULL COMMENT 'Descrição da resposta',
+  `respostaID` int(11) NOT NULL COMMENT 'Se for resposta selecionável, guarda ID do alternativa_item',
+  `obs` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `fornecedor_resposta`
+--
+
+INSERT INTO `fornecedor_resposta` (`fornecedorRespostaID`, `fornecedorID`, `parFornecedorBlocoID`, `itemID`, `resposta`, `respostaID`, `obs`) VALUES
+(1, 1, 1, 2, '1992-01-27T19:57:16.531Z', 0, ''),
+(2, 1, 1, 4, 'Não Conforme', 4, 'NC'),
+(3, 1, 1, 12, 'New desc...', 0, ''),
+(4, 1, 1, 3, '', 0, 'só obs uppp');
 
 -- --------------------------------------------------------
 
@@ -174,8 +201,7 @@ CREATE TABLE `fornecedor_sistemaqualidade` (
 --
 
 INSERT INTO `fornecedor_sistemaqualidade` (`fornecedorSistemaQualidadeID`, `fornecedorID`, `sistemaQualidadeID`) VALUES
-(1, 1, 1),
-(2, 1, 3);
+(1, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -186,6 +212,7 @@ INSERT INTO `fornecedor_sistemaqualidade` (`fornecedorSistemaQualidadeID`, `forn
 CREATE TABLE `item` (
   `itemID` int(11) NOT NULL,
   `nome` varchar(255) NOT NULL,
+  `parFormularioID` int(11) NOT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -193,11 +220,12 @@ CREATE TABLE `item` (
 -- Extraindo dados da tabela `item`
 --
 
-INSERT INTO `item` (`itemID`, `nome`, `status`) VALUES
-(1, 'Os colaboradores receberam treinamento em BPF - Boas Práticas de Fabricação?', 1),
-(2, 'É realizada conscientização dos colaboradores sobre higiene pessoal?', 1),
-(3, 'Os colaboradores utilizam uniformes apropriados, limpos e em bom estado de conservação?', 1),
-(4, 'Existe local, produtos e materiais apropriados para desinfecção das mãos?', 1);
+INSERT INTO `item` (`itemID`, `nome`, `parFormularioID`, `status`) VALUES
+(1, 'Os colaboradores receberam treinamento em BPF - Boas Práticas de Fabricação?', 3, 1),
+(2, 'É realizada conscientização dos colaboradores sobre higiene pessoal?', 1, 1),
+(3, 'Os colaboradores utilizam uniformes apropriados, limpos e em bom estado de conservação?', 1, 1),
+(4, 'Existe local, produtos e materiais apropriados para desinfecção das mãos?', 1, 1),
+(12, 'Qual a metade de 2 + 2 ?', 1, 1);
 
 -- --------------------------------------------------------
 
@@ -280,8 +308,8 @@ CREATE TABLE `par_fornecedor_bloco` (
 --
 
 INSERT INTO `par_fornecedor_bloco` (`parFornecedorBlocoID`, `ordem`, `nome`, `obs`, `unidadeID`, `status`) VALUES
-(1, 2, 'aaa', 1, 1, 1),
-(2, 2, 'Itens avaliados', 1, 1, 1),
+(1, 2, 'Itens Avaliados Novo', 1, 1, 1),
+(2, 2, 'Itens avaliados 2', 1, 1, 1),
 (3, 1, 'Itens Avaliados uni 2', 1, 2, 1);
 
 -- --------------------------------------------------------
@@ -329,12 +357,14 @@ CREATE TABLE `par_fornecedor_bloco_item` (
 --
 
 INSERT INTO `par_fornecedor_bloco_item` (`parFornecedorBlocoItemID`, `parFornecedorBlocoID`, `ordem`, `itemID`, `alternativaID`, `obs`, `obrigatorio`, `status`) VALUES
-(1, 1, 1, 1, 1, 1, 1, 1),
+(1, 1, 1, 1, 1, 0, 1, 1),
 (2, 2, 200, 3, 5, 1, 1, 1),
 (3, 1, 99, 2, 6, 1, 0, 1),
 (5, 3, 1, 5, 1, 1, 0, 1),
 (6, 1, 4, 4, 5, 1, 1, 1),
-(7, 1, 3, 3, 4, 1, 1, 1);
+(7, 1, 3, 3, 4, 1, 1, 1),
+(8, 1, 5, 12, 5, 0, 1, 1),
+(9, 2, 2, 4, 4, 1, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -365,7 +395,8 @@ INSERT INTO `par_fornecedor_unidade` (`parFornecedorUnidadeID`, `parFornecedorID
 (51, 4, 1, 0),
 (52, 5, 1, 0),
 (53, 6, 1, 0),
-(54, 11, 1, 1);
+(55, 8, 1, 0),
+(56, 10, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -389,6 +420,51 @@ INSERT INTO `sistemaqualidade` (`sistemaQualidadeID`, `nome`, `status`) VALUES
 (3, 'FAMI\'QS', 1),
 (4, 'ISO 9001', 1),
 (5, 'FSC22000', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `tipoveiculo`
+--
+
+CREATE TABLE `tipoveiculo` (
+  `tipoVeiculoID` int(11) NOT NULL,
+  `nome` varchar(200) NOT NULL,
+  `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo. 0->Inativo',
+  `dataCadastro` date NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `tipoveiculo`
+--
+
+INSERT INTO `tipoveiculo` (`tipoVeiculoID`, `nome`, `status`, `dataCadastro`) VALUES
+(1, 'Carroceria', 1, '2022-09-23'),
+(2, 'Graneleiro', 1, '2022-09-23'),
+(3, 'Sider', 1, '2022-09-23'),
+(4, 'Tanque', 1, '2022-09-23');
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `transportador`
+--
+
+CREATE TABLE `transportador` (
+  `transportadorID` int(11) NOT NULL,
+  `nome` varchar(200) NOT NULL,
+  `unidadeID` int(11) NOT NULL,
+  `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo. 0->Inativo',
+  `dataCadastro` date NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `transportador`
+--
+
+INSERT INTO `transportador` (`transportadorID`, `nome`, `unidadeID`, `status`, `dataCadastro`) VALUES
+(1, 'Lunardi', 1, 1, '2022-09-23'),
+(2, 'Tozzo', 1, 1, '2022-09-23');
 
 -- --------------------------------------------------------
 
@@ -483,6 +559,12 @@ ALTER TABLE `fornecedor_atividade`
   ADD PRIMARY KEY (`fornecedorAtividadeID`);
 
 --
+-- Índices para tabela `fornecedor_resposta`
+--
+ALTER TABLE `fornecedor_resposta`
+  ADD PRIMARY KEY (`fornecedorRespostaID`);
+
+--
 -- Índices para tabela `fornecedor_sistemaqualidade`
 --
 ALTER TABLE `fornecedor_sistemaqualidade`
@@ -537,6 +619,18 @@ ALTER TABLE `sistemaqualidade`
   ADD PRIMARY KEY (`sistemaQualidadeID`);
 
 --
+-- Índices para tabela `tipoveiculo`
+--
+ALTER TABLE `tipoveiculo`
+  ADD PRIMARY KEY (`tipoVeiculoID`);
+
+--
+-- Índices para tabela `transportador`
+--
+ALTER TABLE `transportador`
+  ADD PRIMARY KEY (`transportadorID`);
+
+--
 -- Índices para tabela `unidade`
 --
 ALTER TABLE `unidade`
@@ -580,19 +674,25 @@ ALTER TABLE `fornecedor`
 -- AUTO_INCREMENT de tabela `fornecedor_atividade`
 --
 ALTER TABLE `fornecedor_atividade`
-  MODIFY `fornecedorAtividadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `fornecedorAtividadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT de tabela `fornecedor_resposta`
+--
+ALTER TABLE `fornecedor_resposta`
+  MODIFY `fornecedorRespostaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de tabela `fornecedor_sistemaqualidade`
 --
 ALTER TABLE `fornecedor_sistemaqualidade`
-  MODIFY `fornecedorSistemaQualidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `fornecedorSistemaQualidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de tabela `item`
 --
 ALTER TABLE `item`
-  MODIFY `itemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `itemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT de tabela `par_formulario`
@@ -622,19 +722,31 @@ ALTER TABLE `par_fornecedor_bloco_atividade`
 -- AUTO_INCREMENT de tabela `par_fornecedor_bloco_item`
 --
 ALTER TABLE `par_fornecedor_bloco_item`
-  MODIFY `parFornecedorBlocoItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `parFornecedorBlocoItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT de tabela `par_fornecedor_unidade`
 --
 ALTER TABLE `par_fornecedor_unidade`
-  MODIFY `parFornecedorUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+  MODIFY `parFornecedorUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
 
 --
 -- AUTO_INCREMENT de tabela `sistemaqualidade`
 --
 ALTER TABLE `sistemaqualidade`
   MODIFY `sistemaQualidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT de tabela `tipoveiculo`
+--
+ALTER TABLE `tipoveiculo`
+  MODIFY `tipoVeiculoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT de tabela `transportador`
+--
+ALTER TABLE `transportador`
+  MODIFY `transportadorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de tabela `unidade`

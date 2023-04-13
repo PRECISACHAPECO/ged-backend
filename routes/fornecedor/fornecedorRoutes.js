@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const fornecedorRoutes = Router();
 
-const FornecedorController = require('../../../controllers/pop01/fornecedor/fornecedorController');
+const FornecedorController = require('../../controllers/fornecedor/fornecedorController');
 const fornecedorController = new FornecedorController();
 
 const route = '/fornecedor';
