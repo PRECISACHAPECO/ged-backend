@@ -14,9 +14,13 @@ routes.use(urlBase, fornecedorRouter);
 const atividadeRouter = require("./cadastros/atividade/atividadeRoutes");
 const itemRouter = require("./cadastros/item/itemRoutes");
 const sistemaQualidadeRouter = require("./cadastros/sistemaQualidade/sistemaQualidadeRoutes");
+const tipoVeiculoRouter = require("./cadastros/tipoVeiculo/tipoVeiculoRoutes");
+const transportadorRouter = require("./cadastros/transportador/transportadorRoutes");
 routes.use(urlBase + '/cadastros', atividadeRouter);
 routes.use(urlBase + '/cadastros', itemRouter);
 routes.use(urlBase + '/cadastros', sistemaQualidadeRouter);
+routes.use(urlBase + '/cadastros', tipoVeiculoRouter);
+routes.use(urlBase + '/cadastros', transportadorRouter);
 
 // Confifuracoes
 const formularios = require("./configuracoes/formularios/formulariosRoutes");

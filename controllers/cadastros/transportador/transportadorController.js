@@ -1,9 +1,11 @@
 const db = require('../../../config/db');
 const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 
-class SistemaQualidadeController {
+class TransportadorController {
     getList(req, res) {
-        db.query("SELECT sistemaQualidadeID AS id, nome, status FROM sistemaqualidade", (err, result) => {
+        const { unidadeID } = req.body
+
+        db.query("SELECT transportadorID AS id, nome, status FROM transportador WHERE unidadeID = ?", [unidadeID], (err, result) => {
             if (err) {
                 res.status(500).json(err);
             } else {
@@ -14,7 +16,7 @@ class SistemaQualidadeController {
 
     getData(req, res) {
         const { id } = req.params
-        db.query("SELECT * FROM sistemaqualidade WHERE sistemaQualidadeID = ?", [id], (err, result) => {
+        db.query("SELECT * FROM transportador WHERE transportadorID = ?", [id], (err, result) => {
             if (err) {
                 res.status(500).json(err);
             } else {
@@ -24,8 +26,10 @@ class SistemaQualidadeController {
     }
 
     insertData(req, res) {
-        const { nome } = req.body;
-        db.query("SELECT * FROM sistemaqualidade", (err, result) => {
+        const { nome } = req.body.data;
+        const unidadeID = req.body.unidadeID;
+
+        db.query("SELECT * FROM transportador WHERE unidadeID = ?", [unidadeID], (err, result) => {
             if (err) {
                 console.log(err);
                 res.status(500).json(err);
@@ -34,7 +38,7 @@ class SistemaQualidadeController {
                 if (rows) {
                     res.status(409).json(err);
                 } else {
-                    db.query("INSERT INTO sistemaqualidade (nome) VALUES (?)", [nome], (err, result) => {
+                    db.query("INSERT INTO transportador (nome, unidadeID) VALUES (?, ?)", [nome, unidadeID], (err, result) => {
                         if (err) {
                             console.log(err);
                             res.status(500).json(err);
@@ -50,18 +54,18 @@ class SistemaQualidadeController {
     updateData(req, res) {
         const { id } = req.params
         const { nome, status } = req.body
-        db.query("SELECT * FROM sistemaqualidade", (err, result) => {
+        db.query("SELECT * FROM transportador", (err, result) => {
             if (err) {
                 console.log(err);
                 res.status(500).json(err);
             } else {
                 // Verifica se já existe um registro com o mesmo nome e id diferente
-                const rows = result.find(row => row.nome == nome && row.sistemaQualidadeID != id);
+                const rows = result.find(row => row.nome == nome && row.transportadorID != id);
                 if (rows) {
                     res.status(409).json({ message: "Dados já cadastrados!" });
                 } else {
                     // Passou na validação, atualiza os dados
-                    db.query("UPDATE sistemaqualidade SET nome = ?, status = ? WHERE sistemaQualidadeID = ?", [nome, status, id], (err, result) => {
+                    db.query("UPDATE transportador SET nome = ?, status = ? WHERE transportadorID = ?", [nome, status, id], (err, result) => {
                         if (err) {
                             console.log(err);
                             res.status(500).json(err);
@@ -77,8 +81,8 @@ class SistemaQualidadeController {
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'sistemaqualidade',
-            column: 'sistemaQualidadeID'
+            table: 'transportador',
+            column: 'transportadorID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
 
@@ -99,7 +103,6 @@ class SistemaQualidadeController {
                 res.status(500).json(err);
             });
     }
-
 }
 
-module.exports = SistemaQualidadeController;
+module.exports = TransportadorController;

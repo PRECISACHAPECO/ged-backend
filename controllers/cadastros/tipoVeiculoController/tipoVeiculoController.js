@@ -1,9 +1,9 @@
 const db = require('../../../config/db');
 const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 
-class SistemaQualidadeController {
+class TipoVeiculoController {
     getList(req, res) {
-        db.query("SELECT sistemaQualidadeID AS id, nome, status FROM sistemaqualidade", (err, result) => {
+        db.query("SELECT tipoVeiculoID AS id, nome, status FROM tipoveiculo", (err, result) => {
             if (err) {
                 res.status(500).json(err);
             } else {
@@ -14,7 +14,7 @@ class SistemaQualidadeController {
 
     getData(req, res) {
         const { id } = req.params
-        db.query("SELECT * FROM sistemaqualidade WHERE sistemaQualidadeID = ?", [id], (err, result) => {
+        db.query("SELECT * FROM tipoveiculo WHERE tipoVeiculoID = ?", [id], (err, result) => {
             if (err) {
                 res.status(500).json(err);
             } else {
@@ -25,7 +25,7 @@ class SistemaQualidadeController {
 
     insertData(req, res) {
         const { nome } = req.body;
-        db.query("SELECT * FROM sistemaqualidade", (err, result) => {
+        db.query("SELECT * FROM tipoveiculo", (err, result) => {
             if (err) {
                 console.log(err);
                 res.status(500).json(err);
@@ -34,7 +34,7 @@ class SistemaQualidadeController {
                 if (rows) {
                     res.status(409).json(err);
                 } else {
-                    db.query("INSERT INTO sistemaqualidade (nome) VALUES (?)", [nome], (err, result) => {
+                    db.query("INSERT INTO tipoveiculo (nome) VALUES (?)", [nome], (err, result) => {
                         if (err) {
                             console.log(err);
                             res.status(500).json(err);
@@ -50,18 +50,18 @@ class SistemaQualidadeController {
     updateData(req, res) {
         const { id } = req.params
         const { nome, status } = req.body
-        db.query("SELECT * FROM sistemaqualidade", (err, result) => {
+        db.query("SELECT * FROM tipoveiculo", (err, result) => {
             if (err) {
                 console.log(err);
                 res.status(500).json(err);
             } else {
                 // Verifica se já existe um registro com o mesmo nome e id diferente
-                const rows = result.find(row => row.nome == nome && row.sistemaQualidadeID != id);
+                const rows = result.find(row => row.nome == nome && row.tipoVeiculoID != id);
                 if (rows) {
                     res.status(409).json({ message: "Dados já cadastrados!" });
                 } else {
                     // Passou na validação, atualiza os dados
-                    db.query("UPDATE sistemaqualidade SET nome = ?, status = ? WHERE sistemaQualidadeID = ?", [nome, status, id], (err, result) => {
+                    db.query("UPDATE tipoveiculo SET nome = ?, status = ? WHERE tipoVeiculoID = ?", [nome, status, id], (err, result) => {
                         if (err) {
                             console.log(err);
                             res.status(500).json(err);
@@ -77,8 +77,8 @@ class SistemaQualidadeController {
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'sistemaqualidade',
-            column: 'sistemaQualidadeID'
+            table: 'tipoveiculo',
+            column: 'tipoVeiculoID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
 
@@ -99,7 +99,6 @@ class SistemaQualidadeController {
                 res.status(500).json(err);
             });
     }
-
 }
 
-module.exports = SistemaQualidadeController;
+module.exports = TipoVeiculoController;
