@@ -92,8 +92,8 @@ async function generateContent(
       html += `
             <tr>
               <td class="border px-2 py-2 text-xs"><span class="opacity-80">${item.ordem} - </span>${item.nome}</td>
-              <td class="border px-2 py-2 text-xs">${item.resposta ? item.resposta : '--'}</td>
-              <td class="border px-2 py-2 text-xs">${item.obsResposta ? item.obsResposta : '--'}</td>
+              <td class="border px-2 py-2 text-xs">${item.resposta ? item.resposta : ''}</td>
+              <td class="border px-2 py-2 text-xs">${item.obsResposta ? item.obsResposta : ''}</td>
             </tr>`;
     });
     html += ` 
