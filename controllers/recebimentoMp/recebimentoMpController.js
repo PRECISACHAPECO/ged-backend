@@ -96,6 +96,7 @@ class RecebimentoMpController {
                 }
 
                 sqlData = `SELECT ${columns.join(', ')} FROM recebimentomp WHERE recebimentompID = ${id}`;
+
                 let [temp2] = await db.promise().query(sqlData)
                 resultData.push(temp2[0])
 
