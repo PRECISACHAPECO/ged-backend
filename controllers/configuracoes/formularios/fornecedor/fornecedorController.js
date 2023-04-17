@@ -34,7 +34,7 @@ class FornecedorController {
 
             // Obtem as opções pra seleção da listagem dos selects de itens e alternativas
             case 'getOptionsItens':
-                const sqlItem = `SELECT * FROM item ORDER BY nome ASC;`;
+                const sqlItem = `SELECT * FROM item WHERE parFormularioID = 1 ORDER BY nome ASC;`;
                 const sqlAlternativa = `SELECT alternativaID, nome AS alternativa FROM alternativa ORDER BY nome ASC;`;
                 // Montar objeto com os resultados das queries
                 try {
