@@ -10,6 +10,10 @@ routes.use(urlBase + '/', auth);
 const fornecedorRouter = require("./fornecedor/fornecedorRoutes");
 routes.use(urlBase, fornecedorRouter);
 
+// Recebimento de MP
+const recebimentoMpRouter = require("./recebimento-mp/recebimentoMpRoutes");
+routes.use(urlBase, recebimentoMpRouter);
+
 // Cadastros 
 const atividadeRouter = require("./cadastros/atividade/atividadeRoutes");
 const itemRouter = require("./cadastros/item/itemRoutes");

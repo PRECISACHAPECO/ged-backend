@@ -1,14 +1,20 @@
 const db = require('../../config/db');
 const { hasPending, deleteItem } = require('../../config/defaultConfig');
 
-class FornecedorController {
+class RecebimentoMpController {
     async getData(req, res) {
         const functionName = req.headers['function-name'];
         const unidadeID = req.params.id
 
         switch (functionName) {
             case 'getList':
-                db.query("SELECT fornecedorID AS id, cnpj, nome, cidade, estado, telefone, status FROM fornecedor WHERE unidadeID = ?", [unidadeID], (err, result) => {
+                const sqlList = `
+                SELECT rm.recebimentompID AS id, DATE_FORMAT(rm.data, "%d/%m/%Y") AS data, t.nome AS transportador, top.nome AS tipoOperacao, rm.status 
+                FROM recebimentomp AS rm
+                    JOIN transportador AS t ON (rm.transportadorID = t.transportadorID)
+                    JOIN tipooperacao AS top ON (rm.tipoOperacaoID = top.tipoOperacaoID)
+                WHERE rm.unidadeID = ?`
+                db.query(sqlList, [unidadeID], (err, result) => {
                     if (err) { res.status(500).json(err); }
 
                     res.status(200).json(result);
@@ -21,82 +27,130 @@ class FornecedorController {
                 // Fields do header
                 const sqlFields = `
                 SELECT * 
-                FROM par_fornecedor AS pf 
-                    JOIN par_fornecedor_unidade AS pfu ON (pf.parFornecedorID = pfu.parFornecedorID) 
-                WHERE pfu.unidadeID = ? 
-                ORDER BY pf.ordem ASC`
+                FROM par_recebimentomp AS pr 
+                    JOIN par_recebimentomp_unidade AS pru ON (pr.parRecebimentompID = pru.parRecebimentompID) 
+                WHERE pru.unidadeID = ? 
+                ORDER BY pr.ordem ASC`
                 const [resultFields] = await db.promise().query(sqlFields, [unidadeID])
                 if (resultFields.length === 0) { res.status(500).json('Error'); }
 
-                // Varrer result, pegando nomeColuna e inserir em um array 
-                const columns = resultFields.map(row => row.nomeColuna);
+                // Varre fields, verificando se há tipo == 'int', se sim, busca opções pra selecionar no select 
+                for (const alternatives of resultFields) {
+                    if (alternatives.tipo === 'int' && alternatives.tabela) {
+                        // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
+                        let sqlOptions = ``
+                        if (alternatives.tabela == 'fornecedor') {
+                            sqlOptions = `
+                            SELECT fornecedorID AS id, nome AS nome
+                            FROM fornecedor 
+                            WHERE atual = 1 AND status = 70 AND unidadeID = ${unidadeID} 
+                            ORDER BY nome ASC`
+                        } else {
+                            sqlOptions = `
+                            SELECT ${alternatives.tabela}ID AS id, nome
+                            FROM ${alternatives.tabela} 
+                            WHERE status = 1 ${hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                            ORDER BY nome ASC`
+                        }
 
-                // Montar select na tabela fornecedor, onde as colunas do select serão as colunas do array columns
-                const sqlData = `SELECT ${columns.join(', ')} FROM fornecedor WHERE fornecedorID = ?`;
-                const [resultData] = await db.promise().query(sqlData, [id])
-                if (resultData.length === 0) { res.status(500).json('Error'); }
+                        // Executar select e inserir no objeto alternatives
+                        const [resultOptions] = await db.promise().query(sqlOptions)
+                        alternatives.options = resultOptions
 
-                // Atividades 
-                const sqlAtividade = `
-                SELECT a.*, 
-                    (SELECT IF(COUNT(*) > 0, 1, 0)
-                    FROM fornecedor_atividade AS fa 
-                    WHERE fa.atividadeID = a.atividadeID AND fa.fornecedorID = ?) AS checked
-                FROM atividade AS a 
-                ORDER BY a.nome ASC;`
-                const [resultAtividade] = await db.promise().query(sqlAtividade, [id])
-                if (resultAtividade.length === 0) { res.status(500).json('Error'); }
+                        // insere alternative.options in resultFields
+                        // resultFields[resultFields.indexOf(alternatives)] = alternatives
 
-                // Sistemas de qualidade 
-                const sqlSistemaQualidade = `
-                SELECT s.*, 
-                    (SELECT IF(COUNT(*) > 0, 1, 0)
-                    FROM fornecedor_sistemaqualidade AS fs
-                    WHERE fs.sistemaQualidadeID = s.sistemaQualidadeID AND fs.fornecedorID = ?) AS checked
-                FROM sistemaqualidade AS s
-                ORDER BY s.nome ASC;`
-                const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id])
-                if (resultSistemaQualidade.length === 0) { res.status(500).json('Error'); }
+                    }
+                }
+
+                // Varrer result, pegando nomeColuna e inserir em um array se row.tabela == null
+                let columns = []
+                for (const row of resultFields) {
+                    if (!row.tabela) { columns.push(row.nomeColuna) }
+                }
+
+                // varrer resultFields 
+                let sqlData = ``
+                let resultData = []
+                for (const field of resultFields) {
+                    if (field.tabela) {
+                        // Monta objeto pra preencher select 
+                        // Ex.: pessoa:{
+                        //     id: 1,
+                        //     nome: 'Fulano'
+                        // }
+                        sqlData = `
+                        SELECT t.${field.nomeColuna} AS id, t.nome
+                        FROM recebimentomp AS rm 
+                            JOIN ${field.tabela} AS t ON (rm.${field.nomeColuna} = t.${field.nomeColuna}) 
+                        WHERE rm.recebimentompID = ${id}`
+                        let [temp] = await db.promise().query(sqlData)
+                        if (temp) {
+                            let objTemp = {}
+                            objTemp[field.tabela] = temp[0]
+                            resultData.push(objTemp)
+                        }
+
+                        console.log('sqlData: ', sqlData)
+                    }
+                }
+
+                sqlData = `SELECT ${columns.join(', ')} FROM recebimentomp WHERE recebimentompID = ${id}`;
+                let [temp2] = await db.promise().query(sqlData)
+                resultData.push(temp2[0])
+
+                // Montar select na tabela recebimentomp, onde as colunas do select serão as colunas do array columns
+                // if (resultData.length === 0) { res.status(500).json('Error'); }
+
+                // Fields dos Produtos 
+                const sqlFieldsProducts = `
+                SELECT * 
+                FROM par_recebimentomp_produto AS rp 
+                    JOIN par_recebimentomp_produto_unidade AS rpu ON (rp.parRecebimentoMpProdutoID = rpu.parRecebimentoMpProdutoID) 
+                WHERE rpu.unidadeID = ? 
+                ORDER BY rp.ordem ASC`
+                const [resultFieldsProducts] = await db.promise().query(sqlFieldsProducts, [unidadeID])
+                if (resultFieldsProducts.length === 0) { res.status(500).json('Error'); }
 
                 // Blocos 
                 const sqlBlocos = `
                 SELECT * 
-                FROM par_fornecedor_bloco
+                FROM par_recebimentomp_bloco
                 WHERE unidadeID = ? AND status = 1
                 ORDER BY ordem ASC`
                 const [resultBlocos] = await db.promise().query(sqlBlocos, [unidadeID])
 
                 // Itens
                 const sqlItem = `
-                SELECT pfbi.*, i.*, a.nome AS alternativa,
+                SELECT prbi.*, i.*, a.nome AS alternativa,
 
-                    (SELECT fr.respostaID
-                    FROM fornecedor_resposta AS fr 
-                    WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS respostaID,
+                    (SELECT rr.respostaID
+                    FROM recebimentomp_resposta AS rr 
+                    WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID) AS respostaID,
                     
-                    (SELECT fr.resposta
-                    FROM fornecedor_resposta AS fr 
-                    WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS resposta,
+                    (SELECT rr.resposta
+                    FROM recebimentomp_resposta AS rr 
+                    WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID) AS resposta,
 
-                    (SELECT fr.obs
-                    FROM fornecedor_resposta AS fr 
-                    WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS observacao
+                    (SELECT rr.obs
+                    FROM recebimentomp_resposta AS rr 
+                    WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID) AS observacao
 
-                FROM par_fornecedor_bloco_item AS pfbi 
-                    LEFT JOIN item AS i ON (pfbi.itemID = i.itemID)
-                    LEFT JOIN alternativa AS a ON (pfbi.alternativaID = a.alternativaID)
-                WHERE pfbi.parFornecedorBlocoID = ?
-                ORDER BY pfbi.ordem ASC`
+                FROM par_recebimentomp_bloco_item AS prbi 
+                    LEFT JOIN item AS i ON (prbi.itemID = i.itemID)
+                    LEFT JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
+                WHERE prbi.parRecebimentompBlocoID = ?
+                ORDER BY prbi.ordem ASC`
                 for (const item of resultBlocos) {
-                    const [resultItem] = await db.promise().query(sqlItem, [id, id, id, item.parFornecedorBlocoID])
+                    const [resultItem] = await db.promise().query(sqlItem, [id, id, id, item.parRecebimentompBlocoID])
 
                     // Obter alternativas para cada item 
                     const sqlAlternativa = `
                     SELECT *
-                    FROM par_fornecedor_bloco_item AS pfbi 
-                        JOIN alternativa AS a ON (pfbi.alternativaID = a.alternativaID)
+                    FROM par_recebimentomp_bloco_item AS prbi 
+                        JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
                         JOIN alternativa_item AS ai ON (a.alternativaID = ai.alternativaID)
-                    WHERE pfbi.itemID = ?`
+                    WHERE prbi.itemID = ?`
                     for (const item2 of resultItem) {
                         const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.itemID])
                         item2.alternativas = resultAlternativa
@@ -108,15 +162,14 @@ class FornecedorController {
                 // Observação e status
                 const sqlOtherInformations = `
                 SELECT obs, status
-                FROM fornecedor
-                WHERE fornecedorID = ?`
+                FROM recebimentomp
+                WHERE recebimentompID = ?`
                 const [resultOtherInformations] = await db.promise().query(sqlOtherInformations, [id])
 
                 const data = {
                     fields: resultFields,
-                    data: resultData[0],
-                    atividades: resultAtividade,
-                    sistemasQualidade: resultSistemaQualidade,
+                    data: resultData,
+                    resultFieldsProducts: resultFieldsProducts,
                     blocos: resultBlocos,
                     info: {
                         obs: resultOtherInformations[0].obs,
@@ -284,5 +337,8 @@ class FornecedorController {
 
 }
 
+function hasUnidadeID(tabela) {
+    return false
+}
 
-module.exports = FornecedorController;
+module.exports = RecebimentoMpController;

@@ -14,12 +14,12 @@ class RecebimentoMpController {
                 SELECT pr.*, 
                     (SELECT IF(COUNT(*) > 0, 1, 0)
                     FROM par_recebimentomp_unidade AS pru 
-                    WHERE pr.parRecebimentoMpID = pru.parRecebimentoMpID AND pru.unidadeID = ?
+                    WHERE pr.parRecebimentompID = pru.parRecebimentompID AND pru.unidadeID = ?
                     LIMIT 1) AS mostra,
 
                     COALESCE((SELECT pru.obrigatorio
                     FROM par_recebimentomp_unidade AS pru 
-                    WHERE pr.parRecebimentoMpID = pru.parRecebimentoMpID AND pru.unidadeID = ?
+                    WHERE pr.parRecebimentompID = pru.parRecebimentompID AND pru.unidadeID = ?
                     LIMIT 1), 0) AS obrigatorio            
                     
                 FROM par_recebimentomp AS pr
@@ -133,23 +133,23 @@ class RecebimentoMpController {
                     const sql = `
                     SELECT COUNT(*) AS count
                     FROM par_recebimentomp_unidade AS pru
-                    WHERE pru.parRecebimentoMpID = ? AND pru.unidadeID = ?`
+                    WHERE pru.parRecebimentompID = ? AND pru.unidadeID = ?`
                     // Verifica numero de linhas do sql 
-                    db.query(sql, [item.parRecebimentoMpID, unidadeID], (err, result) => {
+                    db.query(sql, [item.parRecebimentompID, unidadeID], (err, result) => {
                         if (err) { res.status(500).json(err); }
                         if (result[0].count == 0) { // Insert 
                             const sql = `
-                            INSERT INTO par_recebimentomp_unidade (parRecebimentoMpID, unidadeID, obrigatorio)
+                            INSERT INTO par_recebimentomp_unidade (parRecebimentompID, unidadeID, obrigatorio)
                             VALUES (?, ?, ?)`
-                            db.query(sql, [item.parRecebimentoMpID, unidadeID, (item.obrigatorio ? 1 : 0)], (err, result) => {
+                            db.query(sql, [item.parRecebimentompID, unidadeID, (item.obrigatorio ? 1 : 0)], (err, result) => {
                                 if (err) { res.status(500).json(err); }
                             });
                         } else { // Update obrigatorio
                             const sql = `
                             UPDATE par_recebimentomp_unidade
                             SET obrigatorio = ?
-                            WHERE parRecebimentoMpID = ? AND unidadeID = ?`
-                            db.query(sql, [(item.obrigatorio ? 1 : 0), item.parRecebimentoMpID, unidadeID], (err, result) => {
+                            WHERE parRecebimentompID = ? AND unidadeID = ?`
+                            db.query(sql, [(item.obrigatorio ? 1 : 0), item.parRecebimentompID, unidadeID], (err, result) => {
                                 if (err) { res.status(500).json(err); }
                             });
                         }
@@ -157,9 +157,9 @@ class RecebimentoMpController {
                 } else { // Deleta
                     const sql = `
                     DELETE FROM par_recebimentomp_unidade
-                    WHERE parRecebimentoMpID = ? AND unidadeID = ?;`
+                    WHERE parRecebimentompID = ? AND unidadeID = ?;`
 
-                    db.query(sql, [item.parRecebimentoMpID, unidadeID], (err, result) => {
+                    db.query(sql, [item.parRecebimentompID, unidadeID], (err, result) => {
                         if (err) { res.status(500).json(err); }
                     })
                 }
