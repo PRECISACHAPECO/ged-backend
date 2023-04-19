@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 17-Abr-2023 às 19:57
+-- Tempo de geração: 19-Abr-2023 às 13:29
 -- Versão do servidor: 10.4.22-MariaDB
 -- versão do PHP: 7.4.27
 
@@ -205,7 +205,8 @@ INSERT INTO `fornecedor_resposta` (`fornecedorRespostaID`, `fornecedorID`, `parF
 (1, 1, 1, 2, '1992-01-27T19:57:16.531Z', 0, ''),
 (2, 1, 1, 4, 'Não Conforme', 4, 'NC'),
 (3, 1, 1, 12, 'New desc...', 0, ''),
-(4, 1, 1, 3, '', 0, 'só obs uppp');
+(4, 1, 1, 3, '', 0, 'só obs uppp'),
+(5, 1, 2, 4, 'Não Conforme', 4, '');
 
 -- --------------------------------------------------------
 
@@ -316,7 +317,7 @@ INSERT INTO `par_fornecedor` (`parFornecedorID`, `ordem`, `nomeCampo`, `nomeColu
 (12, 14, 'Estado', 'estado', 'string', NULL),
 (13, 15, 'País', 'pais', 'string', NULL),
 (14, 17, 'IE', 'ie', 'string', NULL),
-(15, 4, 'Nome fantasia', 'nomeFantasia', 'string', NULL),
+(15, 4, 'Nome fantasia', 'nome', 'string', NULL),
 (16, 7, 'Responsável', 'responsavel', 'string', NULL),
 (17, 18, 'Principais clientes', 'principaisClientes', 'string', NULL),
 (18, 19, 'Registro Mapa', 'registroMapa', 'string', NULL);
@@ -684,7 +685,7 @@ CREATE TABLE `recebimentomp` (
 --
 
 INSERT INTO `recebimentomp` (`recebimentompID`, `pessoaID`, `tipoOperacaoID`, `data`, `dataEdicao`, `dataRevisao`, `nf`, `fornecedorID`, `transportadorID`, `placa`, `motorista`, `tipoVeiculoID`, `obs`, `unidadeID`, `status`, `dataCadastro`) VALUES
-(1, 2, 1, '2023-04-17', '2023-04-17', '2023-04-17', '5454545', 2, 1, 'MKY-4535', 'Leomar Z', 2, 'Obs preenchimento formulário de recebimento de MP..', 1, 10, '2023-04-17');
+(1, 2, 1, '2023-04-17', '2023-04-17', '2023-04-17', '5454545', 1, 1, 'MKY-4535', 'Leomar Z', 2, 'Obs preenchimento formulário de recebimento de MP..', 1, 10, '2023-04-17');
 
 -- --------------------------------------------------------
 
@@ -1084,7 +1085,7 @@ ALTER TABLE `fornecedor_atividade`
 -- AUTO_INCREMENT de tabela `fornecedor_resposta`
 --
 ALTER TABLE `fornecedor_resposta`
-  MODIFY `fornecedorRespostaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `fornecedorRespostaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de tabela `fornecedor_sistemaqualidade`
