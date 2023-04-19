@@ -56,10 +56,6 @@ class RecebimentoMpController {
                         // Executar select e inserir no objeto alternatives
                         const [resultOptions] = await db.promise().query(sqlOptions)
                         alternatives.options = resultOptions
-
-                        // insere alternative.options in resultFields
-                        // resultFields[resultFields.indexOf(alternatives)] = alternatives
-
                     }
                 }
 
@@ -71,7 +67,7 @@ class RecebimentoMpController {
 
                 // varrer resultFields 
                 let sqlData = ``
-                let resultData = []
+                let resultData = {}
                 for (const field of resultFields) {
                     if (field.tabela) {
                         // Monta objeto pra preencher select 
@@ -86,22 +82,19 @@ class RecebimentoMpController {
                         WHERE rm.recebimentompID = ${id}`
                         let [temp] = await db.promise().query(sqlData)
                         if (temp) {
-                            let objTemp = {}
-                            objTemp[field.tabela] = temp[0]
-                            resultData.push(objTemp)
+                            // let objTemp = {}
+                            // objTemp[field.tabela] = temp[0]
+                            // resultData.push(objTemp)
+                            resultData[field.tabela] = temp[0]
                         }
-
-                        console.log('sqlData: ', sqlData)
                     }
                 }
 
                 sqlData = `SELECT ${columns.join(', ')} FROM recebimentomp WHERE recebimentompID = ${id}`;
-
                 let [temp2] = await db.promise().query(sqlData)
-                resultData.push(temp2[0])
+                // resultData.push(temp2[0])
+                resultData = { ...resultData, ...temp2[0] }
 
-                // Montar select na tabela recebimentomp, onde as colunas do select serão as colunas do array columns
-                // if (resultData.length === 0) { res.status(500).json('Error'); }
 
                 // Fields dos Produtos 
                 const sqlFieldsProducts = `
