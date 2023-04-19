@@ -6,8 +6,8 @@ const urlBase = '/api';
 const { reportFornecedor } = require('../reports/fornecedor/generate');
 routerReports.post(`${urlBase}/relatorio/fornecedor/`, reportFornecedor);
 
-// Recepção
-const { reportRecepcao } = require('../reports/recepcao/generate');
-routerReports.post(`${urlBase}/relatorio/recepcao/`, reportRecepcao);
+// Recebimento MP
+const { reportRecebimentoMP } = require('../reports/recebimentoMP/generate');
+routerReports.post(`${urlBase}/relatorio/recebimentoMP/`, reportRecebimentoMP);
 
 module.exports = routerReports;
