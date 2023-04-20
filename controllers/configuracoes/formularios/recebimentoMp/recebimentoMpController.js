@@ -23,7 +23,7 @@ class RecebimentoMpController {
                     LIMIT 1), 0) AS obrigatorio            
                     
                 FROM par_recebimentomp AS pr
-                ORDER BY pr.ordem ASC;`;
+                ORDER BY pr.ordem ASC`;
 
                 try {
                     const resultHeader = await db.promise().query(sqlHeader, [unidadeID, unidadeID]);
@@ -48,7 +48,7 @@ class RecebimentoMpController {
                     LIMIT 1), 0) AS obrigatorio            
                     
                 FROM par_recebimentomp_produto AS pr
-                ORDER BY pr.ordem ASC;`;
+                ORDER BY pr.ordem ASC`;
 
                 try {
                     const resultProducts = await db.promise().query(sqlProducts, [unidadeID, unidadeID]);
@@ -60,8 +60,8 @@ class RecebimentoMpController {
 
             // Obtem as opções pra seleção da listagem dos selects de itens e alternativas
             case 'getOptionsItens':
-                const sqlItem = `SELECT * FROM item WHERE parFormularioID = 2 ORDER BY nome ASC;`;
-                const sqlAlternativa = `SELECT alternativaID, nome AS alternativa FROM alternativa ORDER BY nome ASC;`;
+                const sqlItem = `SELECT * FROM item WHERE parFormularioID = 2 ORDER BY nome ASC`;
+                const sqlAlternativa = `SELECT alternativaID, nome AS alternativa FROM alternativa ORDER BY nome ASC`;
                 // Montar objeto com os resultados das queries
                 try {
                     const resultItem = await db.promise().query(sqlItem);
