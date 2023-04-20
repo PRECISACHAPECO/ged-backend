@@ -1,8 +1,7 @@
 async function generateContent(
   resultData,
-  atividades,
-  sistemaQualidade,
-  resultBlocos
+  resultBlocos,
+  data
 ) {
   let html = `
     <html>
@@ -32,7 +31,7 @@ async function generateContent(
   //  Cabeçalho 
   html += `
         <h1 class="text-lg font-bold text-center">
-          QUESTIONÁRIO DE AUTO AVALIAÇÃO DO FORNECEDOR
+          QUESTIONÁRIO DE RECEBIMENTO DE MP
         </h1>
 
         <div class="divider mt-10"></div>
@@ -56,23 +55,6 @@ async function generateContent(
 
   // Fecha laço dos dados dinamicos do fornecedor
   html += `
-        </div>
-
-        <div class="divider"></div>
-        <div class="grid grid-cols-1 padding">
-          <div class="pt-1">
-            <p class="fontBaseTitle">Atividades</p>
-            <p class="fontBase"> ${atividades[0].atividade}</p>
-          </div>
-        </div>
-
-          <div class="divider"></div>
-          <div class="grid grid-cols-1 padding">
-            <div class="pt-1">
-              <p class="fontBaseTitle">Sistemas de qualidade</p>
-              <p class="fontBase"> ${sistemaQualidade[0].sistemaQualidade}</p>
-            </div>
-          </div>
         </div>`;
 
   //  Tabela com os blocos
@@ -100,15 +82,18 @@ async function generateContent(
           </tbody>
         </table>`;
   });
+
   html += `
-        `;
+    <p class="mt-10" >Observações: ${data[0].obs}</p>`;
+
 
   // Assinatura Rodapé
+
   html += `
-        <p class="text-center mx-auto mt-28 w-3/6" style="border-top: 1px solid black">Assinatura do profissional</p>
+    <p class="text-center mx-auto mt-28 w-3/6" style = "border-top: 1px solid black"> Assinatura do profissional</p>
       </body>
     </html>
-  `;
+    `;
   // Retorna os dados em html para serem renderizados no pdf pelo puppeteer no arquivo generate.js
   return html;
 }
