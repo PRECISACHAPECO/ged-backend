@@ -204,47 +204,13 @@ class RecebimentoMpController {
         const { id } = req.params
         const data = req.body
 
-        // Header 
-        const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id}`;
-        const [resultHeader] = await db.promise().query(sqlHeader, [data.header])
-        if (resultHeader.length === 0) { res.status(500).json('Error'); }
-
-        // Atividades
-        for (const atividade of data.atividades) {
-            if (atividade.checked) {
-                // Verifica se já existe registro desse dado na tabela fornecedor_atividade
-                const sqlAtividade = `SELECT * FROM fornecedor_atividade WHERE fornecedorID = ? AND atividadeID = ?`
-                const [resultSelectAtividade] = await db.promise().query(sqlAtividade, [id, atividade.atividadeID])
-                // Se ainda não houver registro, fazer insert na tabela 
-                if (resultSelectAtividade.length === 0) {
-                    const sqlAtividade2 = `INSERT INTO fornecedor_atividade (fornecedorID, atividadeID) VALUES (?, ?)`
-                    const [resultAtividade] = await db.promise().query(sqlAtividade2, [id, atividade.atividadeID])
-                    if (resultAtividade.length === 0) { res.status(500).json('Error'); }
-                }
-            } else {
-                const sqlAtividade = `DELETE FROM fornecedor_atividade WHERE fornecedorID = ? AND atividadeID = ?`
-                const [resultAtividade] = await db.promise().query(sqlAtividade, [id, atividade.atividadeID])
-                if (resultAtividade.length === 0) { res.status(500).json('Error'); }
-            }
-        }
-
-        // Sistemas de qualidade 
-        for (const sistema of data.sistemasQualidade) {
-            if (sistema.checked) {
-                // Verifica se já existe registro desse dado na tabela fornecedor_sistemaqualidade
-                const sqlSistemaQualidade = `SELECT * FROM fornecedor_sistemaqualidade WHERE fornecedorID = ? AND sistemaQualidadeID = ?`
-                const [resultSelectSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id, sistema.sistemaQualidadeID])
-                // Se ainda não houver registro, fazer insert na tabela
-                if (resultSelectSistemaQualidade.length === 0) {
-                    const sqlSistemaQualidade2 = `INSERT INTO fornecedor_sistemaqualidade (fornecedorID, sistemaQualidadeID) VALUES (?, ?)`
-                    const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade2, [id, sistema.sistemaQualidadeID])
-                    if (resultSistemaQualidade.length === 0) { res.status(500).json('Error'); }
-                }
-            } else {
-                const sqlSistemaQualidade = `DELETE FROM fornecedor_sistemaqualidade WHERE fornecedorID = ? AND sistemaQualidadeID = ?`
-                const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id, sistema.sistemaQualidadeID])
-                if (resultSistemaQualidade.length === 0) { res.status(500).json('Error'); }
-            }
+        // Header         
+        if (data.header) {
+            let dataHeader = getDataOfAllTypes(data.header) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
+            const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentompID = ${id}`;
+            const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
+            console.log("🚀 ~ file: recebimentoMpController.js:211 ~ RecebimentoMpController ~ updateData ~ dataHeader:", dataHeader)
+            if (resultHeader.length === 0) { res.status(500).json('Error'); }
         }
 
         // Blocos 
@@ -256,27 +222,27 @@ class RecebimentoMpController {
                     console.log('==> ', item)
 
                     // Verifica se já existe registro em fornecedor_resposta, com o fornecedorID, parFornecedorBlocoID e itemID, se houver, faz update, senao faz insert 
-                    const sqlVerificaResposta = `SELECT * FROM fornecedor_resposta WHERE fornecedorID = ? AND parFornecedorBlocoID = ? AND itemID = ?`
-                    const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parFornecedorBlocoID, item.itemID])
+                    const sqlVerificaResposta = `SELECT * FROM recebimentomp_resposta WHERE recebimentompID = ? AND parRecebimentompBlocoID = ? AND itemID = ?`
+                    const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parRecebimentompBlocoID, item.itemID])
 
                     if (resultVerificaResposta.length === 0) {
                         console.log('Insere resposta')
                         // insert na tabela fornecedor_resposta
-                        const sqlInsert = `INSERT INTO fornecedor_resposta (fornecedorID, parFornecedorBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [id, bloco.parFornecedorBlocoID, item.itemID, (item.resposta ?? ''), (item.respostaID ?? 0), (item.observacao ?? '')])
+                        const sqlInsert = `INSERT INTO recebimentomp_resposta (recebimentompID, parRecebimentompBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
+                        const [resultInsert] = await db.promise().query(sqlInsert, [id, bloco.parRecebimentompBlocoID, item.itemID, (item.resposta ?? ''), (item.respostaID ?? 0), (item.observacao ?? '')])
                         if (resultInsert.length === 0) { res.status(500).json('Error'); }
                     } else {
                         console.log('Altera resposta')
                         // update na tabela fornecedor_resposta
                         const sqlUpdate = `
                         UPDATE 
-                            fornecedor_resposta 
+                            recebimentomp_resposta 
                         SET ${item.resposta ? 'resposta = ?, ' : ''} 
                             ${item.respostaID ? 'respostaID = ?, ' : ''} 
                             ${item.observacao != undefined ? 'obs = ?, ' : ''} 
-                            fornecedorID = ?
-                        WHERE fornecedorID = ? 
-                            AND parFornecedorBlocoID = ? 
+                            recebimentompID = ?
+                        WHERE recebimentompID = ? 
+                            AND parRecebimentompBlocoID = ? 
                             AND itemID = ?`
                         const [resultUpdate] = await db.promise().query(sqlUpdate, [
                             ...(item.resposta ? [item.resposta] : []),
@@ -284,7 +250,7 @@ class RecebimentoMpController {
                             ...(item.observacao != undefined ? [item.observacao] : []),
                             id,
                             id,
-                            bloco.parFornecedorBlocoID,
+                            bloco.parRecebimentompBlocoID,
                             item.itemID
                         ])
                         if (resultUpdate.length === 0) { res.status(500).json('Error'); }
@@ -292,15 +258,19 @@ class RecebimentoMpController {
                 }
             }
 
-            // Observação
-            const sqlUpdateObs = `UPDATE fornecedor SET obs = ?, status = ? WHERE fornecedorID = ?`
-            const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, data.status, id])
+            // Observação e Status (se houver)
+            const sqlUpdateObs = `UPDATE recebimentomp SET obs = ? ${data.status > 0 ? ', status = ? ' : ''} WHERE recebimentompID = ?`
+            const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [
+                data.obs,
+                ...(data.status > 0 ? [data.status] : []),
+                id
+            ])
             if (resultUpdateObs.length === 0) { res.status(500).json('Error'); }
 
         }
 
         console.log('Até aqui ok!')
-        res.status(200).json(resultHeader)
+        res.status(200).json({})
     }
 
     deleteData(req, res) {
@@ -329,6 +299,20 @@ class RecebimentoMpController {
             });
     }
 
+}
+
+// varrer data.header verificando se é um objeto ou nao, se for objeto inserir o id em dataHeader, senao, inserir o valor em dataHeader
+function getDataOfAllTypes(dataFromFrontend) {
+    let dataHeader = {}
+    for (const key in dataFromFrontend) {
+        if (typeof dataFromFrontend[key] === 'object') {
+            dataHeader[`${key}ID`] = dataFromFrontend[key].id
+        } else {
+            dataHeader[key] = dataFromFrontend[key]
+        }
+    }
+
+    return dataHeader;
 }
 
 function hasUnidadeID(tabela) {
