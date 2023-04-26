@@ -17,8 +17,9 @@ class AuthController {
         let error = {
             email: ['Algo está errado!!']
         }
-
-        db.query("SELECT * FROM usuario WHERE email = ? AND senha = ?", [email, password], (err, result) => {
+        const sql = `SELECT a.*, b.nomeFantasia as unidade FROM usuario AS a
+        JOIN unidade b on (a.unidadeID = b.unidadeID) WHERE a.email = ? AND a.senha = ?`;
+        db.query(sql, [email, password], (err, result) => {
             if (err) { res.status(500).json({ message: err.message }); }
             // LOGADO COM SUCESSO
             if (result.length > 0) {
