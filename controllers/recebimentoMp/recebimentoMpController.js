@@ -92,11 +92,11 @@ class RecebimentoMpController {
 
                 sqlData = `SELECT ${columns.join(', ')} FROM recebimentomp WHERE recebimentompID = ${id}`;
                 let [temp2] = await db.promise().query(sqlData)
-                // resultData.push(temp2[0])
                 resultData = { ...resultData, ...temp2[0] }
 
+                ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-                // Fields dos Produtos 
+                // Fields dos Produtos (colunas)
                 const sqlFieldsProducts = `
                 SELECT * 
                 FROM par_recebimentomp_produto AS rp 
@@ -105,6 +105,57 @@ class RecebimentoMpController {
                 ORDER BY rp.ordem ASC`
                 const [resultFieldsProducts] = await db.promise().query(sqlFieldsProducts, [unidadeID])
                 if (resultFieldsProducts.length === 0) { res.status(500).json('Error'); }
+                // Se houver join com outra tabela, monta as opções pra selecionar no select (autocomplete)
+                for (const alternatives of resultFieldsProducts) {
+                    if (alternatives.tipo === 'int' && alternatives.tabela) {
+                        // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
+                        let sqlProductsOptions = `
+                        SELECT ${alternatives.tabela}ID AS id, nome
+                        FROM ${alternatives.tabela} 
+                        WHERE status = 1 ${hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                        ORDER BY nome ASC`
+
+                        // Executar select e inserir no objeto alternatives
+                        const [resultProductsOptions] = await db.promise().query(sqlProductsOptions)
+                        alternatives.options = resultProductsOptions
+                    }
+                }
+
+                // Dados (linhas)
+                const sqlDataProducts = `SELECT * FROM recebimentomp_produto WHERE recebimentompID = ?`
+                let [resultDataProducts] = await db.promise().query(sqlDataProducts, [id])
+
+                // Dados dos produtos (array com os produtos)
+                let sqlProductsData = ``
+                let dataProducts = []
+                let dataFieldProducts = {}
+                for (const data of resultDataProducts) {
+                    for (const field of resultFieldsProducts) {
+                        if (field.tipo === 'int' && field.tabela) {
+                            // Monta objeto pra preencher select 
+                            // Ex.: pessoa:{
+                            //     id: 1,
+                            //     nome: 'Fulano'
+                            // }
+                            sqlProductsData = `
+                            SELECT t.${field.nomeColuna} AS id, t.nome
+                            FROM recebimentomp_produto AS rm 
+                                JOIN ${field.tabela} AS t ON (rm.${field.nomeColuna} = t.${field.nomeColuna}) 
+                            WHERE rm.recebimentompID = ${id} AND t.${field.nomeColuna} = ${data[field.nomeColuna]}`
+
+                            let [temp] = await db.promise().query(sqlProductsData)
+                            if (temp) {
+                                dataFieldProducts[field.tabela] = temp[0]
+                            }
+                        } else {
+                            dataFieldProducts[field.nomeColuna] = data[field.nomeColuna]
+                        }
+                    }
+
+                    dataProducts.push({ ...data, ...dataFieldProducts })
+                }
+
+                ///////////////////////////////////////////////////////////////////////////////////////////////////
 
                 // Blocos 
                 const sqlBlocos = `
@@ -163,7 +214,8 @@ class RecebimentoMpController {
                 const data = {
                     fields: resultFields,
                     data: resultData,
-                    resultFieldsProducts: resultFieldsProducts,
+                    fieldsProducts: resultFieldsProducts,
+                    dataProducts: dataProducts,
                     blocos: resultBlocos,
                     info: {
                         obs: resultOtherInformations[0].obs,
@@ -209,8 +261,25 @@ class RecebimentoMpController {
             let dataHeader = getDataOfAllTypes(data.header) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
             const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentompID = ${id}`;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
-            console.log("🚀 ~ file: recebimentoMpController.js:211 ~ RecebimentoMpController ~ updateData ~ dataHeader:", dataHeader)
             if (resultHeader.length === 0) { res.status(500).json('Error'); }
+        }
+
+        // Produtos 
+        if (data.produtos) {
+            for (const produto of data.produtos) {
+                let dataProduto = getDataOfAllTypes(produto) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
+
+                if (produto.recebimentompProdutoID > 0) { // UPDATE
+                    const sqlUpdateProduto = `UPDATE recebimentomp_produto SET ? WHERE recebimentompProdutoID = ?`
+                    const [resultUpdateProduto] = await db.promise().query(sqlUpdateProduto, [dataProduto, produto.recebimentompProdutoID])
+                    if (resultUpdateProduto.length === 0) { res.status(500).json('Error'); }
+                } else {                                  // INSERT
+                    dataProduto['recebimentompID'] = id
+                    const sqlInsertProduto = `INSERT INTO recebimentomp_produto SET ?`
+                    const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [dataProduto])
+                    if (resultInsertProduto.length === 0) { res.status(500).json('Error'); }
+                }
+            }
         }
 
         // Blocos 
@@ -218,9 +287,6 @@ class RecebimentoMpController {
             // Itens 
             for (const item of bloco.itens) {
                 if (item.resposta || item.observacao) {
-
-                    console.log('==> ', item)
-
                     // Verifica se já existe registro em fornecedor_resposta, com o fornecedorID, parFornecedorBlocoID e itemID, se houver, faz update, senao faz insert 
                     const sqlVerificaResposta = `SELECT * FROM recebimentomp_resposta WHERE recebimentompID = ? AND parRecebimentompBlocoID = ? AND itemID = ?`
                     const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parRecebimentompBlocoID, item.itemID])
