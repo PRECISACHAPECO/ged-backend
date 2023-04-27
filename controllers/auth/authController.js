@@ -12,29 +12,47 @@ const jwtConfig = {
 
 class AuthController {
     login(req, res) {
-        const { email, password } = req.body;
+        const { cpf, password } = req.body;
 
         let error = {
             email: ['Algo está errado!!']
         }
-        const sql = `SELECT a.*, b.nomeFantasia as unidade FROM usuario AS a
-        JOIN unidade b on (a.unidadeID = b.unidadeID) WHERE a.email = ? AND a.senha = ?`;
-        db.query(sql, [email, password], (err, result) => {
+
+        const sql = `
+        SELECT u.*, un.nomeFantasia as unidade 
+        FROM usuario AS u 
+            JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
+            JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
+        WHERE u.cpf = ? AND u.senha = ? AND uu.status = 1`;
+
+        db.query(sql, [cpf, password], (err, result) => {
             if (err) { res.status(500).json({ message: err.message }); }
-            // LOGADO COM SUCESSO
-            if (result.length > 0) {
+
+            // +1 UNIDADE, SELECIONA UNIDADE ANTES DE LOGAR
+            if (result.length > 1) {
+
+                const response = {
+                    userData: { ...result[0], senha: undefined },
+                    unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.unidade }))
+                }
+                console.log("🚀 ~ :", response)
+                res.status(202).json(response);
+            }
+
+            // 1 UNIDADE, LOGA DIRETO
+            else if (result.length === 1) {
                 const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
                 const response = {
                     accessToken,
                     userData: { ...result[0], senha: undefined }
                 }
-
                 res.status(200).json(response);
             }
+
             // ERRO AO FAZER LOGIN
             else {
                 error = {
-                    email: ['E-mail ou senha inválidos!']
+                    email: ['CPF ou senha inválidos!']
                 }
 
                 res.status(400).json(error);
