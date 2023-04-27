@@ -19,7 +19,7 @@ class AuthController {
         }
 
         const sql = `
-        SELECT u.*, un.nomeFantasia as unidade 
+        SELECT u.*, un.unidadeID, un.nomeFantasia
         FROM usuario AS u 
             JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
             JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
@@ -30,12 +30,11 @@ class AuthController {
 
             // +1 UNIDADE, SELECIONA UNIDADE ANTES DE LOGAR
             if (result.length > 1) {
-
                 const response = {
                     userData: { ...result[0], senha: undefined },
-                    unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.unidade }))
+                    unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.nomeFantasia }))
                 }
-                console.log("🚀 ~ :", response)
+                console.log("🚀 202 ~ :", response)
                 res.status(202).json(response);
             }
 
@@ -46,6 +45,7 @@ class AuthController {
                     accessToken,
                     userData: { ...result[0], senha: undefined }
                 }
+                console.log("🚀 200 ~ :", response)
                 res.status(200).json(response);
             }
 
