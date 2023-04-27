@@ -23,29 +23,32 @@ class AuthController {
         FROM usuario AS u 
             JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
             JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
-        WHERE u.cpf = ? AND u.senha = ? AND uu.status = 1`;
+        WHERE u.cpf = ? AND u.senha = ? AND uu.status = 1
+        ORDER BY un.nomeFantasia ASC`;
 
         db.query(sql, [cpf, password], (err, result) => {
             if (err) { res.status(500).json({ message: err.message }); }
 
+            const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
+
             // +1 UNIDADE, SELECIONA UNIDADE ANTES DE LOGAR
             if (result.length > 1) {
                 const response = {
+                    accessToken,
                     userData: { ...result[0], senha: undefined },
                     unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.nomeFantasia }))
                 }
-                console.log("🚀 202 ~ :", response)
                 res.status(202).json(response);
             }
 
             // 1 UNIDADE, LOGA DIRETO
             else if (result.length === 1) {
-                const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
+
                 const response = {
                     accessToken,
-                    userData: { ...result[0], senha: undefined }
+                    userData: { ...result[0], senha: undefined },
+                    unidades: { unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia }
                 }
-                console.log("🚀 200 ~ :", response)
                 res.status(200).json(response);
             }
 
