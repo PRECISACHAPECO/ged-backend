@@ -3,6 +3,7 @@ const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class UsuarioController {
     getList(req, res) {
+
         db.query("SELECT usuarioID AS id, nome, status FROM usuario", (err, result) => {
             if (err) {
                 res.status(500).json(err);
