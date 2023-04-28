@@ -7,6 +7,6 @@ const authController = new AuthController();
 const route = '/login';
 
 authRoutes.post(`${route}`, authController.login);
-
+authRoutes.get(`${route}`, authController.getAvailableRoutes);
 
 module.exports = authRoutes;

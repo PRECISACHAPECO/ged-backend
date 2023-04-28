@@ -11,6 +11,7 @@ const jwtConfig = {
 }
 
 class AuthController {
+
     login(req, res) {
         const { cpf, password } = req.body;
 
@@ -47,7 +48,7 @@ class AuthController {
                 const response = {
                     accessToken,
                     userData: { ...result[0], senha: undefined },
-                    unidades: { unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia }
+                    unidades: [{ unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia }]
                 }
                 res.status(200).json(response);
             }
@@ -61,6 +62,55 @@ class AuthController {
                 res.status(400).json(error);
             }
         })
+    }
+
+    async getAvailableRoutes(req, res) {
+        const functionName = req.headers['function-name'];
+        const { usuarioID, unidadeID } = req.query;
+
+        // Menu e Routes
+        switch (functionName) {
+            case 'getMenu':
+                const menu = []
+                const sqlMenu = `SELECT * FROM menu WHERE status = 1 ORDER BY ordem ASC`;
+                const [resultMenu] = await db.promise().query(sqlMenu);
+
+                for (const rotaMenu of resultMenu) {
+                    if (rotaMenu.rota === null) {
+                        const sqlSubmenu = `SELECT * FROM submenu WHERE menuID = ? AND status = 1 ORDER BY ordem ASC`;
+                        const [resultSubmenu] = await db.promise().query(sqlSubmenu, [rotaMenu.menuID]);
+                        if (resultSubmenu) {
+                            rotaMenu.submenu = resultSubmenu;
+                        }
+                    }
+                    menu.push(rotaMenu);
+                }
+
+                console.log("🚀 ~ menu:", menu)
+                res.status(200).json(menu);
+                break;
+
+            case 'getRoutes':
+                const sqlRoutes = `
+                SELECT rota, ler, inserir, editar, excluir
+                FROM permissao
+                WHERE usuarioID = ? AND unidadeID = ?`;
+
+                db.query(sqlRoutes, [usuarioID, unidadeID], (err, result) => {
+                    if (err) { res.status(500).json({ message: err.message }); }
+
+                    result.forEach(rota => {
+                        rota.ler = rota.ler === 1 ? true : false;
+                        rota.inserir = rota.inserir === 1 ? true : false;
+                        rota.editar = rota.editar === 1 ? true : false;
+                        rota.excluir = rota.excluir === 1 ? true : false;
+                    })
+
+                    res.status(200).json(result);
+                })
+
+                break;
+        }
     }
 }
 
