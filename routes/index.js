@@ -22,6 +22,8 @@ const tipoVeiculoRouter = require("./cadastros/tipoVeiculo/tipoVeiculoRoutes");
 const transportadorRouter = require("./cadastros/transportador/transportadorRoutes");
 const ProdutosRouter = require("./cadastros/Produtos/produtosRoutes");
 const ApresentacaoRouter = require("./cadastros/Apresentacao/apresentacaoRoutes");
+const ProfissaoRouter = require("./cadastros/Profissao/profissaoRoutes");
+const CargoRouter = require("./cadastros/Cargo/cargoRoutes");
 
 
 routes.use(urlBase + '/cadastros', atividadeRouter);
@@ -31,7 +33,8 @@ routes.use(urlBase + '/cadastros', tipoVeiculoRouter);
 routes.use(urlBase + '/cadastros', transportadorRouter);
 routes.use(urlBase + '/cadastros', ProdutosRouter);
 routes.use(urlBase + '/cadastros', ApresentacaoRouter);
-
+routes.use(urlBase + '/cadastros', ProfissaoRouter);
+routes.use(urlBase + '/cadastros', CargoRouter);
 
 // Confifuracoes
 const formularios = require("./configuracoes/formularios/formulariosRoutes");
