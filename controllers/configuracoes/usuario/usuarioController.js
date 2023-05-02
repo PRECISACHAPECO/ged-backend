@@ -13,15 +13,97 @@ class UsuarioController {
         })
     }
 
-    getData(req, res) {
+    async getData(req, res) {
         const { id } = req.params
-        db.query("SELECT * FROM usuario WHERE usuarioID = ?", [id], (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                res.status(200).json(result[0]);
+        const { admin } = req.query
+        const { unidadeID } = req.query
+        let getData = {}
+
+        const sql = `
+        SELECT a.*, b.registroConselhoClasse, c.nome AS profissao
+        FROM usuario a 
+            JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
+            LEFT JOIN profissao c on (b.profissaoID = c.profissaoID)
+        WHERE a.usuarioID = ? AND b.unidadeID = ?`
+        const [result] = await db.promise().query(sql, [id, unidadeID])
+        getData = result[0]
+        getData['units'] = []
+
+        // Se for admin, busca os dados da unidade e cargo
+        if (admin == 1) {
+            const sqlUnits = `
+            SELECT a.*, b.registroConselhoClasse, b.unidadeID, d.nomeFantasia as unidade, c.profissaoID, b.status as statusUnidade,  c.nome AS profissao
+            FROM usuario a 
+                JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
+                LEFT JOIN profissao c on (b.profissaoID = c.profissaoID)
+                JOIN unidade d on (b.unidadeID = d.unidadeID)
+            WHERE a.usuarioID = ? ORDER BY d.nomeFantasia ASC`;
+
+            const [resultUnits] = await db.promise().query(sqlUnits, [id])
+
+            for (const unit of resultUnits) {
+                unit[`unidade`] = {
+                    id: unit.unidadeID,
+                    nome: unit.unidade,
+                }
+                unit[`profissao`] = {
+                    id: unit.profissaoID,
+                    nome: unit.profissao,
+                }
             }
-        })
+
+            getData['units'] = resultUnits
+
+            // inserir array de cargos no resultUnits 
+
+            // Vare as unidades e insere os cargos
+            for (const unitt of resultUnits) {
+                const sqlCargos = `
+                SELECT c.cargoID AS id, nome
+                FROM usuario_unidade a
+                    JOIN usuario_unidade_cargo b on (a.usuarioUnidadeID = b.usuarioUnidadeID)
+                    JOIN cargo c on (b.cargoID = c.cargoID)
+                WHERE a.usuarioID = ? and a.unidadeID = ?`;
+
+                const [resultCargos] = await db.promise().query(sqlCargos, [id, unitt.unidadeID])
+
+                unitt[`cargos`] = resultCargos
+
+
+            }
+
+            // Trazer todas as profissões
+            const sqlProfissao = `
+            SELECT * 
+            FROM profissao
+            WHERE status = 1 
+            ORDER BY nome ASC`;
+
+            const [resultProfissao] = await db.promise().query(sqlProfissao)
+            getData['profissaoOptions'] = resultProfissao
+
+            const sqlCargosAll = `
+            SELECT *
+            FROM cargo
+            WHERE status = 1
+            ORDER BY nome ASC`;
+            ;
+
+            const [resultCargosAll] = await db.promise().query(sqlCargosAll)
+            getData['cargosOptions'] = resultCargosAll
+
+            const sqlUnidadesAll = `
+            SELECT unidadeID, nomeFantasia AS nome
+            FROM unidade
+            WHERE status = 1
+            ORDER BY nomeFantasia ASC
+            `;
+
+            const [resultUnidadesAll] = await db.promise().query(sqlUnidadesAll)
+            getData['unidadesOptions'] = resultUnidadesAll
+
+        }
+        res.status(200).json(getData)
     }
 
     insertData(req, res) {
