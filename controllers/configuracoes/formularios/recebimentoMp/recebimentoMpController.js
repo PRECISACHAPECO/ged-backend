@@ -60,7 +60,7 @@ class RecebimentoMpController {
 
             // Obtem as opções pra seleção da listagem dos selects de itens e alternativas
             case 'getOptionsItens':
-                const sqlItem = `SELECT * FROM item WHERE parFormularioID = 2 ORDER BY nome ASC`;
+                const sqlItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 2 ORDER BY nome ASC`;
                 const sqlAlternativa = `SELECT alternativaID, nome AS alternativa FROM alternativa ORDER BY nome ASC`;
                 // Montar objeto com os resultados das queries
                 try {
@@ -88,13 +88,22 @@ class RecebimentoMpController {
                     FROM par_recebimentomp_bloco_item AS prbi 
                         LEFT JOIN item AS i ON (prbi.itemID = i.itemID)
                         LEFT JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
-                    WHERE prbi.parRecebimentoMpBlocoID = ?
+                    WHERE prbi.parRecebimentompBlocoID = ?
                     ORDER BY prbi.ordem ASC`
 
                     // Varre bloco
                     for (const item of resultBloco) {
-                        // const [resultAtividade] = await db.promise().query(sqlAtividade, [item.parFornecedorBlocoID, unidadeID]);
-                        const [resultItem] = await db.promise().query(sqlItem, [item.parRecebimentoMpBlocoID]);
+                        const [resultItem] = await db.promise().query(sqlItem, [item.parRecebimentompBlocoID]);
+
+                        // Insere os itens em um objeto item 
+                        for (const item of resultItem) {
+                            if (item.itemID > 0) {
+                                item['item'] = {
+                                    id: item.itemID,
+                                    nome: item.nome
+                                }
+                            }
+                        }
 
                         const objData = {
                             dados: item,
@@ -213,32 +222,34 @@ class RecebimentoMpController {
                 const sql = `
                 UPDATE par_recebimentomp_bloco
                 SET ordem = ?, nome = ?, obs = ?, status = ?
-                WHERE parRecebimentoMpBlocoID = ?`
+                WHERE parRecebimentompBlocoID = ?`
 
-                db.query(sql, [block.sequencia, block.nome, (block.obs ? 1 : 0), (block.status ? 1 : 0), block.parRecebimentoMpBlocoID], (err, result) => {
+                db.query(sql, [block.sequencia, block.nome, (block.obs ? 1 : 0), (block.status ? 1 : 0), block.parRecebimentompBlocoID], (err, result) => {
                     if (err) { res.status(500).json(err); }
                 })
 
                 // Itens 
                 block.itens && block.itens.forEach((item, indexItem) => {
                     if (item) {
-                        if (item.parRecebimentoMpBlocoItemID) {
+                        if (item.parRecebimentompBlocoItemID) {
                             // Update
                             const sql = `
                             UPDATE par_recebimentomp_bloco_item
-                            SET ordem = ?, ${item.itemID ? 'itemID = ?, ' : ''} ${item.alternativaID ? 'alternativaID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
-                            WHERE parRecebimentoMpBlocoItemID = ?`
+                            SET ordem = ?, ${item.item.id ? 'itemID = ?, ' : ''} ${item.alternativaID ? 'alternativaID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
+                            WHERE parRecebimentompBlocoItemID = ?`
 
-                            db.query(sql, [item.sequencia, ...(item.itemID ? [item.itemID] : []), ...(item.alternativaID ? [item.alternativaID] : []), (item.obs ? 1 : 0), (item.obrigatorio ? 1 : 0), (item.status ? 1 : 0), item.parRecebimentoMpBlocoItemID], (err, result) => { if (err) { res.status(500).json(err); } })
+                            db.query(sql, [item.sequencia, ...(item.item.id ? [item.item.id] : []), ...(item.alternativaID ? [item.alternativaID] : []), (item.obs ? 1 : 0), (item.obrigatorio ? 1 : 0), (item.status ? 1 : 0), item.parRecebimentompBlocoItemID], (err, result) => { if (err) { res.status(500).json(err); } })
                         } else {
                             // Insert
-                            const sql = `
-                            INSERT INTO par_recebimentomp_bloco_item (parRecebimentoMpBlocoID, ordem, itemID, alternativaID, obs, obrigatorio, status)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)`
+                            if (block.parRecebimentompBlocoID && item.sequencia && item.item.id && item.alternativaID) {
+                                const sql = `
+                                    INSERT INTO par_recebimentomp_bloco_item (parRecebimentompBlocoID, ordem, itemID, alternativaID, obs, obrigatorio, status)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?)`
 
-                            db.query(sql, [block.parRecebimentoMpBlocoID, item.sequencia, item.itemID, item.alternativaID, (item.obs ? 1 : 0), (item.obrigatorio ? 1 : 0), (item.status ? 1 : 0)], (err, result) => {
-                                if (err) { res.status(500).json(err); }
-                            })
+                                db.query(sql, [block.parRecebimentompBlocoID, item.sequencia, item.item.id, item.alternativaID, (item.obs ? 1 : 0), (item.obrigatorio ? 1 : 0), (item.status ? 1 : 0)], (err, result) => {
+                                    if (err) { res.status(500).json(err); }
+                                })
+                            }
                         }
                     }
                 })

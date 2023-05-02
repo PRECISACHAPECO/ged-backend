@@ -373,7 +373,7 @@ function getDataOfAllTypes(dataFromFrontend) {
     for (const key in dataFromFrontend) {
         if (typeof dataFromFrontend[key] === 'object') {
             dataHeader[`${key}ID`] = dataFromFrontend[key].id
-        } else {
+        } else if (dataFromFrontend[key]) {
             dataHeader[key] = dataFromFrontend[key]
         }
     }
