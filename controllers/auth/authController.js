@@ -98,12 +98,24 @@ class AuthController {
                 break;
 
             case 'getRoutes':
-                const sqlRoutes = `
-                SELECT rota, ler, inserir, editar, excluir
-                FROM permissao
-                WHERE usuarioID = ? AND unidadeID = ?`;
+                let sqlRoutes = ``
+                const admin = req.query.admin;
+                if (admin == 1) {
+                    // Usuário admin, permissão para todas as rotas
+                    sqlRoutes = `
+                    SELECT IF(m.rota <> '', m.rota, s.rota) AS rota, 1 AS ler, 1 AS inserir, 1 AS editar, 1 AS excluir
+                    FROM menu AS m  
+                        LEFT JOIN submenu AS s ON (m.menuID = s.menuID)
+                    WHERE m.status = 1 OR s.status = 1`
+                } else {
+                    // Não é admin, busca permissões da tabela permissao
+                    sqlRoutes = `
+                    SELECT rota, ler, inserir, editar, excluir
+                    FROM permissao
+                    WHERE usuarioID = ${usuarioID} AND unidadeID = ${unidadeID}`;
+                }
 
-                db.query(sqlRoutes, [usuarioID, unidadeID], (err, result) => {
+                db.query(sqlRoutes, (err, result) => {
                     if (err) { res.status(500).json({ message: err.message }); }
 
                     result.forEach(rota => {
