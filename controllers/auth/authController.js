@@ -20,10 +20,11 @@ class AuthController {
         }
 
         const sql = `
-        SELECT u.*, un.unidadeID, un.nomeFantasia
+        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel
         FROM usuario AS u 
-            JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
-            JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
+            LEFT JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
+            LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
+            LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
         WHERE u.cpf = ? AND u.senha = ? AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
 
@@ -37,18 +38,18 @@ class AuthController {
                 const response = {
                     accessToken,
                     userData: { ...result[0], senha: undefined },
-                    unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.nomeFantasia }))
+                    unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.nomeFantasia, papelID: unidade.papelID, papel: unidade.papel }))
                 }
+                console.log("🚀 ~ response:", response)
                 res.status(202).json(response);
             }
 
             // 1 UNIDADE, LOGA DIRETO
             else if (result.length === 1) {
-
                 const response = {
                     accessToken,
                     userData: { ...result[0], senha: undefined },
-                    unidades: [{ unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia }]
+                    unidades: [{ unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia, papelID: result[0].papelID, papel: result[0].papel }]
                 }
                 res.status(200).json(response);
             }
@@ -66,14 +67,14 @@ class AuthController {
 
     async getAvailableRoutes(req, res) {
         const functionName = req.headers['function-name'];
-        const { usuarioID, unidadeID } = req.query;
+        const { usuarioID, unidadeID, papelID } = req.query;
 
         // Menu e Routes
         switch (functionName) {
             case 'getMenu':
                 const menu = []
 
-                const sqlDivisor = `SELECT * FROM divisor WHERE status = 1 ORDER BY ordem ASC`;
+                const sqlDivisor = `SELECT * FROM divisor WHERE papelID = ${papelID} AND status = 1 ORDER BY ordem ASC`;
                 const [resultDivisor] = await db.promise().query(sqlDivisor);
 
                 for (const rotaDivisor of resultDivisor) {
@@ -109,10 +110,11 @@ class AuthController {
                     WHERE m.status = 1 OR s.status = 1`
                 } else {
                     // Não é admin, busca permissões da tabela permissao
+                    console.log('papel', papelID);
                     sqlRoutes = `
-                    SELECT rota, ler, inserir, editar, excluir
+                    SELECT rota, papelID, ler, inserir, editar, excluir
                     FROM permissao
-                    WHERE usuarioID = ${usuarioID} AND unidadeID = ${unidadeID}`;
+                    WHERE papelID = ${papelID} AND usuarioID = ${usuarioID} AND unidadeID = ${unidadeID}`;
                 }
 
                 db.query(sqlRoutes, (err, result) => {
