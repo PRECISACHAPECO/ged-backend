@@ -37,7 +37,8 @@ class UsuarioController {
                 JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
                 LEFT JOIN profissao c on (b.profissaoID = c.profissaoID)
                 JOIN unidade d on (b.unidadeID = d.unidadeID)
-            WHERE a.usuarioID = ? ORDER BY d.nomeFantasia ASC`;
+            WHERE a.usuarioID = ?
+            ORDER BY IF(b.unidadeID = ${unidadeID}, 1, 0) DESC, d.nomeFantasia ASC `;
 
             const [resultUnits] = await db.promise().query(sqlUnits, [id])
 
@@ -68,8 +69,6 @@ class UsuarioController {
                 const [resultCargos] = await db.promise().query(sqlCargos, [id, unitt.unidadeID])
 
                 unitt[`cargos`] = resultCargos
-
-
             }
 
             // Trazer todas as profissões
@@ -83,11 +82,10 @@ class UsuarioController {
             getData['profissaoOptions'] = resultProfissao
 
             const sqlCargosAll = `
-            SELECT *
+            SELECT cargoID AS id, nome
             FROM cargo
             WHERE status = 1
             ORDER BY nome ASC`;
-            ;
 
             const [resultCargosAll] = await db.promise().query(sqlCargosAll)
             getData['cargosOptions'] = resultCargosAll
@@ -96,8 +94,7 @@ class UsuarioController {
             SELECT unidadeID, nomeFantasia AS nome
             FROM unidade
             WHERE status = 1
-            ORDER BY nomeFantasia ASC
-            `;
+            ORDER BY nomeFantasia ASC`;
 
             const [resultUnidadesAll] = await db.promise().query(sqlUnidadesAll)
             getData['unidadesOptions'] = resultUnidadesAll
@@ -130,7 +127,7 @@ class UsuarioController {
         });
     }
 
-    updateData(req, res) {
+    async updateData(req, res) {
         const { id } = req.params
         const { nome, status } = req.body
         db.query("SELECT * FROM usuario", (err, result) => {
@@ -144,14 +141,13 @@ class UsuarioController {
                     res.status(409).json({ message: "Dados já cadastrados!" });
                 } else {
                     // Passou na validação, atualiza os dados
-                    db.query("UPDATE usuario SET nome = ?, status = ? WHERE usuarioID = ?", [nome, status, id], (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(200).json(result);
-                        }
-                    });
+                    const sql = `UPDATE usuario SET nome = ?, status = ? WHERE usuarioID = ?`;
+                    const [result] = db.promise().query(sql, [nome, status, id]);
+
+                    if (result.length === 0) {
+                        res.status(404).json({ message: "Registro não encontrado!" });
+                    }
+
                 }
             }
         })
