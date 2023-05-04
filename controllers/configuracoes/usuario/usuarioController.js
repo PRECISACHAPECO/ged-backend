@@ -1,5 +1,5 @@
 const db = require('../../../config/db');
-const { hasPending, deleteItem, getMenu } = require('../../../config/defaultConfig');
+const { hasPending, deleteItem, getMenuPermissions } = require('../../../config/defaultConfig');
 
 class UsuarioController {
     getList(req, res) {
@@ -34,7 +34,7 @@ class UsuarioController {
         // Se for admin, busca os dados da unidade, papel e cargo
         if (admin == 1) {
             const sqlUnits = `
-            SELECT a.*, b.registroConselhoClasse, b.unidadeID, b.papelID, d.nomeFantasia as unidade, c.profissaoID, b.status as statusUnidade, c.nome AS profissao, e.nome AS papel
+            SELECT b.usuarioUnidadeID, a.*, b.registroConselhoClasse, b.unidadeID, b.papelID, d.nomeFantasia as unidade, c.profissaoID, b.status as statusUnidade, c.nome AS profissao, e.nome AS papel
             FROM usuario a 
                 JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
                 LEFT JOIN profissao c on (b.profissaoID = c.profissaoID)
@@ -65,12 +65,12 @@ class UsuarioController {
                 FROM usuario_unidade a
                     JOIN usuario_unidade_cargo b on (a.usuarioUnidadeID = b.usuarioUnidadeID)
                     JOIN cargo c on (b.cargoID = c.cargoID)
-                WHERE a.usuarioID = ? and a.unidadeID = ?`;
-                const [resultCargos] = await db.promise().query(sqlCargos, [id, unit.unidadeID])
+                WHERE a.usuarioID = ? AND a.unidadeID = ? AND a.papelID = ?`;
+                const [resultCargos] = await db.promise().query(sqlCargos, [id, unit.unidadeID, unit.papelID])
                 unit[`cargos`] = resultCargos
 
                 // Obtém opções do menu pra setar permissões (empresa ou fornecedor)
-                unit['menu'] = await getMenu(unit?.papelID)
+                unit['menu'] = await getMenuPermissions(unit?.papelID, id, unit.unidadeID)
             }
 
             getData['units'] = resultUnits
@@ -137,28 +137,184 @@ class UsuarioController {
 
     async updateData(req, res) {
         const { id } = req.params
-        const { nome, status } = req.body
-        db.query("SELECT * FROM usuario", (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                // Verifica se já existe um registro com o mesmo nome e id diferente
-                const rows = result.find(row => row.nome == nome && row.usuarioID != id);
-                if (rows) {
-                    res.status(409).json({ message: "Dados já cadastrados!" });
-                } else {
-                    // Passou na validação, atualiza os dados
-                    const sql = `UPDATE usuario SET nome = ?, status = ? WHERE usuarioID = ?`;
-                    const [result] = db.promise().query(sql, [nome, status, id]);
+        const data = req.body
 
-                    if (result.length === 0) {
-                        res.status(404).json({ message: "Registro não encontrado!" });
+        /////////////// USUÁRIO /////////////////
+        // Atualiza os dados do usuário
+        const sqlUsuario = `
+        UPDATE usuario
+        SET nome = ?, email = ?, dataNascimento = ?, cpf = ?, rg = ?
+        WHERE usuarioID = ?`
+        const [resultUsuario] = await db.promise().query(sqlUsuario, [data.nome, data.email, data.dataNascimento, data.cpf, data.rg, id])
+
+        ///////////////// ADMIN /////////////////
+        // ADMIN Configura:
+        //      - unidades
+        //      - papeis
+        //      - profissões
+        //      - cargos
+        //      - permissões de acesso
+        if (data.admin == 1 && data.units && data.units.length > 0) {
+            data.units.map(async (unit, indexUnit) => {
+                /////// UNIDADE ///////
+                // Só vem se for inserida uma nova
+                if (unit.unidade && unit.unidade.id > 0 && unit.papel && unit.papel.id > 0) {
+                    // Verifica se já existe essa unidade com esse papel para esse usuário
+                    const verifyUsuarioUnidadePapel = await existsUsuarioUnidadePapel(id, unit.unidade.id, unit.papel.id)
+                    if (verifyUsuarioUnidadePapel) {
+                        res.status(409).json({ message: 'Já existe essa unidade com esse papel pra esse usuário!' })
+                    } else { // Ok, pode inserir nova unidade 
+                        const sqlUsuarioUnidade = `
+                        INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID, profissaoID, status)
+                        VALUES (?, ?, ?, ?, ?)`
+                        const [resultUsuarioUnidade] = await db.promise().query(sqlUsuarioUnidade, [id, unit.unidade.id, unit.papel.id, (unit.profissao && unit.profissao.id > 0 ? unit.profissao.id : ''), 1])
+
+                        // Insere os cargos
+                        if (unit.cargo && unit.cargo.length > 0 && hasCargosEdit(unit.cargo)) {
+                            unit.cargo.map(async (cargo, indexCargo) => {
+                                const sqlUsuarioUnidadeCargo = `
+                                INSERT INTO usuario_unidade_cargo (usuarioUnidadeID, cargoID)
+                                VALUES (?, ?)`
+                                const [resultUsuarioUnidadeCargo] = await db.promise().query(sqlUsuarioUnidadeCargo, [resultUsuarioUnidade.insertId, cargo.id])
+                            })
+                        }
+                    }
+                }
+
+                /////// PAPEL ///////
+                // Altera papel existente, se não houver conflito com unidade e usuario
+                if (unit.usuarioUnidadeID > 0 && unit.unidadeID && unit.papel && unit.papel.edit) { // Alterou o papel
+                    // Verifica se já existe essa unidade com esse papel para esse usuário
+                    const verifyPapel = await existsUsuarioUnidadePapel(id, unit.unidadeID, unit.papel.id)
+                    if (!verifyPapel) { // Ok, pode atualizar o papel
+                        const sqlUsuarioUnidade = `
+                        UPDATE usuario_unidade
+                        SET papelID = ?
+                        WHERE usuarioUnidadeID = ?`
+                        const [resultUsuarioUnidade] = await db.promise().query(sqlUsuarioUnidade, [unit.papel.id, unit.usuarioUnidadeID])
+                    }
+                }
+
+                /////// PROFISSÃO E CARGOS ///////
+                // Edição, não precisa de validação, só alterar
+                if (unit.usuarioUnidadeID > 0) {
+                    // Alterou a profissão
+                    if (unit.profissao.edit) {
+                        const sqlProfissao = `
+                        UPDATE usuario_unidade
+                        SET profissaoID = ?
+                        WHERE usuarioUnidadeID = ?`
+                        const [resultProfissao] = await db.promise().query(sqlProfissao, [unit.profissao.id, unit.usuarioUnidadeID])
                     }
 
+                    // Alterou os cargos
+                    if (unit.cargo && unit.cargo.length > 0 && hasCargosEdit(unit.cargo)) { // Houve pelo menos 1 alteração de cargo pra essa unidade, então atualiza todos os cargos
+                        // Deleta todos os cargos dessa unidade do usuário
+                        const sqlDeleteCargos = `
+                        DELETE FROM usuario_unidade_cargo
+                        WHERE usuarioUnidadeID = ?`
+                        const [resultDeleteCargos] = await db.promise().query(sqlDeleteCargos, [unit.usuarioUnidadeID])
+                        // Insere os novos cargos
+                        unit.cargo.map(async (cargo, indexCargo) => {
+                            const sqlCargo = `
+                            INSERT INTO usuario_unidade_cargo (usuarioUnidadeID, cargoID)
+                            VALUES (?, ?)`
+                            const [resultCargo] = await db.promise().query(sqlCargo, [unit.usuarioUnidadeID, cargo.id])
+                        })
+                    }
                 }
-            }
-        })
+
+                /////// PERMISSÕES DE ACESSO ///////
+                unit.menuGroup && unit.menuGroup.length > 0 && unit.menuGroup.map(async (menuGroup, indexMenuGroup) => {
+                    menuGroup.menu && menuGroup.menu.length > 0 && menuGroup.menu.map(async (menu, indexMenu) => {
+                        // Editou menu
+                        if (menu.edit) {
+                            // Verifica se já existe essa unidade com esse papel para esse usuário
+                            const verifyMenu = `
+                            SELECT permissaoID
+                            FROM permissao
+                            WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
+                            const [resultVerifyMenu] = await db.promise().query(verifyMenu, [menu.rota, unit.unidadeID, id, unit.papel.id])
+                            if (resultVerifyMenu.length > 0) { // Ok, pode atualizar o menu
+                                const sqlMenu = `
+                                UPDATE permissao
+                                SET ler = ?, inserir = ?, editar = ?, excluir = ?
+                                WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
+                                const [resultMenu] = await db.promise().query(sqlMenu, [
+                                    boolToNumber(menu.ler),
+                                    boolToNumber(menu.inserir),
+                                    boolToNumber(menu.editar),
+                                    boolToNumber(menu.excluir),
+                                    menu.rota,
+                                    unit.unidadeID,
+                                    id,
+                                    unit.papel.id
+                                ])
+                            } else { // Não existe, então insere
+                                const sqlMenu = `
+                                INSERT INTO permissao (rota, unidadeID, usuarioID, papelID, ler, inserir, editar, excluir)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+                                const [resultMenu] = await db.promise().query(sqlMenu, [
+                                    menu.rota,
+                                    unit.unidadeID,
+                                    id,
+                                    unit.papel.id,
+                                    boolToNumber(menu.ler),
+                                    boolToNumber(menu.inserir),
+                                    boolToNumber(menu.editar),
+                                    boolToNumber(menu.excluir)
+                                ])
+                            }
+                        }
+
+                        // Submenus 
+                        menu.submenu && menu.submenu.length > 0 && menu.submenu.map(async (submenu, indexSubmenu) => {
+                            if (submenu.edit) { // Editou submenu 
+                                // Verifica se já existe essa unidade com esse papel para esse usuário
+                                const verifySubmenu = `
+                                SELECT permissaoID
+                                FROM permissao
+                                WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
+                                const [resultVerifySubmenu] = await db.promise().query(verifySubmenu, [submenu.rota, unit.unidadeID, id, unit.papel.id])
+
+                                if (resultVerifySubmenu.length > 0) { // Ok, pode atualizar o submenu
+                                    const sqlSubmenu = `
+                                    UPDATE permissao
+                                    SET ler = ?, inserir = ?, editar = ?, excluir = ?
+                                    WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
+                                    const [resultSubmenu] = await db.promise().query(sqlSubmenu, [
+                                        boolToNumber(submenu.ler),
+                                        boolToNumber(submenu.inserir),
+                                        boolToNumber(submenu.editar),
+                                        boolToNumber(submenu.excluir),
+                                        submenu.rota,
+                                        unit.unidadeID,
+                                        id,
+                                        unit.papel.id
+                                    ])
+                                } else { // Não existe, então insere
+                                    const sqlSubmenu = `
+                                    INSERT INTO permissao (rota, unidadeID, usuarioID, papelID, ler, inserir, editar, excluir)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+                                    const [resultSubmenu] = await db.promise().query(sqlSubmenu, [
+                                        submenu.rota,
+                                        unit.unidadeID,
+                                        id,
+                                        unit.papel.id,
+                                        boolToNumber(submenu.ler),
+                                        boolToNumber(submenu.inserir),
+                                        boolToNumber(submenu.editar),
+                                        boolToNumber(submenu.excluir)
+                                    ])
+                                }
+                            }
+                        })
+                    })
+                })
+            })
+        }
+
+        res.status(200).json({ message: 'Dados atualizados com sucesso!' })
     }
 
     deleteData(req, res) {
@@ -186,6 +342,26 @@ class UsuarioController {
                 res.status(500).json(err);
             });
     }
+}
+
+const boolToNumber = (bool) => { return bool ? 1 : 0 }
+
+const existsUsuarioUnidadePapel = async (usuarioID, unidadeID, papelID) => {
+    console.log("🚀 ~ usuarioID, unidadeID, papelID:", usuarioID, unidadeID, papelID)
+    const sql = `
+    SELECT * 
+    FROM usuario_unidade 
+    WHERE usuarioID = ? AND unidadeID = ? AND papelID = ? `
+    const [result] = await db.promise().query(sql, [usuarioID, unidadeID, papelID])
+    return result.length > 0 ? true : false
+}
+
+const hasCargosEdit = (cargos) => {
+    let hasEdit = false
+    cargos.map(cargo => {
+        if (cargo.edit) { hasEdit = true }
+    })
+    return hasEdit
 }
 
 module.exports = UsuarioController;
