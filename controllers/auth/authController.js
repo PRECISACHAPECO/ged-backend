@@ -135,6 +135,34 @@ class AuthController {
                 break;
         }
     }
+
+    async register(req, res) {
+        const functionName = req.headers['function-name'];
+
+        switch (functionName) {
+            case 'handleGetCnpj':
+                const { cnpj } = req.body;
+
+                const cnpjExists = `
+                SELECT a.*, b.*, c.* FROM unidade a
+                    LEFT JOIN usuario_unidade b on (a.unidadeID = b.unidadeID)
+                    LEFT JOIN usuario = c on (b.usuarioID = c.usuarioID)
+                WHERE a.cnpj = ? `;
+
+                const resultCnpj = await db.promise().query(cnpjExists, [cnpj]);
+
+                res.status(200).json(resultCnpj[0]);
+                console.log(resultCnpj[0]);
+                break;
+
+            case 'onSubmitUnidade':
+
+
+
+
+                break;
+        }
+    }
 }
 
 module.exports = AuthController;
