@@ -2,32 +2,39 @@ const db = require('../../../config/db');
 const { hasPending, deleteItem, getMenuPermissions } = require('../../../config/defaultConfig');
 
 class UsuarioController {
-    getList(req, res) {
+    async getList(req, res) {
+        const { unidadeID, papelID } = req.query
 
-        db.query("SELECT usuarioID AS id, nome, status FROM usuario", (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                res.status(200).json(result);
-            }
-        })
+        //? Busca usuários da unidade e papel atual 
+        const sql = `
+        SELECT u.usuarioID AS id, u.nome, u.cpf, u.dataNascimento, u.status 
+        FROM usuario AS u
+            JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
+        WHERE uu.unidadeID = ? AND uu.papelID = ?
+        ORDER BY u.status DESC, u.nome ASC`
+        const [result] = await db.promise().query(sql, [unidadeID, papelID])
+
+        res.status(200).json(result)
     }
 
     async getData(req, res) {
         const { id } = req.params
-        const { admin } = req.query
-        const { unidadeID } = req.query
-        const papelID = 1 // temp
+        const { unidadeID, papelID, admin } = req.query
         let getData = {}
 
         const sql = `
-        SELECT a.*, b.registroConselhoClasse, c.nome AS profissao, d.nome AS papel
+        SELECT a.*, b.usuarioUnidadeID, b.profissaoID, b.registroConselhoClasse, c.nome AS profissao, d.nome AS papel
         FROM usuario a 
             JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
             LEFT JOIN profissao c on (b.profissaoID = c.profissaoID)
             LEFT JOIN papel d on (b.papelID = d.papelID)
         WHERE a.usuarioID = ? AND b.unidadeID = ?`
         const [result] = await db.promise().query(sql, [id, unidadeID])
+
+        if (result.length === 0) {
+            return res.status(404).json({ message: 'Usuário não encontrado!' })
+        }
+
         getData = result[0]
         getData['units'] = []
 
@@ -91,85 +98,142 @@ class UsuarioController {
             ORDER BY nome ASC`;
             const [resultPapel] = await db.promise().query(sqlPapel)
             getData['papelOptions'] = resultPapel
+        } else { // Não é admin 
+            // Profissão
+            getData[`profissao`] = {
+                id: result[0].profissaoID,
+                nome: result[0].profissao,
+            }
 
-            const sqlProfissao = `
+            // Cargos 
+            const sqlCargos = `
+            SELECT c.cargoID AS id, nome
+            FROM usuario_unidade a
+                JOIN usuario_unidade_cargo b on (a.usuarioUnidadeID = b.usuarioUnidadeID)
+                JOIN cargo c on (b.cargoID = c.cargoID)
+            WHERE a.usuarioID = ? AND a.unidadeID = ? AND a.papelID = ?`;
+            const [resultCargos] = await db.promise().query(sqlCargos, [id, unidadeID, papelID])
+            getData[`cargo`] = resultCargos
+        }
+
+        const sqlProfissao = `
             SELECT * 
             FROM profissao
             WHERE status = 1 
             ORDER BY nome ASC`;
-            const [resultProfissao] = await db.promise().query(sqlProfissao)
-            getData['profissaoOptions'] = resultProfissao
+        const [resultProfissao] = await db.promise().query(sqlProfissao)
+        getData['profissaoOptions'] = resultProfissao
 
-            const sqlCargosAll = `
+        const sqlCargosAll = `
             SELECT cargoID AS id, nome
             FROM cargo
             WHERE status = 1
             ORDER BY nome ASC`;
-            const [resultCargosAll] = await db.promise().query(sqlCargosAll)
-            getData['cargosOptions'] = resultCargosAll
-        }
+        const [resultCargosAll] = await db.promise().query(sqlCargosAll)
+        getData['cargosOptions'] = resultCargosAll
+
         res.status(200).json(getData)
     }
 
-    insertData(req, res) {
-        const { nome } = req.body;
-        db.query("SELECT * FROM usuario", (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                const rows = result.find(row => row.nome === nome);
-                if (rows) {
-                    res.status(409).json(err);
-                } else {
-                    db.query("INSERT INTO usuario (nome) VALUES (?)", [nome], (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(201).json(result);
-                        }
-                    });
-                }
-            }
-        });
+    async insertData(req, res) {
+        const data = req.body;
+
+        //? Valida duplicidade de CPF 
+        const sqlVerifyCpf = `SELECT usuarioID FROM usuario WHERE cpf = ?`
+        const [resultVerifyCpf] = await db.promise().query(sqlVerifyCpf, [data.cpf])
+        if (resultVerifyCpf.length > 0) {
+            return res.status(409).json({ message: 'Já existe um usuário com esse CPF!' })
+        }
+
+        //* USUARIO
+        // CPF novo
+        const sqlUsuario = `
+        INSERT INTO usuario (nome, cpf, senha, dataNascimento, rg, email, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        const [resultUsuario] = await db.promise().query(sqlUsuario, [data.nome, data.cpf, data.senha, data.dataNascimento, data.rg, data.email, 1])
+        const usuarioID = resultUsuario.insertId
+
+        //* USUARIO_UNIDADE
+        const sqlUsuarioUnidade = `
+        INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID, registroConselhoClasse, status)
+        VALUES (?, ?, ?, ?, ?)`;
+        const [resultUsuarioUnidade] = await db.promise().query(sqlUsuarioUnidade, [usuarioID, data.unidadeID, data.papelID, data.registroConselhoClasse, 1])
+
+        res.status(200).json({
+            id: usuarioID,
+            message: 'Dados inseridos com sucesso!'
+        })
     }
 
     async updateData(req, res) {
         const { id } = req.params
         const data = req.body
 
-        /////////////// USUÁRIO /////////////////
-        // Atualiza os dados do usuário
+        //* USUÁRIO
+        //? Atualiza os dados do usuário
         const sqlUsuario = `
         UPDATE usuario
-        SET nome = ?, email = ?, dataNascimento = ?, cpf = ?, rg = ?
+        SET nome = ?, email = ?, dataNascimento = ?, cpf = ?, rg = ? ${data.senha && data.senha.length > 0 ? ', senha = ?' : ''}
         WHERE usuarioID = ?`
-        const [resultUsuario] = await db.promise().query(sqlUsuario, [data.nome, data.email, data.dataNascimento, data.cpf, data.rg, id])
+        const [resultUsuario] = await db.promise().query(sqlUsuario, [
+            data.nome,
+            data.email,
+            data.dataNascimento,
+            data.cpf,
+            data.rg,
+            ...(data.senha && data.senha.length > 0 ? [data.senha] : []),
+            id
+        ])
 
-        ///////////////// ADMIN /////////////////
-        // ADMIN Configura:
-        //      - unidades
-        //      - papeis
-        //      - profissões
-        //      - cargos
-        //      - permissões de acesso
+        //* USUARIO_UNIDADE
+        //? Profissão
+        if (data.profissao && data.profissao.id > 0 && data.profissao.edit) {
+            const sqlProfissao = `
+            UPDATE usuario_unidade
+            SET profissaoID = ?
+            WHERE usuarioUnidadeID = ?`
+            const [resultProfissao] = await db.promise().query(sqlProfissao, [data.profissao.id, data.usuarioUnidadeID])
+        }
+
+        //? Cargos 
+        if (data.cargo && data.cargo.length > 0 && hasCargosEdit(data.cargo)) {
+            //? Deleta todos os cargos dessa unidade do usuário
+            const sqlDeleteCargos = `
+            DELETE FROM usuario_unidade_cargo
+            WHERE usuarioUnidadeID = ?`
+            const [resultDeleteCargos] = await db.promise().query(sqlDeleteCargos, [data.usuarioUnidadeID])
+            //? Insere os novos cargos
+            data.cargo.map(async (cargo, indexCargo) => {
+                const sqlCargo = `
+                INSERT INTO usuario_unidade_cargo (usuarioUnidadeID, cargoID)
+                VALUES (?, ?)`
+                const [resultCargo] = await db.promise().query(sqlCargo, [data.usuarioUnidadeID, cargo.id])
+            })
+        }
+
+        //* ADMIN
+        //? ADMIN Configura:
+        //?      - unidades
+        //?      - papeis
+        //?      - profissões
+        //?      - cargos
+        //?      - permissões de acesso
         if (data.admin == 1 && data.units && data.units.length > 0) {
             data.units.map(async (unit, indexUnit) => {
-                /////// UNIDADE ///////
-                // Só vem se for inserida uma nova
+                //* UNIDADE
+                //? Só vem se for inserida uma nova
                 if (unit.unidade && unit.unidade.id > 0 && unit.papel && unit.papel.id > 0) {
-                    // Verifica se já existe essa unidade com esse papel para esse usuário
+                    //? Verifica se já existe essa unidade com esse papel para esse usuário
                     const verifyUsuarioUnidadePapel = await existsUsuarioUnidadePapel(id, unit.unidade.id, unit.papel.id)
                     if (verifyUsuarioUnidadePapel) {
                         res.status(409).json({ message: 'Já existe essa unidade com esse papel pra esse usuário!' })
-                    } else { // Ok, pode inserir nova unidade 
+                    } else { //? Ok, pode inserir nova unidade 
                         const sqlUsuarioUnidade = `
                         INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID, profissaoID, status)
                         VALUES (?, ?, ?, ?, ?)`
                         const [resultUsuarioUnidade] = await db.promise().query(sqlUsuarioUnidade, [id, unit.unidade.id, unit.papel.id, (unit.profissao && unit.profissao.id > 0 ? unit.profissao.id : ''), 1])
 
-                        // Insere os cargos
+                        //? Insere os cargos
                         if (unit.cargo && unit.cargo.length > 0 && hasCargosEdit(unit.cargo)) {
                             unit.cargo.map(async (cargo, indexCargo) => {
                                 const sqlUsuarioUnidadeCargo = `
@@ -181,12 +245,12 @@ class UsuarioController {
                     }
                 }
 
-                /////// PAPEL ///////
-                // Altera papel existente, se não houver conflito com unidade e usuario
+                //* PAPEL
+                //? Altera papel existente, se não houver conflito com unidade e usuario
                 if (unit.usuarioUnidadeID > 0 && unit.unidadeID && unit.papel && unit.papel.edit) { // Alterou o papel
-                    // Verifica se já existe essa unidade com esse papel para esse usuário
+                    //? Verifica se já existe essa unidade com esse papel para esse usuário
                     const verifyPapel = await existsUsuarioUnidadePapel(id, unit.unidadeID, unit.papel.id)
-                    if (!verifyPapel) { // Ok, pode atualizar o papel
+                    if (!verifyPapel) { //? Ok, pode atualizar o papel
                         const sqlUsuarioUnidade = `
                         UPDATE usuario_unidade
                         SET papelID = ?
@@ -195,10 +259,10 @@ class UsuarioController {
                     }
                 }
 
-                /////// PROFISSÃO E CARGOS ///////
-                // Edição, não precisa de validação, só alterar
+                //* PROFISSÃO E CARGOS
+                //? Edição, não precisa de validação, só alterar
                 if (unit.usuarioUnidadeID > 0) {
-                    // Alterou a profissão
+                    //? Alterou a profissão
                     if (unit.profissao.edit) {
                         const sqlProfissao = `
                         UPDATE usuario_unidade
@@ -207,14 +271,14 @@ class UsuarioController {
                         const [resultProfissao] = await db.promise().query(sqlProfissao, [unit.profissao.id, unit.usuarioUnidadeID])
                     }
 
-                    // Alterou os cargos
+                    //? Alterou os cargos
                     if (unit.cargo && unit.cargo.length > 0 && hasCargosEdit(unit.cargo)) { // Houve pelo menos 1 alteração de cargo pra essa unidade, então atualiza todos os cargos
-                        // Deleta todos os cargos dessa unidade do usuário
+                        //? Deleta todos os cargos dessa unidade do usuário
                         const sqlDeleteCargos = `
                         DELETE FROM usuario_unidade_cargo
                         WHERE usuarioUnidadeID = ?`
                         const [resultDeleteCargos] = await db.promise().query(sqlDeleteCargos, [unit.usuarioUnidadeID])
-                        // Insere os novos cargos
+                        //? Insere os novos cargos
                         unit.cargo.map(async (cargo, indexCargo) => {
                             const sqlCargo = `
                             INSERT INTO usuario_unidade_cargo (usuarioUnidadeID, cargoID)
@@ -224,18 +288,18 @@ class UsuarioController {
                     }
                 }
 
-                /////// PERMISSÕES DE ACESSO ///////
+                //* PERMISSÕES DE ACESSO
                 unit.menuGroup && unit.menuGroup.length > 0 && unit.menuGroup.map(async (menuGroup, indexMenuGroup) => {
                     menuGroup.menu && menuGroup.menu.length > 0 && menuGroup.menu.map(async (menu, indexMenu) => {
-                        // Editou menu
+                        //? Editou menu
                         if (menu.edit) {
-                            // Verifica se já existe essa unidade com esse papel para esse usuário
+                            //? Verifica se já existe essa unidade com esse papel para esse usuário
                             const verifyMenu = `
                             SELECT permissaoID
                             FROM permissao
                             WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
                             const [resultVerifyMenu] = await db.promise().query(verifyMenu, [menu.rota, unit.unidadeID, id, unit.papel.id])
-                            if (resultVerifyMenu.length > 0) { // Ok, pode atualizar o menu
+                            if (resultVerifyMenu.length > 0) { //? Ok, pode atualizar o menu
                                 const sqlMenu = `
                                 UPDATE permissao
                                 SET ler = ?, inserir = ?, editar = ?, excluir = ?
@@ -250,7 +314,7 @@ class UsuarioController {
                                     id,
                                     unit.papel.id
                                 ])
-                            } else { // Não existe, então insere
+                            } else { //? Não existe, então insere
                                 const sqlMenu = `
                                 INSERT INTO permissao (rota, unidadeID, usuarioID, papelID, ler, inserir, editar, excluir)
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
@@ -267,17 +331,17 @@ class UsuarioController {
                             }
                         }
 
-                        // Submenus 
+                        //? Submenus 
                         menu.submenu && menu.submenu.length > 0 && menu.submenu.map(async (submenu, indexSubmenu) => {
-                            if (submenu.edit) { // Editou submenu 
-                                // Verifica se já existe essa unidade com esse papel para esse usuário
+                            if (submenu.edit) { //? Editou submenu 
+                                //? Verifica se já existe essa unidade com esse papel para esse usuário
                                 const verifySubmenu = `
                                 SELECT permissaoID
                                 FROM permissao
                                 WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
                                 const [resultVerifySubmenu] = await db.promise().query(verifySubmenu, [submenu.rota, unit.unidadeID, id, unit.papel.id])
 
-                                if (resultVerifySubmenu.length > 0) { // Ok, pode atualizar o submenu
+                                if (resultVerifySubmenu.length > 0) { //? Ok, pode atualizar o submenu
                                     const sqlSubmenu = `
                                     UPDATE permissao
                                     SET ler = ?, inserir = ?, editar = ?, excluir = ?
@@ -292,7 +356,7 @@ class UsuarioController {
                                         id,
                                         unit.papel.id
                                     ])
-                                } else { // Não existe, então insere
+                                } else { //? Não existe, então insere
                                     const sqlSubmenu = `
                                     INSERT INTO permissao (rota, unidadeID, usuarioID, papelID, ler, inserir, editar, excluir)
                                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
