@@ -1,4 +1,5 @@
 const db = require('../../config/db');
+const { getMenu } = require('../../config/defaultConfig');
 
 // ** JWT import
 const jwt = require('jsonwebtoken');
@@ -40,7 +41,6 @@ class AuthController {
                     userData: { ...result[0], senha: undefined },
                     unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.nomeFantasia, papelID: unidade.papelID, papel: unidade.papel }))
                 }
-                console.log("🚀 ~ response:", response)
                 res.status(202).json(response);
             }
 
@@ -72,28 +72,30 @@ class AuthController {
         // Menu e Routes
         switch (functionName) {
             case 'getMenu':
-                const menu = []
+                const menu = await getMenu(papelID)
+                console.log("🚀 ~ menu:", menu)
 
-                const sqlDivisor = `SELECT * FROM divisor WHERE papelID = ${papelID} AND status = 1 ORDER BY ordem ASC`;
-                const [resultDivisor] = await db.promise().query(sqlDivisor);
+                // const menu = []
+                // const sqlDivisor = `SELECT * FROM divisor WHERE papelID = ${papelID} AND status = 1 ORDER BY ordem ASC`;
+                // const [resultDivisor] = await db.promise().query(sqlDivisor);
 
-                for (const rotaDivisor of resultDivisor) {
-                    const sqlMenu = `SELECT * FROM menu WHERE divisorID = ? AND status = 1 ORDER BY ordem ASC`;
-                    const [resultMenu] = await db.promise().query(sqlMenu, [rotaDivisor.divisorID]);
-                    for (const rotaMenu of resultMenu) {
-                        if (rotaMenu.rota === null) {
-                            const sqlSubmenu = `SELECT * FROM submenu WHERE menuID = ? AND status = 1 ORDER BY ordem ASC`;
-                            const [resultSubmenu] = await db.promise().query(sqlSubmenu, [rotaMenu.menuID]);
-                            if (resultSubmenu) {
-                                rotaMenu.submenu = resultSubmenu;
-                            }
-                        }
-                    }
+                // for (const rotaDivisor of resultDivisor) {
+                //     const sqlMenu = `SELECT * FROM menu WHERE divisorID = ? AND status = 1 ORDER BY ordem ASC`;
+                //     const [resultMenu] = await db.promise().query(sqlMenu, [rotaDivisor.divisorID]);
+                //     for (const rotaMenu of resultMenu) {
+                //         if (rotaMenu.rota === null) {
+                //             const sqlSubmenu = `SELECT * FROM submenu WHERE menuID = ? AND status = 1 ORDER BY ordem ASC`;
+                //             const [resultSubmenu] = await db.promise().query(sqlSubmenu, [rotaMenu.menuID]);
+                //             if (resultSubmenu) {
+                //                 rotaMenu.submenu = resultSubmenu;
+                //             }
+                //         }
+                //     }
 
-                    rotaDivisor.menu = resultMenu;
+                //     rotaDivisor.menu = resultMenu;
 
-                    menu.push(rotaDivisor);
-                }
+                //     menu.push(rotaDivisor);
+                // }
 
                 res.status(200).json(menu);
                 break;
