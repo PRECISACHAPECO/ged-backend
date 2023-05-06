@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.1.1
+-- version 5.0.4
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 03-Maio-2023 às 16:40
--- Versão do servidor: 10.4.22-MariaDB
--- versão do PHP: 7.4.27
+-- Tempo de geração: 06/05/2023 às 16:17
+-- Versão do servidor: 10.4.17-MariaDB
+-- Versão do PHP: 7.4.15
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -24,7 +24,7 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `alternativa`
+-- Estrutura para tabela `alternativa`
 --
 
 CREATE TABLE `alternativa` (
@@ -34,7 +34,7 @@ CREATE TABLE `alternativa` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `alternativa`
+-- Despejando dados para a tabela `alternativa`
 --
 
 INSERT INTO `alternativa` (`alternativaID`, `nome`, `status`) VALUES
@@ -48,7 +48,7 @@ INSERT INTO `alternativa` (`alternativaID`, `nome`, `status`) VALUES
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `alternativa_item`
+-- Estrutura para tabela `alternativa_item`
 --
 
 CREATE TABLE `alternativa_item` (
@@ -58,7 +58,7 @@ CREATE TABLE `alternativa_item` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `alternativa_item`
+-- Despejando dados para a tabela `alternativa_item`
 --
 
 INSERT INTO `alternativa_item` (`alternativaItemID`, `alternativaID`, `nome`) VALUES
@@ -76,7 +76,7 @@ INSERT INTO `alternativa_item` (`alternativaItemID`, `alternativaID`, `nome`) VA
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `apresentacao`
+-- Estrutura para tabela `apresentacao`
 --
 
 CREATE TABLE `apresentacao` (
@@ -87,7 +87,7 @@ CREATE TABLE `apresentacao` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `apresentacao`
+-- Despejando dados para a tabela `apresentacao`
 --
 
 INSERT INTO `apresentacao` (`apresentacaoID`, `nome`, `status`, `dataCadastro`) VALUES
@@ -98,7 +98,7 @@ INSERT INTO `apresentacao` (`apresentacaoID`, `nome`, `status`, `dataCadastro`) 
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `atividade`
+-- Estrutura para tabela `atividade`
 --
 
 CREATE TABLE `atividade` (
@@ -108,7 +108,7 @@ CREATE TABLE `atividade` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `atividade`
+-- Despejando dados para a tabela `atividade`
 --
 
 INSERT INTO `atividade` (`atividadeID`, `nome`, `status`) VALUES
@@ -123,18 +123,18 @@ INSERT INTO `atividade` (`atividadeID`, `nome`, `status`) VALUES
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `cargo`
+-- Estrutura para tabela `cargo`
 --
 
 CREATE TABLE `cargo` (
   `cargoID` int(11) NOT NULL,
   `nome` text NOT NULL,
-  `dataCadastro` date DEFAULT current_timestamp(),
+  `dataCadastro` date DEFAULT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `cargo`
+-- Despejando dados para a tabela `cargo`
 --
 
 INSERT INTO `cargo` (`cargoID`, `nome`, `dataCadastro`, `status`) VALUES
@@ -145,29 +145,31 @@ INSERT INTO `cargo` (`cargoID`, `nome`, `dataCadastro`, `status`) VALUES
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `divisor`
+-- Estrutura para tabela `divisor`
 --
 
 CREATE TABLE `divisor` (
   `divisorID` int(11) NOT NULL,
+  `papelID` int(11) NOT NULL,
   `nome` varchar(255) NOT NULL,
   `ordem` int(11) NOT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `divisor`
+-- Despejando dados para a tabela `divisor`
 --
 
-INSERT INTO `divisor` (`divisorID`, `nome`, `ordem`, `status`) VALUES
-(1, 'Geral', 1, 1),
-(2, 'Formulários', 2, 1),
-(3, 'Definições', 3, 1);
+INSERT INTO `divisor` (`divisorID`, `papelID`, `nome`, `ordem`, `status`) VALUES
+(1, 1, 'Geral', 1, 1),
+(2, 1, 'Formulários', 2, 1),
+(3, 1, 'Definições', 3, 1),
+(4, 2, 'Geral', 1, 1);
 
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `fornecedor`
+-- Estrutura para tabela `fornecedor`
 --
 
 CREATE TABLE `fornecedor` (
@@ -198,7 +200,7 @@ CREATE TABLE `fornecedor` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `fornecedor`
+-- Despejando dados para a tabela `fornecedor`
 --
 
 INSERT INTO `fornecedor` (`fornecedorID`, `dataAvaliacao`, `cnpj`, `razaoSocial`, `nome`, `email`, `telefone`, `brasil`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `pais`, `ie`, `responsavel`, `principaisClientes`, `registroMapa`, `obs`, `unidadeID`, `status`, `atual`) VALUES
@@ -207,7 +209,7 @@ INSERT INTO `fornecedor` (`fornecedorID`, `dataAvaliacao`, `cnpj`, `razaoSocial`
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `fornecedor_atividade`
+-- Estrutura para tabela `fornecedor_atividade`
 --
 
 CREATE TABLE `fornecedor_atividade` (
@@ -217,7 +219,7 @@ CREATE TABLE `fornecedor_atividade` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `fornecedor_atividade`
+-- Despejando dados para a tabela `fornecedor_atividade`
 --
 
 INSERT INTO `fornecedor_atividade` (`fornecedorAtividadeID`, `fornecedorID`, `atividadeID`) VALUES
@@ -230,7 +232,7 @@ INSERT INTO `fornecedor_atividade` (`fornecedorAtividadeID`, `fornecedorID`, `at
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `fornecedor_resposta`
+-- Estrutura para tabela `fornecedor_resposta`
 --
 
 CREATE TABLE `fornecedor_resposta` (
@@ -244,7 +246,7 @@ CREATE TABLE `fornecedor_resposta` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `fornecedor_resposta`
+-- Despejando dados para a tabela `fornecedor_resposta`
 --
 
 INSERT INTO `fornecedor_resposta` (`fornecedorRespostaID`, `fornecedorID`, `parFornecedorBlocoID`, `itemID`, `resposta`, `respostaID`, `obs`) VALUES
@@ -257,7 +259,7 @@ INSERT INTO `fornecedor_resposta` (`fornecedorRespostaID`, `fornecedorID`, `parF
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `fornecedor_sistemaqualidade`
+-- Estrutura para tabela `fornecedor_sistemaqualidade`
 --
 
 CREATE TABLE `fornecedor_sistemaqualidade` (
@@ -267,7 +269,7 @@ CREATE TABLE `fornecedor_sistemaqualidade` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `fornecedor_sistemaqualidade`
+-- Despejando dados para a tabela `fornecedor_sistemaqualidade`
 --
 
 INSERT INTO `fornecedor_sistemaqualidade` (`fornecedorSistemaQualidadeID`, `fornecedorID`, `sistemaQualidadeID`) VALUES
@@ -278,7 +280,7 @@ INSERT INTO `fornecedor_sistemaqualidade` (`fornecedorSistemaQualidadeID`, `forn
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `item`
+-- Estrutura para tabela `item`
 --
 
 CREATE TABLE `item` (
@@ -289,7 +291,7 @@ CREATE TABLE `item` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `item`
+-- Despejando dados para a tabela `item`
 --
 
 INSERT INTO `item` (`itemID`, `nome`, `parFormularioID`, `status`) VALUES
@@ -313,7 +315,7 @@ INSERT INTO `item` (`itemID`, `nome`, `parFormularioID`, `status`) VALUES
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `menu`
+-- Estrutura para tabela `menu`
 --
 
 CREATE TABLE `menu` (
@@ -328,7 +330,7 @@ CREATE TABLE `menu` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 --
--- Extraindo dados da tabela `menu`
+-- Despejando dados para a tabela `menu`
 --
 
 INSERT INTO `menu` (`menuID`, `divisorID`, `nome`, `icone`, `rota`, `ordem`, `novo`, `status`) VALUES
@@ -341,7 +343,7 @@ INSERT INTO `menu` (`menuID`, `divisorID`, `nome`, `icone`, `rota`, `ordem`, `no
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `papel`
+-- Estrutura para tabela `papel`
 --
 
 CREATE TABLE `papel` (
@@ -352,7 +354,7 @@ CREATE TABLE `papel` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `papel`
+-- Despejando dados para a tabela `papel`
 --
 
 INSERT INTO `papel` (`papelID`, `nome`, `status`, `dataCadastro`) VALUES
@@ -363,7 +365,7 @@ INSERT INTO `papel` (`papelID`, `nome`, `status`, `dataCadastro`) VALUES
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `par_formulario`
+-- Estrutura para tabela `par_formulario`
 --
 
 CREATE TABLE `par_formulario` (
@@ -374,7 +376,7 @@ CREATE TABLE `par_formulario` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `par_formulario`
+-- Despejando dados para a tabela `par_formulario`
 --
 
 INSERT INTO `par_formulario` (`parFormularioID`, `nome`, `tabela`, `obs`) VALUES
@@ -385,7 +387,7 @@ INSERT INTO `par_formulario` (`parFormularioID`, `nome`, `tabela`, `obs`) VALUES
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `par_fornecedor`
+-- Estrutura para tabela `par_fornecedor`
 --
 
 CREATE TABLE `par_fornecedor` (
@@ -398,7 +400,7 @@ CREATE TABLE `par_fornecedor` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `par_fornecedor`
+-- Despejando dados para a tabela `par_fornecedor`
 --
 
 INSERT INTO `par_fornecedor` (`parFornecedorID`, `ordem`, `nomeCampo`, `nomeColuna`, `tipo`, `obs`) VALUES
@@ -424,7 +426,7 @@ INSERT INTO `par_fornecedor` (`parFornecedorID`, `ordem`, `nomeCampo`, `nomeColu
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `par_fornecedor_bloco`
+-- Estrutura para tabela `par_fornecedor_bloco`
 --
 
 CREATE TABLE `par_fornecedor_bloco` (
@@ -437,7 +439,7 @@ CREATE TABLE `par_fornecedor_bloco` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `par_fornecedor_bloco`
+-- Despejando dados para a tabela `par_fornecedor_bloco`
 --
 
 INSERT INTO `par_fornecedor_bloco` (`parFornecedorBlocoID`, `ordem`, `nome`, `obs`, `unidadeID`, `status`) VALUES
@@ -448,7 +450,7 @@ INSERT INTO `par_fornecedor_bloco` (`parFornecedorBlocoID`, `ordem`, `nome`, `ob
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `par_fornecedor_bloco_atividade`
+-- Estrutura para tabela `par_fornecedor_bloco_atividade`
 --
 
 CREATE TABLE `par_fornecedor_bloco_atividade` (
@@ -459,7 +461,7 @@ CREATE TABLE `par_fornecedor_bloco_atividade` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `par_fornecedor_bloco_atividade`
+-- Despejando dados para a tabela `par_fornecedor_bloco_atividade`
 --
 
 INSERT INTO `par_fornecedor_bloco_atividade` (`parFornecedorBlocoAtividadeID`, `parFornecedorBlocoID`, `atividadeID`, `unidadeID`) VALUES
@@ -471,7 +473,7 @@ INSERT INTO `par_fornecedor_bloco_atividade` (`parFornecedorBlocoAtividadeID`, `
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `par_fornecedor_bloco_item`
+-- Estrutura para tabela `par_fornecedor_bloco_item`
 --
 
 CREATE TABLE `par_fornecedor_bloco_item` (
@@ -486,7 +488,7 @@ CREATE TABLE `par_fornecedor_bloco_item` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `par_fornecedor_bloco_item`
+-- Despejando dados para a tabela `par_fornecedor_bloco_item`
 --
 
 INSERT INTO `par_fornecedor_bloco_item` (`parFornecedorBlocoItemID`, `parFornecedorBlocoID`, `ordem`, `itemID`, `alternativaID`, `obs`, `obrigatorio`, `status`) VALUES
@@ -506,7 +508,7 @@ INSERT INTO `par_fornecedor_bloco_item` (`parFornecedorBlocoItemID`, `parFornece
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `par_fornecedor_unidade`
+-- Estrutura para tabela `par_fornecedor_unidade`
 --
 
 CREATE TABLE `par_fornecedor_unidade` (
@@ -517,7 +519,7 @@ CREATE TABLE `par_fornecedor_unidade` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `par_fornecedor_unidade`
+-- Despejando dados para a tabela `par_fornecedor_unidade`
 --
 
 INSERT INTO `par_fornecedor_unidade` (`parFornecedorUnidadeID`, `parFornecedorID`, `unidadeID`, `obrigatorio`) VALUES
@@ -532,7 +534,7 @@ INSERT INTO `par_fornecedor_unidade` (`parFornecedorUnidadeID`, `parFornecedorID
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `par_recebimentomp`
+-- Estrutura para tabela `par_recebimentomp`
 --
 
 CREATE TABLE `par_recebimentomp` (
@@ -546,7 +548,7 @@ CREATE TABLE `par_recebimentomp` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `par_recebimentomp`
+-- Despejando dados para a tabela `par_recebimentomp`
 --
 
 INSERT INTO `par_recebimentomp` (`parRecebimentompID`, `ordem`, `nomeCampo`, `tabela`, `nomeColuna`, `tipo`, `obs`) VALUES
@@ -563,7 +565,7 @@ INSERT INTO `par_recebimentomp` (`parRecebimentompID`, `ordem`, `nomeCampo`, `ta
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `par_recebimentomp_bloco`
+-- Estrutura para tabela `par_recebimentomp_bloco`
 --
 
 CREATE TABLE `par_recebimentomp_bloco` (
@@ -576,7 +578,7 @@ CREATE TABLE `par_recebimentomp_bloco` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `par_recebimentomp_bloco`
+-- Despejando dados para a tabela `par_recebimentomp_bloco`
 --
 
 INSERT INTO `par_recebimentomp_bloco` (`parRecebimentompBlocoID`, `ordem`, `nome`, `obs`, `unidadeID`, `status`) VALUES
@@ -588,7 +590,7 @@ INSERT INTO `par_recebimentomp_bloco` (`parRecebimentompBlocoID`, `ordem`, `nome
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `par_recebimentomp_bloco_item`
+-- Estrutura para tabela `par_recebimentomp_bloco_item`
 --
 
 CREATE TABLE `par_recebimentomp_bloco_item` (
@@ -603,7 +605,7 @@ CREATE TABLE `par_recebimentomp_bloco_item` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `par_recebimentomp_bloco_item`
+-- Despejando dados para a tabela `par_recebimentomp_bloco_item`
 --
 
 INSERT INTO `par_recebimentomp_bloco_item` (`parRecebimentompBlocoItemID`, `parRecebimentompBlocoID`, `ordem`, `itemID`, `alternativaID`, `obs`, `obrigatorio`, `status`) VALUES
@@ -622,7 +624,7 @@ INSERT INTO `par_recebimentomp_bloco_item` (`parRecebimentompBlocoItemID`, `parR
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `par_recebimentomp_produto`
+-- Estrutura para tabela `par_recebimentomp_produto`
 --
 
 CREATE TABLE `par_recebimentomp_produto` (
@@ -636,7 +638,7 @@ CREATE TABLE `par_recebimentomp_produto` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `par_recebimentomp_produto`
+-- Despejando dados para a tabela `par_recebimentomp_produto`
 --
 
 INSERT INTO `par_recebimentomp_produto` (`parRecebimentompProdutoID`, `ordem`, `nomeCampo`, `nomeColuna`, `tabela`, `tipo`, `obs`) VALUES
@@ -648,7 +650,7 @@ INSERT INTO `par_recebimentomp_produto` (`parRecebimentompProdutoID`, `ordem`, `
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `par_recebimentomp_produto_unidade`
+-- Estrutura para tabela `par_recebimentomp_produto_unidade`
 --
 
 CREATE TABLE `par_recebimentomp_produto_unidade` (
@@ -659,7 +661,7 @@ CREATE TABLE `par_recebimentomp_produto_unidade` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `par_recebimentomp_produto_unidade`
+-- Despejando dados para a tabela `par_recebimentomp_produto_unidade`
 --
 
 INSERT INTO `par_recebimentomp_produto_unidade` (`parRecebimentompProdutoUnidadeID`, `parRecebimentompProdutoID`, `unidadeID`, `obrigatorio`) VALUES
@@ -673,7 +675,7 @@ INSERT INTO `par_recebimentomp_produto_unidade` (`parRecebimentompProdutoUnidade
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `par_recebimentomp_unidade`
+-- Estrutura para tabela `par_recebimentomp_unidade`
 --
 
 CREATE TABLE `par_recebimentomp_unidade` (
@@ -684,7 +686,7 @@ CREATE TABLE `par_recebimentomp_unidade` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `par_recebimentomp_unidade`
+-- Despejando dados para a tabela `par_recebimentomp_unidade`
 --
 
 INSERT INTO `par_recebimentomp_unidade` (`parRecebimentompUnidadeID`, `parRecebimentompID`, `unidadeID`, `obrigatorio`) VALUES
@@ -696,7 +698,7 @@ INSERT INTO `par_recebimentomp_unidade` (`parRecebimentompUnidadeID`, `parRecebi
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `permissao`
+-- Estrutura para tabela `permissao`
 --
 
 CREATE TABLE `permissao` (
@@ -712,7 +714,7 @@ CREATE TABLE `permissao` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 --
--- Extraindo dados da tabela `permissao`
+-- Despejando dados para a tabela `permissao`
 --
 
 INSERT INTO `permissao` (`permissaoID`, `rota`, `papelID`, `usuarioID`, `unidadeID`, `ler`, `inserir`, `editar`, `excluir`) VALUES
@@ -738,7 +740,7 @@ INSERT INTO `permissao` (`permissaoID`, `rota`, `papelID`, `usuarioID`, `unidade
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `pessoa`
+-- Estrutura para tabela `pessoa`
 --
 
 CREATE TABLE `pessoa` (
@@ -751,7 +753,7 @@ CREATE TABLE `pessoa` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `pessoa`
+-- Despejando dados para a tabela `pessoa`
 --
 
 INSERT INTO `pessoa` (`pessoaID`, `nome`, `cpf`, `unidadeID`, `status`, `dataCadastro`) VALUES
@@ -763,7 +765,7 @@ INSERT INTO `pessoa` (`pessoaID`, `nome`, `cpf`, `unidadeID`, `status`, `dataCad
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `produto`
+-- Estrutura para tabela `produto`
 --
 
 CREATE TABLE `produto` (
@@ -776,7 +778,7 @@ CREATE TABLE `produto` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `produto`
+-- Despejando dados para a tabela `produto`
 --
 
 INSERT INTO `produto` (`produtoID`, `nome`, `unidadeMedida`, `unidadeID`, `status`, `dataCadastro`) VALUES
@@ -788,18 +790,18 @@ INSERT INTO `produto` (`produtoID`, `nome`, `unidadeMedida`, `unidadeID`, `statu
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `profissao`
+-- Estrutura para tabela `profissao`
 --
 
 CREATE TABLE `profissao` (
   `profissaoID` int(11) NOT NULL,
   `nome` text NOT NULL,
-  `dataCadastro` date DEFAULT current_timestamp(),
+  `dataCadastro` date DEFAULT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `profissao`
+-- Despejando dados para a tabela `profissao`
 --
 
 INSERT INTO `profissao` (`profissaoID`, `nome`, `dataCadastro`, `status`) VALUES
@@ -810,7 +812,7 @@ INSERT INTO `profissao` (`profissaoID`, `nome`, `dataCadastro`, `status`) VALUES
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `recebimentomp`
+-- Estrutura para tabela `recebimentomp`
 --
 
 CREATE TABLE `recebimentomp` (
@@ -833,7 +835,7 @@ CREATE TABLE `recebimentomp` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `recebimentomp`
+-- Despejando dados para a tabela `recebimentomp`
 --
 
 INSERT INTO `recebimentomp` (`recebimentompID`, `pessoaID`, `tipoOperacaoID`, `data`, `dataEdicao`, `dataRevisao`, `nf`, `fornecedorID`, `transportadorID`, `placa`, `motorista`, `tipoVeiculoID`, `obs`, `unidadeID`, `status`, `dataCadastro`) VALUES
@@ -842,7 +844,7 @@ INSERT INTO `recebimentomp` (`recebimentompID`, `pessoaID`, `tipoOperacaoID`, `d
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `recebimentomp_produto`
+-- Estrutura para tabela `recebimentomp_produto`
 --
 
 CREATE TABLE `recebimentomp_produto` (
@@ -855,7 +857,7 @@ CREATE TABLE `recebimentomp_produto` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `recebimentomp_produto`
+-- Despejando dados para a tabela `recebimentomp_produto`
 --
 
 INSERT INTO `recebimentomp_produto` (`recebimentompProdutoID`, `recebimentompID`, `produtoID`, `apresentacaoID`, `quantidade`, `possuiLaudo`) VALUES
@@ -867,7 +869,7 @@ INSERT INTO `recebimentomp_produto` (`recebimentompProdutoID`, `recebimentompID`
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `recebimentomp_resposta`
+-- Estrutura para tabela `recebimentomp_resposta`
 --
 
 CREATE TABLE `recebimentomp_resposta` (
@@ -881,7 +883,7 @@ CREATE TABLE `recebimentomp_resposta` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `recebimentomp_resposta`
+-- Despejando dados para a tabela `recebimentomp_resposta`
 --
 
 INSERT INTO `recebimentomp_resposta` (`recebimentompRespostaID`, `recebimentompID`, `parRecebimentompBlocoID`, `itemID`, `resposta`, `respostaID`, `obs`) VALUES
@@ -894,7 +896,7 @@ INSERT INTO `recebimentomp_resposta` (`recebimentompRespostaID`, `recebimentompI
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `sistemaqualidade`
+-- Estrutura para tabela `sistemaqualidade`
 --
 
 CREATE TABLE `sistemaqualidade` (
@@ -904,7 +906,7 @@ CREATE TABLE `sistemaqualidade` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `sistemaqualidade`
+-- Despejando dados para a tabela `sistemaqualidade`
 --
 
 INSERT INTO `sistemaqualidade` (`sistemaQualidadeID`, `nome`, `status`) VALUES
@@ -917,7 +919,7 @@ INSERT INTO `sistemaqualidade` (`sistemaQualidadeID`, `nome`, `status`) VALUES
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `submenu`
+-- Estrutura para tabela `submenu`
 --
 
 CREATE TABLE `submenu` (
@@ -932,7 +934,7 @@ CREATE TABLE `submenu` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 --
--- Extraindo dados da tabela `submenu`
+-- Despejando dados para a tabela `submenu`
 --
 
 INSERT INTO `submenu` (`submenuID`, `menuID`, `nome`, `icone`, `rota`, `ordem`, `novo`, `status`) VALUES
@@ -950,7 +952,7 @@ INSERT INTO `submenu` (`submenuID`, `menuID`, `nome`, `icone`, `rota`, `ordem`, 
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `tipooperacao`
+-- Estrutura para tabela `tipooperacao`
 --
 
 CREATE TABLE `tipooperacao` (
@@ -961,7 +963,7 @@ CREATE TABLE `tipooperacao` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `tipooperacao`
+-- Despejando dados para a tabela `tipooperacao`
 --
 
 INSERT INTO `tipooperacao` (`tipooperacaoID`, `nome`, `status`, `dataCadastro`) VALUES
@@ -971,7 +973,7 @@ INSERT INTO `tipooperacao` (`tipooperacaoID`, `nome`, `status`, `dataCadastro`) 
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `tipoveiculo`
+-- Estrutura para tabela `tipoveiculo`
 --
 
 CREATE TABLE `tipoveiculo` (
@@ -982,7 +984,7 @@ CREATE TABLE `tipoveiculo` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `tipoveiculo`
+-- Despejando dados para a tabela `tipoveiculo`
 --
 
 INSERT INTO `tipoveiculo` (`tipoVeiculoID`, `nome`, `status`, `dataCadastro`) VALUES
@@ -994,7 +996,7 @@ INSERT INTO `tipoveiculo` (`tipoVeiculoID`, `nome`, `status`, `dataCadastro`) VA
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `transportador`
+-- Estrutura para tabela `transportador`
 --
 
 CREATE TABLE `transportador` (
@@ -1006,7 +1008,7 @@ CREATE TABLE `transportador` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `transportador`
+-- Despejando dados para a tabela `transportador`
 --
 
 INSERT INTO `transportador` (`transportadorID`, `nome`, `unidadeID`, `status`, `dataCadastro`) VALUES
@@ -1017,7 +1019,7 @@ INSERT INTO `transportador` (`transportadorID`, `nome`, `unidadeID`, `status`, `
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `unidade`
+-- Estrutura para tabela `unidade`
 --
 
 CREATE TABLE `unidade` (
@@ -1041,7 +1043,7 @@ CREATE TABLE `unidade` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `unidade`
+-- Despejando dados para a tabela `unidade`
 --
 
 INSERT INTO `unidade` (`unidadeID`, `nomeFantasia`, `razaoSocial`, `cnpj`, `telefone1`, `telefone2`, `email`, `responsavel`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `uf`, `dataCadastro`, `status`) VALUES
@@ -1052,7 +1054,7 @@ INSERT INTO `unidade` (`unidadeID`, `nomeFantasia`, `razaoSocial`, `cnpj`, `tele
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `usuario`
+-- Estrutura para tabela `usuario`
 --
 
 CREATE TABLE `usuario` (
@@ -1069,7 +1071,7 @@ CREATE TABLE `usuario` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Extraindo dados da tabela `usuario`
+-- Despejando dados para a tabela `usuario`
 --
 
 INSERT INTO `usuario` (`usuarioID`, `nome`, `cpf`, `dataNascimento`, `rg`, `email`, `senha`, `admin`, `role`, `status`) VALUES
@@ -1078,7 +1080,7 @@ INSERT INTO `usuario` (`usuarioID`, `nome`, `cpf`, `dataNascimento`, `rg`, `emai
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `usuario_unidade`
+-- Estrutura para tabela `usuario_unidade`
 --
 
 CREATE TABLE `usuario_unidade` (
@@ -1092,7 +1094,7 @@ CREATE TABLE `usuario_unidade` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 --
--- Extraindo dados da tabela `usuario_unidade`
+-- Despejando dados para a tabela `usuario_unidade`
 --
 
 INSERT INTO `usuario_unidade` (`usuarioUnidadeID`, `usuarioID`, `unidadeID`, `papelID`, `profissaoID`, `registroConselhoClasse`, `status`) VALUES
@@ -1104,7 +1106,7 @@ INSERT INTO `usuario_unidade` (`usuarioUnidadeID`, `usuarioID`, `unidadeID`, `pa
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `usuario_unidade_cargo`
+-- Estrutura para tabela `usuario_unidade_cargo`
 --
 
 CREATE TABLE `usuario_unidade_cargo` (
@@ -1114,7 +1116,7 @@ CREATE TABLE `usuario_unidade_cargo` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Extraindo dados da tabela `usuario_unidade_cargo`
+-- Despejando dados para a tabela `usuario_unidade_cargo`
 --
 
 INSERT INTO `usuario_unidade_cargo` (`usuarioUnidadeCargoID`, `usuarioUnidadeID`, `cargoID`) VALUES
@@ -1128,253 +1130,253 @@ INSERT INTO `usuario_unidade_cargo` (`usuarioUnidadeCargoID`, `usuarioUnidadeID`
 --
 
 --
--- Índices para tabela `alternativa`
+-- Índices de tabela `alternativa`
 --
 ALTER TABLE `alternativa`
   ADD PRIMARY KEY (`alternativaID`);
 
 --
--- Índices para tabela `alternativa_item`
+-- Índices de tabela `alternativa_item`
 --
 ALTER TABLE `alternativa_item`
   ADD PRIMARY KEY (`alternativaItemID`);
 
 --
--- Índices para tabela `apresentacao`
+-- Índices de tabela `apresentacao`
 --
 ALTER TABLE `apresentacao`
   ADD PRIMARY KEY (`apresentacaoID`);
 
 --
--- Índices para tabela `atividade`
+-- Índices de tabela `atividade`
 --
 ALTER TABLE `atividade`
   ADD PRIMARY KEY (`atividadeID`);
 
 --
--- Índices para tabela `cargo`
+-- Índices de tabela `cargo`
 --
 ALTER TABLE `cargo`
   ADD PRIMARY KEY (`cargoID`);
 
 --
--- Índices para tabela `divisor`
+-- Índices de tabela `divisor`
 --
 ALTER TABLE `divisor`
   ADD PRIMARY KEY (`divisorID`);
 
 --
--- Índices para tabela `fornecedor`
+-- Índices de tabela `fornecedor`
 --
 ALTER TABLE `fornecedor`
   ADD PRIMARY KEY (`fornecedorID`);
 
 --
--- Índices para tabela `fornecedor_atividade`
+-- Índices de tabela `fornecedor_atividade`
 --
 ALTER TABLE `fornecedor_atividade`
   ADD PRIMARY KEY (`fornecedorAtividadeID`);
 
 --
--- Índices para tabela `fornecedor_resposta`
+-- Índices de tabela `fornecedor_resposta`
 --
 ALTER TABLE `fornecedor_resposta`
   ADD PRIMARY KEY (`fornecedorRespostaID`);
 
 --
--- Índices para tabela `fornecedor_sistemaqualidade`
+-- Índices de tabela `fornecedor_sistemaqualidade`
 --
 ALTER TABLE `fornecedor_sistemaqualidade`
   ADD PRIMARY KEY (`fornecedorSistemaQualidadeID`);
 
 --
--- Índices para tabela `item`
+-- Índices de tabela `item`
 --
 ALTER TABLE `item`
   ADD PRIMARY KEY (`itemID`);
 
 --
--- Índices para tabela `menu`
+-- Índices de tabela `menu`
 --
 ALTER TABLE `menu`
   ADD PRIMARY KEY (`menuID`);
 
 --
--- Índices para tabela `papel`
+-- Índices de tabela `papel`
 --
 ALTER TABLE `papel`
   ADD PRIMARY KEY (`papelID`);
 
 --
--- Índices para tabela `par_formulario`
+-- Índices de tabela `par_formulario`
 --
 ALTER TABLE `par_formulario`
   ADD PRIMARY KEY (`parFormularioID`);
 
 --
--- Índices para tabela `par_fornecedor`
+-- Índices de tabela `par_fornecedor`
 --
 ALTER TABLE `par_fornecedor`
   ADD PRIMARY KEY (`parFornecedorID`);
 
 --
--- Índices para tabela `par_fornecedor_bloco`
+-- Índices de tabela `par_fornecedor_bloco`
 --
 ALTER TABLE `par_fornecedor_bloco`
   ADD PRIMARY KEY (`parFornecedorBlocoID`);
 
 --
--- Índices para tabela `par_fornecedor_bloco_atividade`
+-- Índices de tabela `par_fornecedor_bloco_atividade`
 --
 ALTER TABLE `par_fornecedor_bloco_atividade`
   ADD PRIMARY KEY (`parFornecedorBlocoAtividadeID`);
 
 --
--- Índices para tabela `par_fornecedor_bloco_item`
+-- Índices de tabela `par_fornecedor_bloco_item`
 --
 ALTER TABLE `par_fornecedor_bloco_item`
   ADD PRIMARY KEY (`parFornecedorBlocoItemID`);
 
 --
--- Índices para tabela `par_fornecedor_unidade`
+-- Índices de tabela `par_fornecedor_unidade`
 --
 ALTER TABLE `par_fornecedor_unidade`
   ADD PRIMARY KEY (`parFornecedorUnidadeID`);
 
 --
--- Índices para tabela `par_recebimentomp`
+-- Índices de tabela `par_recebimentomp`
 --
 ALTER TABLE `par_recebimentomp`
   ADD PRIMARY KEY (`parRecebimentompID`);
 
 --
--- Índices para tabela `par_recebimentomp_bloco`
+-- Índices de tabela `par_recebimentomp_bloco`
 --
 ALTER TABLE `par_recebimentomp_bloco`
   ADD PRIMARY KEY (`parRecebimentompBlocoID`);
 
 --
--- Índices para tabela `par_recebimentomp_bloco_item`
+-- Índices de tabela `par_recebimentomp_bloco_item`
 --
 ALTER TABLE `par_recebimentomp_bloco_item`
   ADD PRIMARY KEY (`parRecebimentompBlocoItemID`);
 
 --
--- Índices para tabela `par_recebimentomp_produto`
+-- Índices de tabela `par_recebimentomp_produto`
 --
 ALTER TABLE `par_recebimentomp_produto`
   ADD PRIMARY KEY (`parRecebimentompProdutoID`);
 
 --
--- Índices para tabela `par_recebimentomp_produto_unidade`
+-- Índices de tabela `par_recebimentomp_produto_unidade`
 --
 ALTER TABLE `par_recebimentomp_produto_unidade`
   ADD PRIMARY KEY (`parRecebimentompProdutoUnidadeID`);
 
 --
--- Índices para tabela `par_recebimentomp_unidade`
+-- Índices de tabela `par_recebimentomp_unidade`
 --
 ALTER TABLE `par_recebimentomp_unidade`
   ADD PRIMARY KEY (`parRecebimentompUnidadeID`);
 
 --
--- Índices para tabela `permissao`
+-- Índices de tabela `permissao`
 --
 ALTER TABLE `permissao`
   ADD PRIMARY KEY (`permissaoID`);
 
 --
--- Índices para tabela `pessoa`
+-- Índices de tabela `pessoa`
 --
 ALTER TABLE `pessoa`
   ADD PRIMARY KEY (`pessoaID`);
 
 --
--- Índices para tabela `produto`
+-- Índices de tabela `produto`
 --
 ALTER TABLE `produto`
   ADD PRIMARY KEY (`produtoID`);
 
 --
--- Índices para tabela `profissao`
+-- Índices de tabela `profissao`
 --
 ALTER TABLE `profissao`
   ADD PRIMARY KEY (`profissaoID`);
 
 --
--- Índices para tabela `recebimentomp`
+-- Índices de tabela `recebimentomp`
 --
 ALTER TABLE `recebimentomp`
   ADD PRIMARY KEY (`recebimentompID`);
 
 --
--- Índices para tabela `recebimentomp_produto`
+-- Índices de tabela `recebimentomp_produto`
 --
 ALTER TABLE `recebimentomp_produto`
   ADD PRIMARY KEY (`recebimentompProdutoID`);
 
 --
--- Índices para tabela `recebimentomp_resposta`
+-- Índices de tabela `recebimentomp_resposta`
 --
 ALTER TABLE `recebimentomp_resposta`
   ADD PRIMARY KEY (`recebimentompRespostaID`);
 
 --
--- Índices para tabela `sistemaqualidade`
+-- Índices de tabela `sistemaqualidade`
 --
 ALTER TABLE `sistemaqualidade`
   ADD PRIMARY KEY (`sistemaQualidadeID`);
 
 --
--- Índices para tabela `submenu`
+-- Índices de tabela `submenu`
 --
 ALTER TABLE `submenu`
   ADD PRIMARY KEY (`submenuID`);
 
 --
--- Índices para tabela `tipooperacao`
+-- Índices de tabela `tipooperacao`
 --
 ALTER TABLE `tipooperacao`
   ADD PRIMARY KEY (`tipooperacaoID`);
 
 --
--- Índices para tabela `tipoveiculo`
+-- Índices de tabela `tipoveiculo`
 --
 ALTER TABLE `tipoveiculo`
   ADD PRIMARY KEY (`tipoVeiculoID`);
 
 --
--- Índices para tabela `transportador`
+-- Índices de tabela `transportador`
 --
 ALTER TABLE `transportador`
   ADD PRIMARY KEY (`transportadorID`);
 
 --
--- Índices para tabela `unidade`
+-- Índices de tabela `unidade`
 --
 ALTER TABLE `unidade`
   ADD PRIMARY KEY (`unidadeID`);
 
 --
--- Índices para tabela `usuario`
+-- Índices de tabela `usuario`
 --
 ALTER TABLE `usuario`
   ADD PRIMARY KEY (`usuarioID`);
 
 --
--- Índices para tabela `usuario_unidade`
+-- Índices de tabela `usuario_unidade`
 --
 ALTER TABLE `usuario_unidade`
   ADD PRIMARY KEY (`usuarioUnidadeID`);
 
 --
--- Índices para tabela `usuario_unidade_cargo`
+-- Índices de tabela `usuario_unidade_cargo`
 --
 ALTER TABLE `usuario_unidade_cargo`
   ADD PRIMARY KEY (`usuarioUnidadeCargoID`);
 
 --
--- AUTO_INCREMENT de tabelas despejadas
+-- AUTO_INCREMENT para tabelas despejadas
 --
 
 --
@@ -1411,7 +1413,7 @@ ALTER TABLE `cargo`
 -- AUTO_INCREMENT de tabela `divisor`
 --
 ALTER TABLE `divisor`
-  MODIFY `divisorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `divisorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de tabela `fornecedor`
