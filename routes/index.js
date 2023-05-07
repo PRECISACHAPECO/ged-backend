@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const routes = Router();
-const urlBase = '/api'
+const urlBase = '/api-demo2'
 
 // Autenticação
 const auth = require("./auth/authRoutes");

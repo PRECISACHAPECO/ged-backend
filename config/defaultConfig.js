@@ -93,8 +93,7 @@ const getMenuPermissions = async (papelID, usuarioID, unidadeID) => {
 const hasPending = (id, column, tables) => {
     if (!tables) {
         // Se tables é nulo, você pode retornar uma Promise rejeitada com uma mensagem de erro
-        console.log('chegou null')
-        return Promise.resolve('pp');
+        return Promise.resolve('Erro hasPending: parâmetro tables é nulo');
     }
     const promises = tables.map((table) => {
         return new Promise((resolve, reject) => {
