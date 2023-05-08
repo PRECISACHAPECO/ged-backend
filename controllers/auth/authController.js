@@ -146,24 +146,21 @@ class AuthController {
                 const { cnpj } = req.body;
 
                 const cnpjExists = `
-                SELECT a.*, b.*, c.* 
-                FROM unidade a
-                    LEFT JOIN usuario_unidade b ON (a.unidadeID = b.unidadeID)
-                    LEFT JOIN usuario = c ON (b.usuarioID = c.usuarioID)
-                WHERE a.cnpj = ? `;
+                SELECT *
+                FROM usuario 
+                WHERE cnpj = ? `;
                 const resultCnpj = await db.promise().query(cnpjExists, [cnpj]);
                 res.status(200).json(resultCnpj[0]);
                 console.log(resultCnpj[0]);
                 break;
 
-            //? Funçãoq que valida se o cpf já existe no banco de dados
-            case 'handleGetCpf':
-                const { cpf } = req.body;
+            // case 'handleGetCpf':
+            //     const { cpf } = req.body;
 
-                const cpfExists = `SELECT * FROM usuario WHERE cpf = ?`;
-                const resultCpf = await db.promise().query(cpfExists, [cpf]);
-                res.status(200).json(resultCpf[0]);
-                break;
+            //     const cpfExists = `SELECT * FROM usuario WHERE cpf = ?`;
+            //     const resultCpf = await db.promise().query(cpfExists, [cpf]);
+            //     res.status(200).json(resultCpf[0]);
+            //     break;
         }
     }
 }
