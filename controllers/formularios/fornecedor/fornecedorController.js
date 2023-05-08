@@ -1,5 +1,5 @@
-const db = require('../../config/db');
-const { hasPending, deleteItem } = require('../../config/defaultConfig');
+const db = require('../../../config/db');
+const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class FornecedorController {
     async getData(req, res) {

@@ -7,11 +7,11 @@ const auth = require("./auth/authRoutes");
 routes.use(urlBase + '/', auth);
 
 // Fornecedor
-const fornecedorRouter = require("./fornecedor/fornecedorRoutes");
+const fornecedorRouter = require("./formularios/fornecedor/fornecedorRoutes");
 routes.use(urlBase, fornecedorRouter);
 
 // Recebimento de MP
-const recebimentoMpRouter = require("./recebimento-mp/recebimentoMpRoutes");
+const recebimentoMpRouter = require("./formularios/recebimento-mp/recebimentoMpRoutes");
 routes.use(urlBase, recebimentoMpRouter);
 
 // Cadastros 

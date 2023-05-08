@@ -12,7 +12,7 @@ const jwtConfig = {
 }
 
 class AuthController {
-
+    //* Login da fábrica (CPF)
     login(req, res) {
         const { cpf, password } = req.body;
 
@@ -62,6 +62,35 @@ class AuthController {
 
                 res.status(400).json(error);
             }
+        })
+    }
+
+    //* Login do fornecedor (CNPJ)
+    loginFornecedor(req, res) {
+        console.log('Chegou login Fornecedor...')
+        const { cnpj, password } = req.body;
+
+        const sql = `
+        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel
+        FROM usuario AS u 
+            LEFT JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
+            LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
+            LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
+        WHERE u.cnpj = ? AND u.senha = ? AND uu.status = 1
+        ORDER BY un.nomeFantasia ASC`;
+
+        db.query(sql, [cnpj, password], (err, result) => {
+            if (err) { res.status(409).json({ message: err.message }); }
+
+            const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
+
+            const response = {
+                accessToken,
+                userData: { ...result[0], senha: undefined },
+                unidades: [{ unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia, papelID: result[0].papelID, papel: result[0].papel }]
+            }
+            res.status(200).json(response);
+
         })
     }
 
