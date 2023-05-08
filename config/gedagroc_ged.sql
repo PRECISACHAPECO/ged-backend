@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 03-Maio-2023 às 16:40
+-- Tempo de geração: 08-Maio-2023 às 15:24
 -- Versão do servidor: 10.4.22-MariaDB
 -- versão do PHP: 7.4.27
 
@@ -129,7 +129,7 @@ INSERT INTO `atividade` (`atividadeID`, `nome`, `status`) VALUES
 CREATE TABLE `cargo` (
   `cargoID` int(11) NOT NULL,
   `nome` text NOT NULL,
-  `dataCadastro` date DEFAULT current_timestamp(),
+  `dataCadastro` date DEFAULT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -150,6 +150,7 @@ INSERT INTO `cargo` (`cargoID`, `nome`, `dataCadastro`, `status`) VALUES
 
 CREATE TABLE `divisor` (
   `divisorID` int(11) NOT NULL,
+  `papelID` int(11) NOT NULL COMMENT 'Cliente, Fornecedor...',
   `nome` varchar(255) NOT NULL,
   `ordem` int(11) NOT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
@@ -159,10 +160,11 @@ CREATE TABLE `divisor` (
 -- Extraindo dados da tabela `divisor`
 --
 
-INSERT INTO `divisor` (`divisorID`, `nome`, `ordem`, `status`) VALUES
-(1, 'Geral', 1, 1),
-(2, 'Formulários', 2, 1),
-(3, 'Definições', 3, 1);
+INSERT INTO `divisor` (`divisorID`, `papelID`, `nome`, `ordem`, `status`) VALUES
+(1, 1, 'Geral', 1, 1),
+(2, 1, 'Formulários', 2, 1),
+(3, 1, 'Definições', 3, 1),
+(4, 2, 'Geral', 1, 1);
 
 -- --------------------------------------------------------
 
@@ -336,7 +338,9 @@ INSERT INTO `menu` (`menuID`, `divisorID`, `nome`, `icone`, `rota`, `ordem`, `no
 (2, 2, 'Fornecedor', 'mdi:truck-fast-outline', '/fornecedor', 2, 1, 1),
 (3, 2, 'Recebimento MP', 'icon-park-outline:receive', '/recebimento-mp', 3, 0, 1),
 (4, 3, 'Cadastros', 'ph:note-pencil', NULL, 4, 0, 1),
-(5, 3, 'Configurações', 'ph:gear', NULL, 5, 0, 1);
+(5, 3, 'Configurações', 'ph:gear', NULL, 5, 0, 1),
+(7, 4, 'Dashboard', '', '/home', 1, 0, 1),
+(8, 4, 'Clientes', '', '/clientes', 2, 0, 1);
 
 -- --------------------------------------------------------
 
@@ -356,7 +360,7 @@ CREATE TABLE `papel` (
 --
 
 INSERT INTO `papel` (`papelID`, `nome`, `status`, `dataCadastro`) VALUES
-(1, 'Cliente', 1, '2023-05-03'),
+(1, 'Empresa', 1, '2023-05-03'),
 (2, 'Fornecedor', 1, '2023-05-03'),
 (3, 'Transportador', 1, '2023-05-03');
 
@@ -716,24 +720,20 @@ CREATE TABLE `permissao` (
 --
 
 INSERT INTO `permissao` (`permissaoID`, `rota`, `papelID`, `usuarioID`, `unidadeID`, `ler`, `inserir`, `editar`, `excluir`) VALUES
-(1, '/cadastros/item', 1, 1, 1, 1, 1, 1, 0),
-(2, '/cadastros/atividade', 1, 1, 1, 1, 0, 0, 0),
-(5, '/fornecedor', 1, 1, 1, 1, 1, 1, 1),
-(6, '/configuracoes/unidade', 1, 1, 1, 1, 0, 0, 0),
-(7, '/configuracoes/formularios', 1, 1, 1, 1, 1, 1, 1),
-(8, '/recebimento-mp', 1, 1, 1, 1, 1, 1, 1),
-(9, '/cadastros/transportador', 1, 1, 1, 1, 1, 1, 1),
-(10, '/cadastros/tipo-veiculo', 1, 1, 1, 1, 1, 1, 1),
-(11, '/cadastros/produtos', 1, 1, 1, 1, 1, 1, 1),
-(12, '/cadastros/apresentacao', 1, 1, 1, 1, 1, 1, 1),
-(13, '/configuracoes/usuario', 1, 1, 1, 1, 1, 1, 1),
-(14, '/cadastros/sistema-qualidade', 1, 1, 1, 1, 1, 1, 1),
-(15, '/fornecedor', 1, 1, 2, 1, 1, 1, 1),
-(16, '/fornecedor', 1, 1, 3, 1, 1, 1, 1),
-(17, '/recebimento-mp', 1, 1, 2, 1, 1, 1, 1),
-(18, '/recebimento-mp', 1, 1, 3, 1, 1, 1, 1),
-(19, '/home', 1, 1, 1, 1, 1, 1, 1),
-(20, '/configuracoes/unidade', 1, 1, 2, 1, 1, 1, 1);
+(1, '/home', 1, 1, 1, 1, 0, 1, 1),
+(2, '/fornecedor', 1, 1, 1, 1, 1, 1, 1),
+(3, '/recebimento-mp', 1, 1, 1, 1, 1, 1, 1),
+(4, '/cadastros/item', 1, 1, 1, 1, 1, 1, 1),
+(5, '/cadastros/tipo-veiculo', 1, 1, 1, 0, 0, 0, 1),
+(6, '/cadastros/apresentacao', 1, 1, 1, 1, 0, 0, 0),
+(7, '/cadastros/sistema-qualidade', 1, 1, 1, 0, 0, 0, 1),
+(8, '/cadastros/transportador', 1, 1, 1, 1, 0, 0, 0),
+(9, '/configuracoes/usuario', 1, 1, 1, 1, 1, 1, 1),
+(10, '/home', 1, 1, 3, 1, 0, 0, 0),
+(11, '/fornecedor', 1, 1, 3, 1, 0, 0, 0),
+(12, '/recebimento-mp', 1, 1, 3, 1, 0, 1, 0),
+(13, '/configuracoes/usuario', 1, 1, 3, 1, 1, 1, 1),
+(14, '/configuracoes/unidade', 1, 1, 3, 1, 1, 1, 0);
 
 -- --------------------------------------------------------
 
@@ -794,7 +794,7 @@ INSERT INTO `produto` (`produtoID`, `nome`, `unidadeMedida`, `unidadeID`, `statu
 CREATE TABLE `profissao` (
   `profissaoID` int(11) NOT NULL,
   `nome` text NOT NULL,
-  `dataCadastro` date DEFAULT current_timestamp(),
+  `dataCadastro` date DEFAULT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -1073,7 +1073,12 @@ CREATE TABLE `usuario` (
 --
 
 INSERT INTO `usuario` (`usuarioID`, `nome`, `cpf`, `dataNascimento`, `rg`, `email`, `senha`, `admin`, `role`, `status`) VALUES
-(1, 'Jonatanhsss', '089.092.569-07', '1992-01-27', '5101773199', 'admin@materialize.com', 'admin', 1, 'admin', 1);
+(1, 'Roberto D Ara', '089.092.569-07', NULL, '510177319933312', 'admin@materialize.com', 'admin', 0, 'admin', 1),
+(21, 'sasasa', '021.164.710-10', '1899-11-30', 'sasaas', 'saassaas', '', 0, '', 1),
+(22, 'teste', '8998', '0000-00-00', '9898', '9898', '', 0, '', 1),
+(23, 'sasa', '3333', '0000-00-00', '4343', '32', '', 0, '', 1),
+(24, 'Novooo certo', '888975454', '0000-00-00', '5454', 'asasjsaj', '', 0, '', 1),
+(25, 'Novo com senha', '047.169.888-12', '0000-00-00', '545454', 'rr@gmail.com', '123456', 0, '', 1);
 
 -- --------------------------------------------------------
 
@@ -1086,7 +1091,7 @@ CREATE TABLE `usuario_unidade` (
   `usuarioID` int(11) NOT NULL,
   `unidadeID` int(11) NOT NULL,
   `papelID` int(11) NOT NULL COMMENT 'Cliente, Fornecedor...',
-  `profissaoID` int(11) NOT NULL,
+  `profissaoID` int(11) DEFAULT NULL,
   `registroConselhoClasse` varchar(50) DEFAULT NULL,
   `status` int(11) NOT NULL DEFAULT 1 COMMENT '1 => Ativo\r\n0 => Inativo'
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -1096,10 +1101,14 @@ CREATE TABLE `usuario_unidade` (
 --
 
 INSERT INTO `usuario_unidade` (`usuarioUnidadeID`, `usuarioID`, `unidadeID`, `papelID`, `profissaoID`, `registroConselhoClasse`, `status`) VALUES
-(1, 1, 1, 1, 2, NULL, 1),
-(5, 1, 2, 1, 3, NULL, 1),
-(6, 1, 3, 1, 1, NULL, 1),
-(7, 1, 2, 2, 1, '22', 1);
+(1, 1, 1, 1, 1, NULL, 1),
+(5, 1, 2, 2, 1, NULL, 1),
+(6, 1, 3, 1, 3, NULL, 1),
+(13, 21, 3, 1, NULL, 'assaas', 1),
+(14, 22, 3, 1, NULL, '9898', 1),
+(15, 23, 3, 1, NULL, '4334', 1),
+(16, 24, 3, 1, NULL, '545', 1),
+(17, 25, 3, 1, NULL, '54545', 1);
 
 -- --------------------------------------------------------
 
@@ -1118,10 +1127,8 @@ CREATE TABLE `usuario_unidade_cargo` (
 --
 
 INSERT INTO `usuario_unidade_cargo` (`usuarioUnidadeCargoID`, `usuarioUnidadeID`, `cargoID`) VALUES
-(1, 1, 1),
-(2, 1, 2),
-(3, 5, 2),
-(4, 6, 1);
+(4, 5, 2),
+(8, 1, 3);
 
 --
 -- Índices para tabelas despejadas
@@ -1411,7 +1418,7 @@ ALTER TABLE `cargo`
 -- AUTO_INCREMENT de tabela `divisor`
 --
 ALTER TABLE `divisor`
-  MODIFY `divisorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `divisorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de tabela `fornecedor`
@@ -1447,7 +1454,7 @@ ALTER TABLE `item`
 -- AUTO_INCREMENT de tabela `menu`
 --
 ALTER TABLE `menu`
-  MODIFY `menuID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `menuID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de tabela `papel`
@@ -1531,7 +1538,7 @@ ALTER TABLE `par_recebimentomp_unidade`
 -- AUTO_INCREMENT de tabela `permissao`
 --
 ALTER TABLE `permissao`
-  MODIFY `permissaoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `permissaoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT de tabela `pessoa`
@@ -1609,19 +1616,19 @@ ALTER TABLE `unidade`
 -- AUTO_INCREMENT de tabela `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `usuarioID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `usuarioID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT de tabela `usuario_unidade`
 --
 ALTER TABLE `usuario_unidade`
-  MODIFY `usuarioUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `usuarioUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT de tabela `usuario_unidade_cargo`
 --
 ALTER TABLE `usuario_unidade_cargo`
-  MODIFY `usuarioUnidadeCargoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `usuarioUnidadeCargoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
