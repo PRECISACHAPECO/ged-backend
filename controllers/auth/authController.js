@@ -143,7 +143,7 @@ class AuthController {
         }
     }
 
-    /*async*/ register(req, res) {
+    async register(req, res) {
         const functionName = req.headers['function-name'];
 
         switch (functionName) {
@@ -158,7 +158,7 @@ class AuthController {
                     LEFT JOIN usuario_unidade b ON (a.unidadeID = b.unidadeID)
                     LEFT JOIN usuario = c ON (b.usuarioID = c.usuarioID)
                 WHERE a.cnpj = ? `;
-                const resultCnpj = [] // await db.promise().query(cnpjExists, [cnpj]);
+                const resultCnpj = await db.promise().query(cnpjExists, [cnpj]);
                 res.status(200).json(resultCnpj[0]);
                 console.log(resultCnpj[0]);
                 break;
@@ -168,7 +168,7 @@ class AuthController {
                 const { cpf } = req.body;
 
                 const cpfExists = `SELECT * FROM usuario WHERE cpf = ?`;
-                const resultCpf = [] //await db.promise().query(cpfExists, [cpf]);
+                const resultCpf = await db.promise().query(cpfExists, [cpf]);
                 res.status(200).json(resultCpf[0]);
                 break;
         }
