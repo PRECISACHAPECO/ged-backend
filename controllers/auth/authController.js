@@ -1,5 +1,5 @@
 const db = require('../../config/db');
-// const { getMenu } = require('../../config/defaultConfig');
+const { getMenu } = require('../../config/defaultConfig');
 
 // ** JWT import
 const jwt = require('jsonwebtoken');
