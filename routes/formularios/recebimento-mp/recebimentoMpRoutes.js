@@ -1,10 +1,10 @@
 const { Router } = require('express');
 const recebimentoMpRoutes = Router();
 
-const RecebimentoMpController = require('../../controllers/recebimentoMp/recebimentoMpController');
+const RecebimentoMpController = require('../../../controllers/formularios/recebimentoMp/recebimentoMpController');
 const recebimentoMpController = new RecebimentoMpController();
 
-const route = '/recebimento-mp';
+const route = '/formularios/recebimento-mp';
 
 recebimentoMpRoutes.get(`${route}/:id`, recebimentoMpController.getData);
 recebimentoMpRoutes.put(`${route}/:id`, recebimentoMpController.updateData);

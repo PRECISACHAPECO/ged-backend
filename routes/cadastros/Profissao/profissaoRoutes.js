@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const profissaoRoutes = Router();
 
-const ProfissaoController = require('../../../controllers/cadastros/profissao/ProfissaoController');
+const ProfissaoController = require('../../../controllers/cadastros/profissao/profissaoController');
 const profissaoController = new ProfissaoController();
 
 const route = '/profissao';

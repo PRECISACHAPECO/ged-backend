@@ -2,14 +2,9 @@ const db = require('../../../config/db');
 const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class AtividadeController {
-    getList(req, res) {
-        db.query("SELECT atividadeID AS id, nome, status FROM atividade", (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                res.status(200).json(result);
-            }
-        })
+    async getList(req, res) {
+        const [result] = await db.promise().query("SELECT atividadeID AS id, nome, status FROM atividade");
+        res.status(200).json(result);
     }
 
     getData(req, res) {

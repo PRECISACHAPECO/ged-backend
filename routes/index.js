@@ -7,11 +7,11 @@ const auth = require("./auth/authRoutes");
 routes.use(urlBase + '/', auth);
 
 // Fornecedor
-const fornecedorRouter = require("./fornecedor/fornecedorRoutes");
+const fornecedorRouter = require("./formularios/fornecedor/fornecedorRoutes");
 routes.use(urlBase, fornecedorRouter);
 
 // Recebimento de MP
-const recebimentoMpRouter = require("./recebimento-mp/recebimentoMpRoutes");
+const recebimentoMpRouter = require("./formularios/recebimento-mp/recebimentoMpRoutes");
 routes.use(urlBase, recebimentoMpRouter);
 
 // Cadastros 
@@ -20,11 +20,10 @@ const itemRouter = require("./cadastros/item/itemRoutes");
 const sistemaQualidadeRouter = require("./cadastros/sistemaQualidade/sistemaQualidadeRoutes");
 const tipoVeiculoRouter = require("./cadastros/tipoVeiculo/tipoVeiculoRoutes");
 const transportadorRouter = require("./cadastros/transportador/transportadorRoutes");
-const ProdutosRouter = require("./cadastros/Produtos/produtosRoutes");
-const ApresentacaoRouter = require("./cadastros/Apresentacao/apresentacaoRoutes");
-const ProfissaoRouter = require("./cadastros/Profissao/profissaoRoutes");
-const CargoRouter = require("./cadastros/Cargo/cargoRoutes");
-
+const ProdutosRouter = require("./cadastros/produtos/produtosRoutes");
+const ApresentacaoRouter = require("./cadastros/apresentacao/apresentacaoRoutes");
+const ProfissaoRouter = require("./cadastros/profissao/profissaoRoutes");
+const CargoRouter = require("./cadastros/cargo/cargoRoutes");
 
 routes.use(urlBase + '/cadastros', atividadeRouter);
 routes.use(urlBase + '/cadastros', itemRouter);
@@ -36,7 +35,7 @@ routes.use(urlBase + '/cadastros', ApresentacaoRouter);
 routes.use(urlBase + '/cadastros', ProfissaoRouter);
 routes.use(urlBase + '/cadastros', CargoRouter);
 
-// Confifuracoes
+// // Confifuracoes
 const formularios = require("./configuracoes/formularios/formulariosRoutes");
 const formularioFornecedor = require("./configuracoes/formularios/fornecedor/fornecedorRoutes");
 const formularioRecebimentoMp = require("./configuracoes/formularios/recebimentoMp/recebimentoMpRoutes");

@@ -1,10 +1,10 @@
 const { Router } = require('express');
 const fornecedorRoutes = Router();
 
-const FornecedorController = require('../../controllers/fornecedor/fornecedorController');
+const FornecedorController = require('../../../controllers/formularios/fornecedor/fornecedorController');
 const fornecedorController = new FornecedorController();
 
-const route = '/fornecedor';
+const route = '/formularios/fornecedor';
 
 fornecedorRoutes.get(`${route}/:id`, fornecedorController.getData);
 fornecedorRoutes.put(`${route}/:id`, fornecedorController.updateData);

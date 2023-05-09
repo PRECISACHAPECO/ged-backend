@@ -1,5 +1,5 @@
 const db = require('../../config/db');
-const { getMenu } = require('../../config/defaultConfig');
+// const { getMenu } = require('../../config/defaultConfig');
 
 // ** JWT import
 const jwt = require('jsonwebtoken');
@@ -12,7 +12,7 @@ const jwtConfig = {
 }
 
 class AuthController {
-
+    //* Login da fábrica (CPF)
     login(req, res) {
         const { cpf, password } = req.body;
 
@@ -65,6 +65,35 @@ class AuthController {
         })
     }
 
+    //* Login do fornecedor (CNPJ)
+    loginFornecedor(req, res) {
+        console.log('Chegou login Fornecedor...')
+        const { cnpj, password } = req.body;
+
+        const sql = `
+        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel
+        FROM usuario AS u 
+            LEFT JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
+            LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
+            LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
+        WHERE u.cnpj = ? AND u.senha = ? AND uu.status = 1
+        ORDER BY un.nomeFantasia ASC`;
+
+        db.query(sql, [cnpj, password], (err, result) => {
+            if (err) { res.status(409).json({ message: err.message }); }
+
+            const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
+
+            const response = {
+                accessToken,
+                userData: { ...result[0], senha: undefined },
+                unidades: [{ unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia, papelID: result[0].papelID, papel: result[0].papel }]
+            }
+            res.status(200).json(response);
+
+        })
+    }
+
     async getAvailableRoutes(req, res) {
         const functionName = req.headers['function-name'];
         const { usuarioID, unidadeID, papelID } = req.query;
@@ -74,28 +103,6 @@ class AuthController {
             case 'getMenu':
                 const menu = await getMenu(papelID)
                 console.log("🚀 ~ menu:", menu)
-
-                // const menu = []
-                // const sqlDivisor = `SELECT * FROM divisor WHERE papelID = ${papelID} AND status = 1 ORDER BY ordem ASC`;
-                // const [resultDivisor] = await db.promise().query(sqlDivisor);
-
-                // for (const rotaDivisor of resultDivisor) {
-                //     const sqlMenu = `SELECT * FROM menu WHERE divisorID = ? AND status = 1 ORDER BY ordem ASC`;
-                //     const [resultMenu] = await db.promise().query(sqlMenu, [rotaDivisor.divisorID]);
-                //     for (const rotaMenu of resultMenu) {
-                //         if (rotaMenu.rota === null) {
-                //             const sqlSubmenu = `SELECT * FROM submenu WHERE menuID = ? AND status = 1 ORDER BY ordem ASC`;
-                //             const [resultSubmenu] = await db.promise().query(sqlSubmenu, [rotaMenu.menuID]);
-                //             if (resultSubmenu) {
-                //                 rotaMenu.submenu = resultSubmenu;
-                //             }
-                //         }
-                //     }
-
-                //     rotaDivisor.menu = resultMenu;
-
-                //     menu.push(rotaDivisor);
-                // }
 
                 res.status(200).json(menu);
                 break;
@@ -136,7 +143,7 @@ class AuthController {
         }
     }
 
-    async register(req, res) {
+    /*async*/ register(req, res) {
         const functionName = req.headers['function-name'];
 
         switch (functionName) {
@@ -146,10 +153,19 @@ class AuthController {
                 const { cnpj } = req.body;
 
                 const cnpjExists = `
+<<<<<<< HEAD
                 SELECT *
                 FROM usuario 
                 WHERE cnpj = ? `;
                 const resultCnpj = await db.promise().query(cnpjExists, [cnpj]);
+=======
+                SELECT a.*, b.*, c.* 
+                FROM unidade a
+                    LEFT JOIN usuario_unidade b ON (a.unidadeID = b.unidadeID)
+                    LEFT JOIN usuario = c ON (b.usuarioID = c.usuarioID)
+                WHERE a.cnpj = ? `;
+                const resultCnpj = [] // await db.promise().query(cnpjExists, [cnpj]);
+>>>>>>> de30b9ef7fa931d9bb6dfc421895fa1ffc6c8fe0
                 res.status(200).json(resultCnpj[0]);
                 console.log(resultCnpj[0]);
                 break;
@@ -157,10 +173,17 @@ class AuthController {
             // case 'handleGetCpf':
             //     const { cpf } = req.body;
 
+<<<<<<< HEAD
             //     const cpfExists = `SELECT * FROM usuario WHERE cpf = ?`;
             //     const resultCpf = await db.promise().query(cpfExists, [cpf]);
             //     res.status(200).json(resultCpf[0]);
             //     break;
+=======
+                const cpfExists = `SELECT * FROM usuario WHERE cpf = ?`;
+                const resultCpf = [] //await db.promise().query(cpfExists, [cpf]);
+                res.status(200).json(resultCpf[0]);
+                break;
+>>>>>>> de30b9ef7fa931d9bb6dfc421895fa1ffc6c8fe0
         }
     }
 }
