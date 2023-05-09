@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const cargoRoutes = Router();
 
-const CargoController = require('../../../controllers/cadastros/cargo/CargoController');
+const CargoController = require('../../../controllers/cadastros/cargo/cargoController');
 const cargoController = new CargoController();
 
 const route = '/cargo';
