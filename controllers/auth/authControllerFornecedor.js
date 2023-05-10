@@ -62,7 +62,6 @@ class AuthController {
                     LEFT JOIN menu b on (a.divisorID = b.divisorID)
                     LEFT JOIN submenu c on (b.menuID = c.menuID)
                 WHERE (b.status = 1 OR c.status = 1) AND a.papelID = ${papelID}`;
-                console.log("🚀 ~ getAvailableRoutes:", sqlRoutes)
 
                 db.query(sqlRoutes, (err, result) => {
                     if (err) { res.status(500).json({ message: err.message }); }
