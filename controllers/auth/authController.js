@@ -1,5 +1,5 @@
 const db = require('../../config/db');
-// const { getMenu } = require('../../config/defaultConfig');
+const { getMenu } = require('../../config/defaultConfig');
 
 // ** JWT import
 const jwt = require('jsonwebtoken');
@@ -65,35 +65,6 @@ class AuthController {
         })
     }
 
-    //* Login do fornecedor (CNPJ)
-    loginFornecedor(req, res) {
-        console.log('Chegou login Fornecedor...')
-        const { cnpj, password } = req.body;
-
-        const sql = `
-        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel
-        FROM usuario AS u 
-            LEFT JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
-            LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
-            LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
-        WHERE u.cnpj = ? AND u.senha = ? AND uu.status = 1
-        ORDER BY un.nomeFantasia ASC`;
-
-        db.query(sql, [cnpj, password], (err, result) => {
-            if (err) { res.status(409).json({ message: err.message }); }
-
-            const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
-
-            const response = {
-                accessToken,
-                userData: { ...result[0], senha: undefined },
-                unidades: [{ unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia, papelID: result[0].papelID, papel: result[0].papel }]
-            }
-            res.status(200).json(response);
-
-        })
-    }
-
     async getAvailableRoutes(req, res) {
         const functionName = req.headers['function-name'];
         const { usuarioID, unidadeID, papelID } = req.query;
@@ -117,7 +88,7 @@ class AuthController {
                     FROM menu AS m  
                         LEFT JOIN submenu AS s ON (m.menuID = s.menuID)
                     WHERE m.status = 1 OR s.status = 1`
-                } else {
+                } else if (papelID == 2) { //? Fornecedor, acessa todas as rotas do 
                     // Não é admin, busca permissões da tabela permissao
                     console.log('papel', papelID);
                     sqlRoutes = `
@@ -140,50 +111,6 @@ class AuthController {
                 })
 
                 break;
-        }
-    }
-
-    /*async*/ register(req, res) {
-        const functionName = req.headers['function-name'];
-
-        switch (functionName) {
-
-            //? Função que valida se o cnpj já existe no banco de dados
-            case 'handleGetCnpj':
-                const { cnpj } = req.body;
-
-                const cnpjExists = `
-<<<<<<< HEAD
-                SELECT *
-                FROM usuario 
-                WHERE cnpj = ? `;
-                const resultCnpj = await db.promise().query(cnpjExists, [cnpj]);
-=======
-                SELECT a.*, b.*, c.* 
-                FROM unidade a
-                    LEFT JOIN usuario_unidade b ON (a.unidadeID = b.unidadeID)
-                    LEFT JOIN usuario = c ON (b.usuarioID = c.usuarioID)
-                WHERE a.cnpj = ? `;
-                const resultCnpj = [] // await db.promise().query(cnpjExists, [cnpj]);
->>>>>>> de30b9ef7fa931d9bb6dfc421895fa1ffc6c8fe0
-                res.status(200).json(resultCnpj[0]);
-                console.log(resultCnpj[0]);
-                break;
-
-            // case 'handleGetCpf':
-            //     const { cpf } = req.body;
-
-<<<<<<< HEAD
-            //     const cpfExists = `SELECT * FROM usuario WHERE cpf = ?`;
-            //     const resultCpf = await db.promise().query(cpfExists, [cpf]);
-            //     res.status(200).json(resultCpf[0]);
-            //     break;
-=======
-                const cpfExists = `SELECT * FROM usuario WHERE cpf = ?`;
-                const resultCpf = [] //await db.promise().query(cpfExists, [cpf]);
-                res.status(200).json(resultCpf[0]);
-                break;
->>>>>>> de30b9ef7fa931d9bb6dfc421895fa1ffc6c8fe0
         }
     }
 }

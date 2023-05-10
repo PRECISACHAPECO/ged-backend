@@ -4,6 +4,8 @@ const urlBase = '/api'
 
 // Autenticação
 const auth = require("./auth/authRoutes");
+const authFornecedor = require("./auth/authFornecedorRoutes");
+routes.use(urlBase + '/', authFornecedor);
 routes.use(urlBase + '/', auth);
 
 // Fornecedor
