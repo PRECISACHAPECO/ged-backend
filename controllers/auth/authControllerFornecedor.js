@@ -11,7 +11,7 @@ const jwtConfig = {
     refreshTokenSecret: process.env.NEXT_PUBLIC_JWT_REFRESH_TOKEN_SECRET
 }
 
-class AuthController {
+class AuthControllerFornecedor {
 
     //* Login do fornecedor (CNPJ)
     loginFornecedor(req, res) {
@@ -160,4 +160,4 @@ async function hasUser(cnpj) {
     return result;
 }
 
-module.exports = AuthController;
+module.exports = AuthControllerFornecedor;
