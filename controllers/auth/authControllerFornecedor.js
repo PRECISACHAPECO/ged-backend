@@ -30,6 +30,11 @@ class AuthControllerFornecedor {
         db.query(sql, [cnpj, password], (err, result) => {
             if (err) { res.status(409).json({ message: err.message }); }
 
+            if (result.length === 0) {
+                return res.status(401).json({ message: 'CNPJ ou senha incorretos' });
+            }
+
+
             const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
 
             const response = {
@@ -45,6 +50,7 @@ class AuthControllerFornecedor {
     async getAvailableRoutes(req, res) {
         const functionName = req.headers['function-name'];
         const { usuarioID, unidadeID, papelID } = req.query;
+
 
         // Menu e Routes
         switch (functionName) {
@@ -119,8 +125,8 @@ class AuthControllerFornecedor {
 
                 //? Salvar o usuário no banco de dados
                 const sqlInsertUsuario = `
-                INSERT INTO usuario (nome, cnpj, email, senha, admin) VALUES (?, ?, ?, ?, ?)`;
-                const resultInsertUsuario = await db.promise().query(sqlInsertUsuario, [data.nomeFantasia, data.cnpj, data.email, data.senha, 0]);
+                INSERT INTO usuario (nome, cnpj, email, senha, admin, role) VALUES (?, ?, ?, ?, ?, ?)`;
+                const resultInsertUsuario = await db.promise().query(sqlInsertUsuario, [data.nomeFantasia, data.cnpj, data.email, data.senha, 0, 'admin']);
                 const usuarioID = resultInsertUsuario[0].insertId;
 
                 //? Salvar a unidade no banco de dados

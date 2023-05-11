@@ -32,6 +32,10 @@ class AuthController {
         db.query(sql, [cpf, password], (err, result) => {
             if (err) { res.status(500).json({ message: err.message }); }
 
+            if (result.length === 0) {
+                return res.status(401).json({ message: 'CPF ou senha incorretos' });
+            }
+
             const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
 
             // +1 UNIDADE, SELECIONA UNIDADE ANTES DE LOGAR
