@@ -340,7 +340,7 @@ class FornecedorController {
 
     async sendMail(req, res) {
 
-        console.log('Chegou... envia email...')
+        console.log('Chegou... envia email.....')
         // configure o transporte do nodemailer com suas credenciais de email com tls/ssl
         const transporter = nodemailer.createTransport({
             host: 'mail.gedagro.com.br',
