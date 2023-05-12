@@ -282,6 +282,61 @@ class FornecedorController {
             });
     }
 
+    async getFornecedorByCnpj(req, res) {
+        const { unidadeID, cnpj } = req.body;
+        // Verifica se está vinculado como um fornecedor
+        const sqlFornecedor = `
+        SELECT * 
+        FROM fabrica_fornecedor
+        WHERE unidadeID = ? AND fornecedorCnpj = ? AND status = ?`
+        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [unidadeID, cnpj, 1])
+
+        // Verifica se já possui formulário preenchido pra minha empresa
+        const sqlFormulario = `
+        SELECT * 
+        FROM fornecedor
+        WHERE unidadeID = ? AND cnpj = ?`
+        const [resultFormulario] = await db.promise().query(sqlFormulario, [unidadeID, cnpj])
+
+        const result = {
+            isFornecedor: resultFornecedor.length > 0 ? true : false,
+            hasFormulario: resultFormulario.length > 0 ? true : false,
+        }
+
+        console.log('respondendo com ', result)
+        res.status(200).json(result);
+    }
+
+    async makeFornecedor(req, res) {
+        const { unidadeID, cnpj } = req.body;
+        console.log("🚀 ~ unidadeID, cnpj:", unidadeID, cnpj)
+
+        // Verifica duplicidade 
+        const sqlVerify = `
+        SELECT * 
+        FROM fabrica_fornecedor
+        WHERE unidadeID = ? AND fornecedorCnpj = ?`
+        const [resultVerify] = await db.promise().query(sqlVerify, [unidadeID, cnpj])
+        if (resultVerify.length > 0) {
+            return res.status(409).json({ message: 'Essa empresa já é um fornecedor desta unidade.' });
+        }
+
+        // Insere na tabela fabrica_fornecedor
+        const sqlInsert = `
+        INSERT INTO fabrica_fornecedor (unidadeID, fornecedorCnpj, status)
+        VALUES (?, ?, ?)`
+        const [resultInsert] = await db.promise().query(sqlInsert, [unidadeID, cnpj, 1])
+        if (resultInsert.length === 0) { return res.status(500).json('Error'); }
+
+        const result = {
+            cnpj: cnpj,
+            isFornecedor: true,
+            hasFormulario: false,
+        }
+
+        res.status(200).json(result)
+    }
+
 }
 
 
