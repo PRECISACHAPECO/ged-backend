@@ -13,5 +13,6 @@ fornecedorRoutes.post(`${route}/novo`, fornecedorController.insertData);
 
 fornecedorRoutes.post(`${route}/cnpj`, fornecedorController.getFornecedorByCnpj);
 fornecedorRoutes.post(`${route}/makeFornecedor`, fornecedorController.makeFornecedor);
+fornecedorRoutes.post(`${route}/sendMail`, fornecedorController.sendMail);
 
 module.exports = fornecedorRoutes;
