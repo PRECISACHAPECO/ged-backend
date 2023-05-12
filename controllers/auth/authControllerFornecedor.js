@@ -110,32 +110,39 @@ class AuthControllerFornecedor {
             //? Função que salva o cadastro do fornecedor no banco de dados
             case 'handleSaveFornecedor':
                 const data = req.body.data.usuario.fields
+                let unidadeID = ''
 
-                //? Verificar se o CNPJ já existe nq tabela de usuário
+                console.log(data)
+
+                // //? Verificar se o CNPJ já existe na tabela de usuário
                 const resultUserSave = await hasUser(data.cnpj)
                 if (resultUserSave.length > 0) {
-                    return res.status(201).json({ message: 'CNPJ já cadastrado no banco de dados' });
+                    return res.status(201).json({ message: 'Já existe um acesso de usuário com esse CNPJ' });
                 }
 
-                //? Verificar se o CNPJ já existe nq tabela de unidade
+                // //? Verificar se o CNPJ já existe na tabela de unidade e se é um fornecedor
                 const resultUnitySave = await hasUnityRole(data.cnpj)
-                if (resultUnitySave.length > 0) {
-                    return res.status(201).json({ message: 'CNPJ já cadastrado no banco de dados' });
+                if (resultUnitySave.length > 0 && resultUnitySave[0].existsFornecedor > 0) {
+                    return res.status(202).json({ message: 'Esse CNPJ já cadastrado como um fornecedor, faça login pou recupere sua senha' });
                 }
 
-                //? Salvar o usuário no banco de dados
+                // //? Salvar o usuário no banco de dados
                 const sqlInsertUsuario = `
                 INSERT INTO usuario (nome, cnpj, email, senha, admin, role) VALUES (?, ?, ?, ?, ?, ?)`;
                 const resultInsertUsuario = await db.promise().query(sqlInsertUsuario, [data.nomeFantasia, data.cnpj, data.email, data.senha, 0, 'admin']);
                 const usuarioID = resultInsertUsuario[0].insertId;
 
-                //? Salvar a unidade no banco de dados
-                const sqlInsertUnidade = `
-                INSERT INTO unidade (cnpj, nomeFantasia, razaoSocial, email, telefone1, cep, logradouro, numero, complemento, bairro, cidade, uf, dataCadastro) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-                const resultInsertUnidade = await db.promise().query(sqlInsertUnidade, [data.cnpj, data.nomeFantasia, data.razaoSocial, data.email, data.telefone, data.cep, data.logradouro, data.numero, data.complemento, data.bairro, data.cidade, data.uf, new Date()]);
-                const unidadeID = resultInsertUnidade[0].insertId;
+                // //? Salvar a unidade no banco de dados
+                if (resultUnitySave.length === 0) { // Unidade ainda nao existe
+                    const sqlInsertUnidade = `
+                    INSERT INTO unidade (cnpj, nomeFantasia, razaoSocial, email, telefone1, cep, logradouro, numero, complemento, bairro, cidade, uf, dataCadastro) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                    const resultInsertUnidade = await db.promise().query(sqlInsertUnidade, [data.cnpj, data.nomeFantasia, data.razaoSocial, data.email, data.telefone, data.cep, data.logradouro, data.numero, data.complemento, data.bairro, data.cidade, data.uf, new Date()]);
+                    unidadeID = resultInsertUnidade[0].insertId;
+                } else {
+                    unidadeID = resultUnitySave[0].unidadeID;
+                }
 
-                //? Salvar na tabela de usuário_unidade
+                // //? Salvar na tabela de usuário_unidade com papel 2 de fornecedor
                 const sqlInsertUsuarioUnidade = `
                 INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID, status) VALUES (?, ?, ?, ?)`;
                 const resultInsertUsuarioUnidade = await db.promise().query(sqlInsertUsuarioUnidade, [usuarioID, unidadeID, 2, 1]);
@@ -151,7 +158,7 @@ async function hasUnityRole(cnpj) {
     SELECT a.*, b.*,
         (SELECT COUNT(*) FROM usuario_unidade WHERE unidadeID = a.unidadeID AND papelID = 2) AS existsFornecedor
     FROM unidade AS a 
-        JOIN usuario_unidade AS b ON (a.unidadeID = b.unidadeID)
+        LEFT JOIN usuario_unidade AS b ON (a.unidadeID = b.unidadeID)
     WHERE a.cnpj = ? `;
     const [result] = await db.promise().query(sql, [cnpj]);
     return result;
