@@ -310,7 +310,6 @@ class FornecedorController {
 
     async makeFornecedor(req, res) {
         const { unidadeID, cnpj } = req.body;
-        console.log("🚀 ~ unidadeID, cnpj:", unidadeID, cnpj)
 
         // Verifica duplicidade 
         const sqlVerify = `
@@ -336,6 +335,46 @@ class FornecedorController {
         }
 
         res.status(200).json(result)
+    }
+
+    async fornecedorStatus(req, res) {
+        const { unidadeID, cnpj, status } = req.body;
+
+        // Verifica se já possui registro
+        const sqlVerify = `
+        SELECT * 
+        FROM fabrica_fornecedor
+        WHERE unidadeID = ? AND fornecedorCnpj = ?`
+        const [resultVerify] = await db.promise().query(sqlVerify, [unidadeID, cnpj])
+
+        if (resultVerify.length === 0) {
+            // insere registro 
+            const sqlInsert = `
+            INSERT INTO fabrica_fornecedor (unidadeID, fornecedorCnpj, status)
+            VALUES (?, ?, ?)`
+            const [resultInsert] = await db.promise().query(sqlInsert, [unidadeID, cnpj, status])
+        } else {
+            // atualiza o status 
+            const sqlUpdate = `
+            UPDATE fabrica_fornecedor
+            SET status = ?
+            WHERE unidadeID = ? AND fornecedorCnpj = ?`
+            const [resultUpdate] = await db.promise().query(sqlUpdate, [status, unidadeID, cnpj])
+        }
+
+        // Verifica se já possui formulário preenchido pra minha empresa
+        const sqlFormulario = `
+        SELECT * 
+        FROM fornecedor
+        WHERE unidadeID = ? AND cnpj = ?`
+        const [resultFormulario] = await db.promise().query(sqlFormulario, [unidadeID, cnpj])
+
+        const result = {
+            isFornecedor: status === 1 ? true : false,
+            hasFormulario: resultFormulario.length > 0 ? true : false,
+        }
+
+        res.status(200).json(result);
     }
 
     async sendMail(req, res) {
