@@ -1,6 +1,7 @@
 const db = require('../../../config/db');
 const { hasPending, deleteItem } = require('../../../config/defaultConfig');
-const nodemailer = require('nodemailer');
+const instructionsNewFornecedor = require('../../../email/template/formularios/fornecedor/instructionsNewFornecedor');
+const sendMailConfig = require('../../../config/email');
 
 class FornecedorController {
     async getData(req, res) {
@@ -377,39 +378,13 @@ class FornecedorController {
         res.status(200).json(result);
     }
 
+    // Função que envia email para o fornecedor
     async sendMail(req, res) {
-
-        console.log('Chegou... envia email.....')
-        // configure o transporte do nodemailer com suas credenciais de email com tls/ssl
-        const transporter = nodemailer.createTransport({
-            host: 'mail.gedagro.com.br',
-            port: 587,
-            auth: {
-                user: 'app@gedagro.com.br',
-                pass: 'Jw6!Jr0+Vw4+Lc8#'
-            }
-        })
-
-        // configure as opções do email
-        const mailOptions = {
-            from: 'app@gedagro.com.br',
-            to: 'roberto.delavy@gmail.com',
-            subject: 'Assunto do Email...',
-            text: 'Teste corpo do email...'
-        }
-
-        // envia o email
-        transporter.sendMail(mailOptions, function (error, info) {
-            if (error) {
-                console.log(error)
-                // return res.status(409).json({ message: 'Erro ao enviar o e-mail ao destinatário' })
-            } else {
-                console.log('Email enviado: ' + info.response)
-                // res.status(200).json({ message: 'E-mail enviado com sucesso!' })
-            }
-        })
+        const { destinatario } = req.body;
+        let assunto = 'Solicitação de Cadastro de Fornecedor'
+        const html = await instructionsNewFornecedor()
+        res.status(200).json(sendMailConfig(destinatario, assunto, html))
     }
-
 }
 
 

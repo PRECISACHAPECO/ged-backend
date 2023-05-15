@@ -14,10 +14,14 @@
         "dotenv": "^16.0.3",
         "express": "^4.18.2",
         "html-pdf": "^3.0.1",
+        "install": "^0.13.0",
         "jsonwebtoken": "^9.0.0",
         "mysql2": "^3.1.0",
         "nodemailer": "^6.9.2",
         "nodemon": "^2.0.20",
-        "puppeteer": "^19.8.5"
+        "puppeteer": "^19.8.5",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-dom-server": "^0.0.5"
     }
 }
