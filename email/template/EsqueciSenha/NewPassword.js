@@ -2,9 +2,8 @@ const cabecalho = require('../defaults/cabecalho');
 const rodape = require('../defaults/rodape');
 
 
-async function NewPassword(password, type, nome) {
-    let link = type == 'login' ? 'https://demo.gedagro.com.br/login' : 'https://demo.gedagro.com.br/fornecedor';
-    let html = `
+async function NewPassword(nome, id, type) {
+  let html = `
       <html>
       <head>
       <style>
@@ -15,6 +14,9 @@ async function NewPassword(password, type, nome) {
             margin: 0px;
             box-sizing: border-box;
             font-family: 'Inter', sans-serif;
+        }
+        .title{
+          color: #4c4e64de;
         }
         .box{
             box-sizing: border-box;
@@ -52,6 +54,10 @@ async function NewPassword(password, type, nome) {
             line-height: 1.5;
             color: #4c4e64de;
           }
+          .textSmall{
+            font-size: 12px;
+            line-height: 1.5;
+            }
             .textBold{
                 font-weight: bold;
             }
@@ -72,23 +78,35 @@ async function NewPassword(password, type, nome) {
     </head>
         <body class="body">
             <div class="box">`;
-    // Cabeçalho
-    html += cabecalho("Solicitação de nova senha");
-    // Conteúdo
-    html += `
+  // Cabeçalho
+  html += cabecalho("REDEFINIR SENHA");
+  // Conteúdo
+  html += `
                 <div class="content">
-                    <h1>Olá ${nome},</h1>
-                    <p class="text">Sua nova senha é ${password}</p>
-                    <span class="text">Acesse o link para acessar o sistema: <a class="link" href=${link}>GED</a> </span>
+                    <h1 class="title">Olá ${nome},</h1>
+                    <p class="text">Recebemos uma solicitação para redefinir a senha da sua conta. Para prosseguir com a redefinição, siga as instruções abaixo:</p>
+                    <p class="text">Clique no link abaixo para acessar a página de redefinição de senha: </p>
+                    <p class="text"><a class="link" href="http://localhost:3000/redefinir-senha?userId=${id}&type=${type}">Redefinir senha</a></p>
+                    <p class="text">Na página de redefinição de senha, você será solicitado a fornecer uma nova senha.</p>
+                    <p class="text">Caso você não tenha solicitado a redefinição de senha, recomendamos que você tome as seguintes medidas imediatamente:</p>
+                    <ul class="text">
+                      <li>Verifique se a sua conta está protegida com uma senha forte e exclusiva.</li>
+                      <li>Não compartilhe sua senha com ninguém.</li>
+                      <li>Mantenha seus dispositivos e contas seguros, atualizando-os regularmente e evitando acesso não autorizado.</li>
+                    </ul>
+                    <p class="text">Se você tiver alguma dúvida ou precisar de assistência adicional, entre em contato com o nosso suporte ao cliente.</p>
+                    <p class="text">Atenciosamente, <br/> 
+                    Equipe GEDagro.
+                    </p>
                 </div>
             </div>`;
-    // Rodapé
-    html += rodape();
-    html += `
+  // Rodapé
+  html += rodape();
+  html += `
         </body>
       </html>
     `;
-    return html;
+  return html;
 }
 
 module.exports = NewPassword;

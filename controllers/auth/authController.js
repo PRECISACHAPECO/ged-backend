@@ -1,6 +1,5 @@
 const db = require('../../config/db');
-const { getMenu } = require('../../config/defaultConfig');
-const generatePassword = require('generate-password');
+const { getMenu, criptoMd5 } = require('../../config/defaultConfig');
 const sendMailConfig = require('../../config/email');
 const NewPassword = require('../../email/template/EsqueciSenha/NewPassword');
 
@@ -29,10 +28,10 @@ class AuthController {
             LEFT JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
             LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
             LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
-        WHERE u.cpf = ? AND u.senha = ? AND uu.status = 1
+        WHERE u.cpf = ? AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
 
-        db.query(sql, [cpf, password], (err, result) => {
+        db.query(sql, [cpf], (err, result) => {
             if (err) { res.status(500).json({ message: err.message }); }
 
             if (result.length === 0) {
@@ -157,7 +156,7 @@ class AuthController {
         const { data } = req.body;
         const type = req.query.type;
 
-        let sql = `SELECT email, nome FROM usuario WHERE ${type == 'login' ? `cpf ` : `cnpj = ?`}`;
+        let sql = `SELECT email, nome, usuarioID FROM usuario WHERE ${type == 'login' ? `cpf ` : `cnpj = ?`}`;
         const [result] = await db.promise().query(sql, [data]);
         return res.status(200).json(result);
     }
@@ -166,15 +165,19 @@ class AuthController {
     async forgotPassword(req, res) {
         const { data } = req.body;
         const type = req.query.type;
-        const password = generatePassword.generate({ length: 6 });
-        const content = type == 'login' ? data.cpf : data.cnpj
 
-        let sql = `UPDATE usuario SET senha = ? WHERE ${type == 'login' ? `cpf = ?` : `cnpj = ?`}`;
-        const [result] = await db.promise().query(sql, [password, content]);
-
-        let assunto = 'Solicitação de nova senha'
-        const html = await NewPassword(password, type, data.nome)
+        let assunto = 'Redefinir senha'
+        const html = await NewPassword(data.nome, data.usuarioID, type)
         res.status(200).json(sendMailConfig(data.email, assunto, html));
+    }
+
+    // Função que redefine a senha do usuário
+    async routeForgotNewPassword(req, res) {
+        const { data } = req.body;
+
+        let sql = `UPDATE usuario SET senha = ? WHERE usuarioID = ?`;
+        const [result] = await db.promise().query(sql, [criptoMd5(data.senha), data.usuarioID]);
+        return res.status(200).json({ message: 'Senha alterada com sucesso!' });
     }
 }
 
