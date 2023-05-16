@@ -6,7 +6,11 @@ const fornecedorController = new FornecedorController();
 
 const route = '/formularios/fornecedor';
 
+fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
+
+fornecedorRoutes.post(`${route}/getFormStructure`, fornecedorController.getFormStructure);
 fornecedorRoutes.get(`${route}/:id`, fornecedorController.getData);
+
 fornecedorRoutes.put(`${route}/:id`, fornecedorController.updateData);
 fornecedorRoutes.delete(`${route}/:id`, fornecedorController.deleteData);
 fornecedorRoutes.post(`${route}/novo`, fornecedorController.insertData);
