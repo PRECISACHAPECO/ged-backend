@@ -1,5 +1,7 @@
 const db = require('../../config/db');
-const { getMenu } = require('../../config/defaultConfig');
+const { getMenu, criptoMd5 } = require('../../config/defaultConfig');
+const sendMailConfig = require('../../config/email');
+const NewPassword = require('../../email/template/EsqueciSenha/NewPassword');
 
 // ** JWT import
 const jwt = require('jsonwebtoken');
@@ -26,10 +28,10 @@ class AuthController {
             LEFT JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
             LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
             LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
-        WHERE u.cpf = ? AND u.senha = ? AND uu.status = 1
+        WHERE u.cpf = ? AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
 
-        db.query(sql, [cpf, password], (err, result) => {
+        db.query(sql, [cpf], (err, result) => {
             if (err) { res.status(500).json({ message: err.message }); }
 
             if (result.length === 0) {
@@ -147,6 +149,35 @@ class AuthController {
                 res.status(200).json(resultCpf[0]);
                 break;
         }
+    }
+
+    // Função que valida se o CPF é válido e retorna o mesmo para o front
+    async routeForgotEmailValidation(req, res) {
+        const { data } = req.body;
+        const type = req.query.type;
+
+        let sql = `SELECT email, nome, usuarioID FROM usuario WHERE ${type == 'login' ? `cpf ` : `cnpj = ?`}`;
+        const [result] = await db.promise().query(sql, [data]);
+        return res.status(200).json(result);
+    }
+
+    // Função que recebe os dados e envia o email com os dados de acesso
+    async forgotPassword(req, res) {
+        const { data } = req.body;
+        const type = req.query.type;
+
+        let assunto = 'Redefinir senha'
+        const html = await NewPassword(data.nome, data.usuarioID, type)
+        res.status(200).json(sendMailConfig(data.email, assunto, html));
+    }
+
+    // Função que redefine a senha do usuário
+    async routeForgotNewPassword(req, res) {
+        const { data } = req.body;
+
+        let sql = `UPDATE usuario SET senha = ? WHERE usuarioID = ?`;
+        const [result] = await db.promise().query(sql, [criptoMd5(data.senha), data.usuarioID]);
+        return res.status(200).json({ message: 'Senha alterada com sucesso!' });
     }
 }
 

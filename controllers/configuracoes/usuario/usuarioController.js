@@ -1,5 +1,5 @@
 const db = require('../../../config/db');
-const { hasPending, deleteItem, getMenuPermissions } = require('../../../config/defaultConfig');
+const { hasPending, deleteItem, getMenuPermissions, criptoMd5 } = require('../../../config/defaultConfig');
 
 class UsuarioController {
     async getList(req, res) {
@@ -150,7 +150,7 @@ class UsuarioController {
         const sqlUsuario = `
         INSERT INTO usuario (nome, cpf, senha, dataNascimento, rg, email, status)
         VALUES (?, ?, ?, ?, ?, ?, ?)`;
-        const [resultUsuario] = await db.promise().query(sqlUsuario, [data.nome, data.cpf, data.senha, data.dataNascimento, data.rg, data.email, 1])
+        const [resultUsuario] = await db.promise().query(sqlUsuario, [data.nome, data.cpf, criptoMd5(data.senha), data.dataNascimento, data.rg, data.email, 1])
         const usuarioID = resultUsuario.insertId
 
         //* USUARIO_UNIDADE
@@ -181,7 +181,7 @@ class UsuarioController {
             data.dataNascimento,
             data.cpf,
             data.rg,
-            ...(data.senha && data.senha.length > 0 ? [data.senha] : []),
+            ...(data.senha && data.senha.length > 0 ? [criptoMd5(data.senha)] : []),
             id
         ])
 

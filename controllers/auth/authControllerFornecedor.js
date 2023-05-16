@@ -1,5 +1,5 @@
 const db = require('../../config/db');
-const { getMenu } = require('../../config/defaultConfig');
+const { getMenu, criptoMd5 } = require('../../config/defaultConfig');
 
 // ** JWT import
 const jwt = require('jsonwebtoken');
@@ -23,11 +23,11 @@ class AuthControllerFornecedor {
             LEFT JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
             LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
             LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
-        WHERE u.cnpj = ? AND u.senha = ? AND uu.status = 1 
+        WHERE u.cnpj = ? AND u.senha = "${criptoMd5(password)}" AND uu.status = 1 
         AND p.papelID = 2
         ORDER BY un.nomeFantasia ASC`;
 
-        db.query(sql, [cnpj, password], (err, result) => {
+        db.query(sql, [cnpj], (err, result) => {
             if (err) { res.status(409).json({ message: err.message }); }
 
             if (result.length === 0) {
@@ -112,8 +112,6 @@ class AuthControllerFornecedor {
                 const data = req.body.data.usuario.fields
                 let unidadeID = ''
 
-                console.log(data)
-
                 // //? Verificar se o CNPJ já existe na tabela de usuário
                 const resultUserSave = await hasUser(data.cnpj)
                 if (resultUserSave.length > 0) {
@@ -129,7 +127,7 @@ class AuthControllerFornecedor {
                 // //? Salvar o usuário no banco de dados
                 const sqlInsertUsuario = `
                 INSERT INTO usuario (nome, cnpj, email, senha, admin, role) VALUES (?, ?, ?, ?, ?, ?)`;
-                const resultInsertUsuario = await db.promise().query(sqlInsertUsuario, [data.nomeFantasia, data.cnpj, data.email, data.senha, 0, 'admin']);
+                const resultInsertUsuario = await db.promise().query(sqlInsertUsuario, [data.nomeFantasia, data.cnpj, data.email, criptoMd5(data.senha), 0, 'admin']);
                 const usuarioID = resultInsertUsuario[0].insertId;
 
                 // //? Salvar a unidade no banco de dados

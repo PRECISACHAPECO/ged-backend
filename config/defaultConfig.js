@@ -123,4 +123,10 @@ const deleteItem = (id, table, column, res) => {
     });
 }
 
-module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions };
+const criptoMd5 = (senha) => {
+    const crypto = require('crypto');
+    const hash = crypto.createHash('md5').update(senha).digest('hex');
+    return hash;
+}
+
+module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5 };
