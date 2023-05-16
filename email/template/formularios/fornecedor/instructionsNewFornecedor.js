@@ -24,6 +24,7 @@ async function instructionsNewFornecedor() {
             .cabecalho {
                 background-color: #5A5FE0;
                 padding: 25px;
+                z-index: -1;
           }
           .titulo{
             font-size: 20px;
@@ -31,9 +32,9 @@ async function instructionsNewFornecedor() {
             color: #E5E5E5;
           }
           .logo{
-            width: 70px;
-            height: 70px;
-            background-color: green;
+            width: 120px;
+            height: auto;
+            z-index: 9999;
           }
           .content{
             padding: 25px;
@@ -52,12 +53,15 @@ async function instructionsNewFornecedor() {
           .textSmall{
             font-size: 12px;
             line-height: 1.5;
-            color: #4c4e64de;
             }
           .link{
             color: #5A5FE0;
             font-weight: bold;
             font-height: 1.5;
+          }
+          .linkRodape{
+            text-decoration : none;
+            color: #4c4e64de;
           }
             .rodape{
                 background-color: #fffbfb4a;
