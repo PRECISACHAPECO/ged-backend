@@ -1,5 +1,8 @@
 const db = require('../../config/db');
 const { getMenu } = require('../../config/defaultConfig');
+const generatePassword = require('generate-password');
+const sendMailConfig = require('../../config/email');
+const NewPassword = require('../../email/template/EsqueciSenha/NewPassword');
 
 // ** JWT import
 const jwt = require('jsonwebtoken');
@@ -147,6 +150,31 @@ class AuthController {
                 res.status(200).json(resultCpf[0]);
                 break;
         }
+    }
+
+    // Função que valida se o CPF é válido e retorna o mesmo para o front
+    async routeForgotEmailValidation(req, res) {
+        const { data } = req.body;
+        const type = req.query.type;
+
+        let sql = `SELECT email, nome FROM usuario WHERE ${type == 'login' ? `cpf ` : `cnpj = ?`}`;
+        const [result] = await db.promise().query(sql, [data]);
+        return res.status(200).json(result);
+    }
+
+    // Função que recebe os dados e envia o email com os dados de acesso
+    async forgotPassword(req, res) {
+        const { data } = req.body;
+        const type = req.query.type;
+        const password = generatePassword.generate({ length: 6 });
+        const content = type == 'login' ? data.cpf : data.cnpj
+
+        let sql = `UPDATE usuario SET senha = ? WHERE ${type == 'login' ? `cpf = ?` : `cnpj = ?`}`;
+        const [result] = await db.promise().query(sql, [password, content]);
+
+        let assunto = 'Solicitação de nova senha'
+        const html = await NewPassword(password, type, data.nome)
+        res.status(200).json(sendMailConfig(data.email, assunto, html));
     }
 }
 
