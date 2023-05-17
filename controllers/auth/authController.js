@@ -151,7 +151,7 @@ class AuthController {
         }
     }
 
-    // Função que valida se o CPF é válido e retorna o mesmo para o front
+    //? Função que valida se o CPF é válido e retorna o mesmo para o front / para redefinir senha
     async routeForgotEmailValidation(req, res) {
         const { data } = req.body;
         const type = req.query.type;
@@ -161,7 +161,7 @@ class AuthController {
         return res.status(200).json(result);
     }
 
-    // Função que recebe os dados e envia o email com os dados de acesso
+    //? Função que recebe os dados e envia o email com os dados de acesso
     async forgotPassword(req, res) {
         const { data } = req.body;
         const type = req.query.type;
@@ -171,7 +171,7 @@ class AuthController {
         res.status(200).json(sendMailConfig(data.email, assunto, html));
     }
 
-    // Função que redefine a senha do usuário
+    //? Função que redefine a senha do usuário
     async routeForgotNewPassword(req, res) {
         const { data } = req.body;
 
