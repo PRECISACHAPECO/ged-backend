@@ -156,9 +156,17 @@ class AuthController {
         const { data } = req.body;
         const type = req.query.type;
 
-        let sql = `SELECT email, nome, usuarioID FROM usuario WHERE ${type == 'login' ? `cpf ` : `cnpj = ?`}`;
-        const [result] = await db.promise().query(sql, [data]);
-        return res.status(200).json(result);
+        if (type == 'login') {
+            let sql = `SELECT email, nome, usuarioID FROM usuario WHERE cpf = ?`;
+            const [result] = await db.promise().query(sql, [data]);
+            res.status(200).json(result[0]);
+        } else if (type == 'fornecedor') {
+            let sql = `SELECT email, nome, usuarioID FROM usuario WHERE cnpj = ?`;
+            const [result] = await db.promise().query(sql, [data]);
+            res.status(200).json(result[0] ? result[0] : null);
+        } else {
+            res.status(400).json({ message: 'Essa rota não é válida!' });
+        }
     }
 
     //? Função que recebe os dados e envia o email com os dados de acesso
