@@ -139,38 +139,14 @@ class FornecedorController {
         res.status(200).json(data);
     }
 
-    insertData(req, res) {
-        const { nome } = req.body;
-        db.query("SELECT * FROM item", (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                const rows = result.find(row => row.nome === nome);
-                if (rows) {
-                    res.status(409).json(err);
-                } else {
-                    db.query("INSERT INTO item (nome) VALUES (?)", [nome], (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(201).json(result);
-                        }
-                    });
-                }
-            }
-        });
-    }
-
-    async updateData(req, res) {
-        const { id } = req.params
+    async insertData(req, res) {
         const data = req.body
 
         // Header 
-        const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id}`;
+        const sqlHeader = `INSERT INTO fornecedor SET ? VALUES ?`;
         const [resultHeader] = await db.promise().query(sqlHeader, [data.header])
-        if (resultHeader.length === 0) { res.status(500).json('Error'); }
+        if (resultHeader.length === 0) { return res.status(500).json('Error'); }
+        const id = resultHeader.insertId
 
         // Atividades
         for (const atividade of data.atividades) {
@@ -182,12 +158,12 @@ class FornecedorController {
                 if (resultSelectAtividade.length === 0) {
                     const sqlAtividade2 = `INSERT INTO fornecedor_atividade (fornecedorID, atividadeID) VALUES (?, ?)`
                     const [resultAtividade] = await db.promise().query(sqlAtividade2, [id, atividade.atividadeID])
-                    if (resultAtividade.length === 0) { res.status(500).json('Error'); }
+                    if (resultAtividade.length === 0) { return res.status(500).json('Error'); }
                 }
             } else {
                 const sqlAtividade = `DELETE FROM fornecedor_atividade WHERE fornecedorID = ? AND atividadeID = ?`
                 const [resultAtividade] = await db.promise().query(sqlAtividade, [id, atividade.atividadeID])
-                if (resultAtividade.length === 0) { res.status(500).json('Error'); }
+                if (resultAtividade.length === 0) { return res.status(500).json('Error'); }
             }
         }
 
@@ -201,12 +177,12 @@ class FornecedorController {
                 if (resultSelectSistemaQualidade.length === 0) {
                     const sqlSistemaQualidade2 = `INSERT INTO fornecedor_sistemaqualidade (fornecedorID, sistemaQualidadeID) VALUES (?, ?)`
                     const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade2, [id, sistema.sistemaQualidadeID])
-                    if (resultSistemaQualidade.length === 0) { res.status(500).json('Error'); }
+                    if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
                 }
             } else {
                 const sqlSistemaQualidade = `DELETE FROM fornecedor_sistemaqualidade WHERE fornecedorID = ? AND sistemaQualidadeID = ?`
                 const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id, sistema.sistemaQualidadeID])
-                if (resultSistemaQualidade.length === 0) { res.status(500).json('Error'); }
+                if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
             }
         }
 
@@ -227,7 +203,7 @@ class FornecedorController {
                         // insert na tabela fornecedor_resposta
                         const sqlInsert = `INSERT INTO fornecedor_resposta (fornecedorID, parFornecedorBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
                         const [resultInsert] = await db.promise().query(sqlInsert, [id, bloco.parFornecedorBlocoID, item.itemID, (item.resposta ?? ''), (item.respostaID ?? 0), (item.observacao ?? '')])
-                        if (resultInsert.length === 0) { res.status(500).json('Error'); }
+                        if (resultInsert.length === 0) { return res.status(500).json('Error'); }
                     } else {
                         console.log('Altera resposta')
                         // update na tabela fornecedor_resposta
@@ -250,7 +226,7 @@ class FornecedorController {
                             bloco.parFornecedorBlocoID,
                             item.itemID
                         ])
-                        if (resultUpdate.length === 0) { res.status(500).json('Error'); }
+                        if (resultUpdate.length === 0) { return res.status(500).json('Error'); }
                     }
                 }
             }
@@ -258,11 +234,111 @@ class FornecedorController {
             // Observação
             const sqlUpdateObs = `UPDATE fornecedor SET obs = ?, status = ? WHERE fornecedorID = ?`
             const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, data.status, id])
-            if (resultUpdateObs.length === 0) { res.status(500).json('Error'); }
+            if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
 
         }
 
         console.log('Até aqui ok!')
+        res.status(200).json(resultHeader)
+
+    }
+
+    async updateData(req, res) {
+        const { id } = req.params
+        const data = req.body
+
+        // Header 
+        const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id}`;
+        const [resultHeader] = await db.promise().query(sqlHeader, [data.header])
+        if (resultHeader.length === 0) { return res.status(500).json('Error'); }
+
+        // Atividades
+        for (const atividade of data.atividades) {
+            if (atividade.checked) {
+                // Verifica se já existe registro desse dado na tabela fornecedor_atividade
+                const sqlAtividade = `SELECT * FROM fornecedor_atividade WHERE fornecedorID = ? AND atividadeID = ?`
+                const [resultSelectAtividade] = await db.promise().query(sqlAtividade, [id, atividade.atividadeID])
+                // Se ainda não houver registro, fazer insert na tabela 
+                if (resultSelectAtividade.length === 0) {
+                    const sqlAtividade2 = `INSERT INTO fornecedor_atividade (fornecedorID, atividadeID) VALUES (?, ?)`
+                    const [resultAtividade] = await db.promise().query(sqlAtividade2, [id, atividade.atividadeID])
+                    if (resultAtividade.length === 0) { return res.status(500).json('Error'); }
+                }
+            } else {
+                const sqlAtividade = `DELETE FROM fornecedor_atividade WHERE fornecedorID = ? AND atividadeID = ?`
+                const [resultAtividade] = await db.promise().query(sqlAtividade, [id, atividade.atividadeID])
+                if (resultAtividade.length === 0) { return res.status(500).json('Error'); }
+            }
+        }
+
+        // Sistemas de qualidade 
+        for (const sistema of data.sistemasQualidade) {
+            if (sistema.checked) {
+                // Verifica se já existe registro desse dado na tabela fornecedor_sistemaqualidade
+                const sqlSistemaQualidade = `SELECT * FROM fornecedor_sistemaqualidade WHERE fornecedorID = ? AND sistemaQualidadeID = ?`
+                const [resultSelectSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id, sistema.sistemaQualidadeID])
+                // Se ainda não houver registro, fazer insert na tabela
+                if (resultSelectSistemaQualidade.length === 0) {
+                    const sqlSistemaQualidade2 = `INSERT INTO fornecedor_sistemaqualidade (fornecedorID, sistemaQualidadeID) VALUES (?, ?)`
+                    const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade2, [id, sistema.sistemaQualidadeID])
+                    if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
+                }
+            } else {
+                const sqlSistemaQualidade = `DELETE FROM fornecedor_sistemaqualidade WHERE fornecedorID = ? AND sistemaQualidadeID = ?`
+                const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id, sistema.sistemaQualidadeID])
+                if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
+            }
+        }
+
+        // Blocos 
+        for (const bloco of data.blocos) {
+            // Itens 
+            for (const item of bloco.itens) {
+                if (item.resposta || item.observacao) {
+                    // Verifica se já existe registro em fornecedor_resposta, com o fornecedorID, parFornecedorBlocoID e itemID, se houver, faz update, senao faz insert 
+                    const sqlVerificaResposta = `SELECT * FROM fornecedor_resposta WHERE fornecedorID = ? AND parFornecedorBlocoID = ? AND itemID = ?`
+                    const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parFornecedorBlocoID, item.itemID])
+
+                    if (resultVerificaResposta.length === 0) {
+                        console.log('Insere resposta')
+                        // insert na tabela fornecedor_resposta
+                        const sqlInsert = `INSERT INTO fornecedor_resposta (fornecedorID, parFornecedorBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
+                        const [resultInsert] = await db.promise().query(sqlInsert, [id, bloco.parFornecedorBlocoID, item.itemID, (item.resposta ?? ''), (item.respostaID ?? 0), (item.observacao ?? '')])
+                        if (resultInsert.length === 0) { return res.status(500).json('Error'); }
+                    } else {
+                        console.log('Altera resposta')
+                        // update na tabela fornecedor_resposta
+                        const sqlUpdate = `
+                        UPDATE 
+                            fornecedor_resposta 
+                        SET ${item.resposta ? 'resposta = ?, ' : ''} 
+                            ${item.respostaID ? 'respostaID = ?, ' : ''} 
+                            ${item.observacao != undefined ? 'obs = ?, ' : ''} 
+                            fornecedorID = ?
+                        WHERE fornecedorID = ? 
+                            AND parFornecedorBlocoID = ? 
+                            AND itemID = ?`
+                        const [resultUpdate] = await db.promise().query(sqlUpdate, [
+                            ...(item.resposta ? [item.resposta] : []),
+                            ...(item.respostaID ? [item.respostaID] : []),
+                            ...(item.observacao != undefined ? [item.observacao] : []),
+                            id,
+                            id,
+                            bloco.parFornecedorBlocoID,
+                            item.itemID
+                        ])
+                        if (resultUpdate.length === 0) { return res.status(500).json('Error'); }
+                    }
+                }
+            }
+
+            // Observação
+            const sqlUpdateObs = `UPDATE fornecedor SET obs = ?, status = ? WHERE fornecedorID = ?`
+            const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, data.status, id])
+            if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
+
+        }
+
         res.status(200).json(resultHeader)
     }
 
