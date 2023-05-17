@@ -1,92 +1,41 @@
 const cabecalho = require('../../defaults/cabecalho');
 const rodape = require('../../defaults/rodape');
+const css = require('../../defaults/css');
 
 async function instructionsNewFornecedor() {
-  let html = `
-      <html>
-      <head>
-      <style>
-            @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600;800&display=swap');
-          .body {
-            background-color: #E5E5E5;
-            padding: 0px;
-            margin: 0px;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
-        .box{
-              box-sizing: border-box;
-              width: min(800px, 100%);
-              margin: 0 auto;
-              border: 1px solid #f1f1f1;
-              background-color: #fff;
-            }
-            .cabecalho {
-                background-color: #5A5FE0;
-                padding: 25px;
-                z-index: -1;
-          }
-          .titulo{
-            font-size: 20px;
-            font-weight: bold;
-            color: #E5E5E5;
-          }
-          .logo{
-            width: 120px;
-            height: auto;
-            z-index: 9999;
-          }
-          .content{
-            padding: 25px;
-            background-color: #fff;
-          }
-          .text{
-            font-size: 16px;
-            line-height: 1.5;
-            color: #4c4e64de;
-          }
-          .textMedium{
-            font-size: 14px;
-            line-height: 1.5;
-            color: #4c4e64de;
-          }
-          .textSmall{
-            font-size: 12px;
-            line-height: 1.5;
-            }
-          .link{
-            color: #5A5FE0;
-            font-weight: bold;
-            font-height: 1.5;
-          }
-          .linkRodape{
-            text-decoration : none;
-            color: #4c4e64de;
-          }
-            .rodape{
-                background-color: #fffbfb4a;
-                padding: 25px;
-            }
-        </style>
-    </head>
+    let html = `
+    <html>`;
+    // CSS
+    html += css();
+    // Body
+    html += `
         <body class="body">
             <div class="box">`;
-  // Cabeçalho
-  html += cabecalho("Instruções para o fornecedor");
-  // Conteúdo
-  html += `
+    // Cabeçalho
+    html += cabecalho("INSTRUÇÕES PARA O FORNECEDOR");
+    // Conteúdo
+    html += `
                 <div class="content">
-                    <p class="text">Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p>
-                    <span class="text">Acesse o link para se cadastrar: <a class="link" href="https://demo.gedagro.com.br/login">GED</a> </span>
+                    <h1 class="title">Caro fornecedor,</h1>
+                    <p>Gostaríamos de solicitar que você faça o seu cadastro em nosso sistema para estabelecermos uma parceria comercial. Para isso, pedimos que acesse o link para realizar o primeiro cadastro: </p>
+                    <p><a class="link" href="https://demo.gedagro.com.br/registro">Primeiro cadastro</a></p>
+                    <p>Caso já tenha realizado o cadastro anteriormente, você pode simplesmente acessar o link de login:</p>
+                    <p><a class="link" href="https://demo.gedagro.com.br/fornecedor">Login</a></p>
+                    <p>O cadastro em nosso sistema é fundamental para que possamos agilizar o processo de comunicação e facilitar a realização de transações comerciais entre nós. É importante que você preencha todos os campos necessários de forma correta e completa.</p>
+                    <p>Se tiver alguma dúvida ou dificuldade durante o processo de cadastro, entre em contato com nossa equipe de suporte, que estará pronta para ajudá-lo.</p>
+                    <p>Agradecemos pela sua atenção e estamos ansiosos para iniciar uma parceria bem-sucedida.</p>
+                    <p>Atenciosamente, <br/> 
+                    Equipe GEDagro.
+                    </p>
                 </div>
             </div>`;
-  // Rodapé
-  html += rodape();
-  html += `
+    // Rodapé
+    html += rodape();
+    html += `
         </body>
-      </html>
+    </html>
     `;
-  return html;
+    return html;
 }
 
 module.exports = instructionsNewFornecedor;
