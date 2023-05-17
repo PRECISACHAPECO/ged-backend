@@ -80,7 +80,7 @@ class FornecedorController {
 
                         const objData = {
                             dados: item,
-                            atividades: resultAtividade,
+                            atividades: resultAtividade ? resultAtividade : [],
                             categorias: [
                                 {
                                     categoriaID: 1,
@@ -101,7 +101,7 @@ class FornecedorController {
 
                     res.status(200).json(blocks);
                 } catch (err) {
-                    res.status(500).json(err);
+                    return res.status(500).json(err);
                 }
                 break;
 
@@ -131,7 +131,7 @@ class FornecedorController {
                     WHERE pfu.parFornecedorID = ? AND pfu.unidadeID = ?`
                     // Verifica numero de linhas do sql 
                     db.query(sql, [item.parFornecedorID, unidadeID], (err, result) => {
-                        if (err) { res.status(500).json(err); }
+                        if (err) { return res.status(500).json(err); }
                         if (result[0].count == 0) { // Insert 
                             const sql = `
                             INSERT INTO par_fornecedor_unidade (parFornecedorID, unidadeID, obrigatorio)
@@ -145,7 +145,7 @@ class FornecedorController {
                             SET obrigatorio = ?
                             WHERE parFornecedorID = ? AND unidadeID = ?`
                             db.query(sql, [(item.obrigatorio ? 1 : 0), item.parFornecedorID, unidadeID], (err, result) => {
-                                if (err) { res.status(500).json(err); }
+                                if (err) { return res.status(500).json(err); }
                             });
                         }
                     })
@@ -155,7 +155,7 @@ class FornecedorController {
                     WHERE parFornecedorID = ? AND unidadeID = ?;`
 
                     db.query(sql, [item.parFornecedorID, unidadeID], (err, result) => {
-                        if (err) { res.status(500).json(err); }
+                        if (err) { return res.status(500).json(err); }
                     })
                 }
             }
@@ -170,7 +170,7 @@ class FornecedorController {
                 WHERE parFornecedorBlocoID = ?`
 
                 db.query(sql, [block.sequencia, block.nome, (block.obs ? 1 : 0), (block.status ? 1 : 0), block.parFornecedorBlocoID], (err, result) => {
-                    if (err) { res.status(500).json(err); }
+                    if (err) { return res.status(500).json(err); }
                 })
 
                 // Atividades
@@ -185,13 +185,13 @@ class FornecedorController {
                             // Verifica numero de linhas do sql
                             db.query(sql, [block.parFornecedorBlocoID, atividade.atividadeID, unidadeID], (err, result) => {
 
-                                if (err) { res.status(500).json(err); }
+                                if (err) { return res.status(500).json(err); }
                                 if (result[0].count == 0) { // Insert 
                                     const sql = `
                                     INSERT INTO par_fornecedor_bloco_atividade (parFornecedorBlocoID, atividadeID, unidadeID)
                                     VALUES (?, ?, ?)`
                                     db.query(sql, [block.parFornecedorBlocoID, atividade.atividadeID, unidadeID], (err2, result2) => {
-                                        if (err2) { res.status(500).json(err2); }
+                                        if (err2) { return res.status(500).json(err2); }
                                     });
                                 }
                             })
@@ -201,7 +201,7 @@ class FornecedorController {
                             WHERE parFornecedorBlocoID = ? AND atividadeID = ? AND unidadeID = ?;`
 
                             db.query(sql, [block.parFornecedorBlocoID, atividade.atividadeID, unidadeID], (err, result) => {
-                                if (err) { res.status(503).json(err); }
+                                if (err) { return res.status(503).json(err); }
                             })
                         }
                     }
@@ -218,7 +218,7 @@ class FornecedorController {
                             SET ordem = ?, ${item.itemID ? 'itemID = ?, ' : ''} ${item.alternativaID ? 'alternativaID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
                             WHERE parFornecedorBlocoItemID = ?`
 
-                            db.query(sql, [item.sequencia, ...(item.itemID ? [item.itemID] : []), ...(item.alternativaID ? [item.alternativaID] : []), (item.obs ? 1 : 0), (item.obrigatorio ? 1 : 0), (item.status ? 1 : 0), item.parFornecedorBlocoItemID], (err, result) => { if (err) { res.status(500).json(err); } })
+                            db.query(sql, [item.sequencia, ...(item.itemID ? [item.itemID] : []), ...(item.alternativaID ? [item.alternativaID] : []), (item.obs ? 1 : 0), (item.obrigatorio ? 1 : 0), (item.status ? 1 : 0), item.parFornecedorBlocoItemID], (err, result) => { if (err) { return res.status(500).json(err); } })
                         } else {
                             // Insert
                             const sql = `
@@ -226,7 +226,7 @@ class FornecedorController {
                             VALUES (?, ?, ?, ?, ?, ?, ?)`
 
                             db.query(sql, [block.parFornecedorBlocoID, item.sequencia, item.itemID, item.alternativaID, (item.obs ? 1 : 0), (item.obrigatorio ? 1 : 0), (item.status ? 1 : 0)], (err, result) => {
-                                if (err) { res.status(500).json(err); }
+                                if (err) { return res.status(500).json(err); }
                             })
                         }
                     }
@@ -241,7 +241,7 @@ class FornecedorController {
         WHERE parFormularioID = 1`
 
         db.query(sql, [orientacoes], (err, result) => {
-            if (err) { res.status(500).json(err); }
+            if (err) { return res.status(500).json(err); }
         })
 
         res.status(200).json({ message: "Dados atualizados com sucesso." });
@@ -262,13 +262,13 @@ class FornecedorController {
         hasPending(id, objModule.column, tablesPending)
             .then((hasPending) => {
                 if (hasPending) {
-                    res.status(409).json({ message: "Dado possui pendência." });
+                    return res.status(409).json({ message: "Dado possui pendência." });
                 } else {
                     return deleteItem(id, objModule.table, objModule.column, res)
                 }
             })
             .catch((err) => {
-                res.status(500).json(err);
+                return res.status(500).json(err);
             });
     }
 
