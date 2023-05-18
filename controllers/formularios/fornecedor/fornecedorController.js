@@ -482,6 +482,63 @@ class FornecedorController {
         const html = await instructionsNewFornecedor()
         res.status(200).json(sendMailConfig(destinatario, assunto, html))
     }
+
+
+    //? Função que pega as alternativas do item
+    async getItemScore(req, res) {
+        const { data } = req.body;
+
+        const sqlScore = `        
+        SELECT a.parFornecedorBlocoItemID, b.*, 
+
+            (SELECT c.pontuacao
+            FROM par_fornecedor_bloco_item_pontuacao AS c 
+            WHERE c.parFornecedorBlocoItemID = a.parFornecedorBlocoItemID AND c.alternativaItemID = b.alternativaItemID) AS score
+
+        FROM par_fornecedor_bloco_item AS a
+            JOIN alternativa_item AS b ON (a.alternativaID = b.alternativaID)
+        WHERE a.parFornecedorBlocoItemID = ${data.parFornecedorBlocoItemID}`
+        const [resultScore] = await db.promise().query(sqlScore)
+
+        const result = {
+            alternativaID: data.alternativaID,
+            pontuacao: data.pontuacao,
+            parFornecedorBlocoItemID: data.parFornecedorBlocoItemID,
+            alternatives: resultScore,
+        }
+        res.status(200).json(result);
+    }
+
+    //? Função que grava o score do item do fornecedor 
+    async saveItemScore(req, res) {
+        const { data } = req.body;
+
+        // Atualizar pontuação na tabela par_fornecedor_bloco_item
+        const sqlUpdate = `UPDATE par_fornecedor_bloco_item SET pontuacao = ? WHERE parFornecedorBlocoItemID = ?`;
+        const [resultUpdate] = await db.promise().query(sqlUpdate, [data.pontuacao, data.parFornecedorBlocoItemID]);
+
+        const promises = data.alternatives.map(async (item) => {
+            // Verifica se já existe um registro para o item
+            const sqlVerify = `SELECT * FROM par_fornecedor_bloco_item_pontuacao WHERE parFornecedorBlocoItemID = ? AND alternativaItemID = ?`;
+            const [resultVerify] = await db.promise().query(sqlVerify, [data.parFornecedorBlocoItemID, item.alternativaItemID]);
+
+            if (data.pontuacao === 1) { // Habilitou a pontuação
+                if (resultVerify.length > 0) {                // Atualiza o registro
+                    const sqlUpdate = `UPDATE par_fornecedor_bloco_item_pontuacao SET pontuacao = ? WHERE parFornecedorBlocoItemID = ? AND alternativaItemID = ?`;
+                    const [resultUpdate] = await db.promise().query(sqlUpdate, [item.score > 0 ? item.score : 0, data.parFornecedorBlocoItemID, item.alternativaItemID]);
+                } else {
+                    // Insere o registro
+                    const sqlInsert = `INSERT INTO par_fornecedor_bloco_item_pontuacao (parFornecedorBlocoItemID, alternativaID, alternativaItemID, pontuacao) VALUES (?, ?, ?, ?)`;
+                    const [result] = await db.promise().query(sqlInsert, [data.parFornecedorBlocoItemID, data.alternativaID, item.alternativaItemID, item.score > 0 ? item.score : 0]);
+                }
+            } else if (resultVerify.length > 0) { // Desabilitou e existe pontuação, deleta o registro
+                const sqlDelete = `DELETE FROM par_fornecedor_bloco_item_pontuacao WHERE parFornecedorBlocoItemID = ? AND alternativaItemID = ?`;
+                const [resultDelete] = await db.promise().query(sqlDelete, [data.parFornecedorBlocoItemID, item.alternativaItemID]);
+            }
+        });
+        res.status(200).json('ok');
+    }
+
 }
 
 //* Functions 
