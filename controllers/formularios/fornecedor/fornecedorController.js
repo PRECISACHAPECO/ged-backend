@@ -477,9 +477,10 @@ class FornecedorController {
 
     // Função que envia email para o fornecedor
     async sendMail(req, res) {
-        const { destinatario } = req.body;
+        const { data } = req.body;
+        const destinatario = data.destinatario
         let assunto = 'Solicitação de Cadastro de Fornecedor'
-        const html = await instructionsNewFornecedor()
+        const html = await instructionsNewFornecedor(data.cnpj, data.unidadeID)
         res.status(200).json(sendMailConfig(destinatario, assunto, html))
     }
 
