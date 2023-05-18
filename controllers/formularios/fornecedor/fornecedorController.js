@@ -3,21 +3,27 @@ const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 const instructionsNewFornecedor = require('../../../email/template/formularios/fornecedor/instructionsNewFornecedor');
 const sendMailConfig = require('../../../config/email');
 
-
-
 class FornecedorController {
     async getList(req, res) {
         const { unidadeID, papelID, cnpj } = req.body;
 
         //* Fábrica 
         if (papelID == 1) {
-            const sql = `SELECT fornecedorID AS id, cnpj, nome, cidade, estado, telefone, status FROM fornecedor WHERE unidadeID = ${unidadeID}`
+            const sql = `
+            SELECT f.fornecedorID AS id, f.cnpj, f.nome AS fantasia, f.cidade, f.estado, f.telefone, f.status, u.nomeFantasia AS fabrica
+            FROM fornecedor AS f
+                LEFT JOIN unidade AS u ON (f.unidadeID = u.unidadeID)
+            WHERE f.unidadeID = ${unidadeID}`
             const [result] = await db.promise().query(sql)
             res.status(200).json(result);
         }
         //* Fornecedor 
         else if (papelID == 2 && cnpj) {
-            const sql = `SELECT fornecedorID AS id, cnpj, nome, cidade, estado, telefone, status FROM fornecedor WHERE cnpj = "${cnpj}"`
+            const sql = `
+            SELECT f.fornecedorID AS id, f.cnpj, f.nome, f.cidade, f.estado, f.telefone, f.status, u.nomeFantasia AS fabrica
+            FROM fornecedor AS f
+                LEFT JOIN unidade AS u ON (f.unidadeID = u.unidadeID)
+            WHERE f.cnpj = "${cnpj}"`
             const [result] = await db.promise().query(sql)
             res.status(200).json(result);
         }
@@ -247,7 +253,7 @@ class FornecedorController {
         const { id } = req.params
         const data = req.body
 
-        // Header 
+        // Atualizar o header e setar o status com 30
         const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id}`;
         const [resultHeader] = await db.promise().query(sqlHeader, [data.header])
         if (resultHeader.length === 0) { return res.status(500).json('Error'); }
@@ -334,7 +340,7 @@ class FornecedorController {
 
             // Observação
             const sqlUpdateObs = `UPDATE fornecedor SET obs = ?, status = ? WHERE fornecedorID = ?`
-            const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, data.status, id])
+            const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, 30, id])
             if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
 
         }
@@ -425,6 +431,12 @@ class FornecedorController {
         VALUES (?, ?, ?)`
         const [resultInsert] = await db.promise().query(sqlInsert, [unidadeID, cnpj, 1])
         if (resultInsert.length === 0) { return res.status(500).json('Error'); }
+
+        // Gera um novo formulário em branco, pro fornecedor preencher depois quando acessar o sistema
+        const sqlFornecedor = `
+        INSERT INTO fornecedor (cnpj, unidadeID, status, atual)
+        VALUES (?, ?, ?, ?)`
+        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [cnpj, unidadeID, 10, 1])
 
         const result = {
             cnpj: cnpj,
@@ -567,6 +579,5 @@ const getSqlOtherInfos = () => {
     WHERE fornecedorID = ?`
     return sql
 }
-
 
 module.exports = FornecedorController;

@@ -80,7 +80,6 @@ class AuthController {
         switch (functionName) {
             case 'getMenu':
                 const menu = await getMenu(papelID)
-                console.log("🚀 ~ menu:", menu)
 
                 res.status(200).json(menu);
                 break;
@@ -88,24 +87,25 @@ class AuthController {
             case 'getRoutes':
                 let sqlRoutes = ``
                 const admin = req.query.admin;
-                if (admin == 1) {
-                    // Usuário admin, permissão para todas as rotas
+                //? Usuário admin ou fornecedor, acessa todas as rotas do seu papel
+                if (admin == 1 || papelID == 2) {
                     sqlRoutes = `
                     SELECT IF(m.rota <> '', m.rota, s.rota) AS rota, 1 AS ler, 1 AS inserir, 1 AS editar, 1 AS excluir
-                    FROM menu AS m  
+                    FROM divisor AS d 
+                        JOIN menu AS m ON (d.divisorID = m.divisorID)  
                         LEFT JOIN submenu AS s ON (m.menuID = s.menuID)
-                    WHERE m.status = 1 OR s.status = 1`
-                } else if (papelID == 2) { //? Fornecedor, acessa todas as rotas do 
+                    WHERE d.papelID = ${papelID} AND m.status = 1 OR s.status = 1`
+                } else {
                     // Não é admin, busca permissões da tabela permissao
                     console.log('papel', papelID);
                     sqlRoutes = `
                     SELECT rota, papelID, ler, inserir, editar, excluir
-                    FROM permissao
+                    FROM permissao                    
                     WHERE papelID = ${papelID} AND usuarioID = ${usuarioID} AND unidadeID = ${unidadeID}`;
                 }
 
                 db.query(sqlRoutes, (err, result) => {
-                    if (err) { res.status(500).json({ message: err.message }); }
+                    if (err) { return res.status(500).json({ message: err.message }); }
 
                     result.forEach(rota => {
                         rota.ler = rota.ler === 1 ? true : false;
