@@ -148,9 +148,9 @@ class UsuarioController {
         //* USUARIO
         // CPF novo
         const sqlUsuario = `
-        INSERT INTO usuario (nome, cpf, senha, dataNascimento, rg, email, status)
+        INSERT INTO usuario (nome, cpf, senha, dataNascimento, rg, email, role, status)
         VALUES (?, ?, ?, ?, ?, ?, ?)`;
-        const [resultUsuario] = await db.promise().query(sqlUsuario, [data.nome, data.cpf, criptoMd5(data.senha), data.dataNascimento, data.rg, data.email, 1])
+        const [resultUsuario] = await db.promise().query(sqlUsuario, [data.nome, data.cpf, criptoMd5(data.senha), data.dataNascimento, data.rg, data.email, 'admin', 1])
         const usuarioID = resultUsuario.insertId
 
         //* USUARIO_UNIDADE
