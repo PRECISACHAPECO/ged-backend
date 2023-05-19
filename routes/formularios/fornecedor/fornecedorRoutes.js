@@ -14,7 +14,6 @@ fornecedorRoutes.delete(`${route}/:id`, fornecedorController.deleteData);
 fornecedorRoutes.post(`${route}/novo`, fornecedorController.insertData);
 
 // Específicos
-fornecedorRoutes.post(`${route}/getFormStructure`, fornecedorController.getFormStructure);
 fornecedorRoutes.post(`${route}/getFabricas`, fornecedorController.getFabricas);
 fornecedorRoutes.post(`${route}/cnpj`, fornecedorController.getFornecedorByCnpj);
 fornecedorRoutes.post(`${route}/makeFornecedor`, fornecedorController.makeFornecedor);
