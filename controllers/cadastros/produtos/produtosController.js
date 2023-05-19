@@ -34,11 +34,11 @@ class ProdutosController {
                 console.log(err);
                 res.status(500).json(err);
             } else {
-                const rows = [] //result.find(row => row.nome === nome);
+                const rows = result.find(row => row.nome === nome);
                 if (rows) {
                     res.status(409).json(err);
                 } else {
-                    db.query("INSERT INTO produto (nome, unidadeMedida, unidadeID) VALUES (?, ?, ?)", [nome, unidadeMedida, unidadeID], (err, result) => {
+                    db.query("INSERT INTO produto (nome, unidadeMedida, dataCadastro, unidadeID) VALUES (?, ?, ?, ?)", [nome, unidadeMedida, new Date(), unidadeID], (err, result) => {
                         if (err) {
                             console.log(err);
                             res.status(500).json(err);
@@ -50,6 +50,7 @@ class ProdutosController {
             }
         });
     }
+
 
     updateData(req, res) {
         const { id } = req.params

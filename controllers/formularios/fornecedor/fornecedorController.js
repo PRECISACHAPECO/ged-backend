@@ -1,5 +1,5 @@
 const db = require('../../../config/db');
-const { hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { hasPending, deleteItem, criptoMd5, onlyNumbers } = require('../../../config/defaultConfig');
 const instructionsNewFornecedor = require('../../../email/template/formularios/fornecedor/instructionsNewFornecedor');
 const sendMailConfig = require('../../../config/email');
 
@@ -493,8 +493,10 @@ class FornecedorController {
     async sendMail(req, res) {
         const { data } = req.body;
         const destinatario = data.destinatario
+
         let assunto = 'Solicitação de Cadastro de Fornecedor'
-        const html = await instructionsNewFornecedor(data.cnpj, data.unidadeID)
+        const html = await instructionsNewFornecedor(criptoMd5(onlyNumbers(data.cnpj.toString())), criptoMd5(data.unidadeID.toString()));
+
         res.status(200).json(sendMailConfig(destinatario, assunto, html))
     }
 

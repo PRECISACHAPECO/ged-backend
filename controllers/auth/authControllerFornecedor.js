@@ -149,14 +149,39 @@ class AuthControllerFornecedor {
                 break;
         }
     }
+
+
+    //? Quando o fornecedor acessa o link de acesso enviado por email / Muda o stado de 10 para 20 na tabela de fornecedor e salva na tabela de movimentaçãoFornecedor
+    async setAcessLink(req, res) {
+        const { data } = req.body;
+
+        //? Verificar se o link é válido
+        const sqlGet = `
+        SELECT  fornecedorID, unidadeID
+        FROM fornecedor
+        WHERE MD5(REGEXP_REPLACE(cnpj, '[^0-9]', '')) = "${data.cnpj}" AND MD5(unidadeID) = "${data.unidadeID}" AND status = 10`;
+
+        const [result] = await db.promise().query(sqlGet);
+
+        //? Se o link for válido, atualizar o status do fornecedor para 20 e salvar na tabela de movimentação
+        if (result.length > 0 && result[0].fornecedorID > 0) {
+            const sqlUpdate = `UPDATE fornecedor SET status = 20 WHERE fornecedorID = ${result[0].fornecedorID}`;
+            await db.promise().query(sqlUpdate);
+
+            const sqlInsert = `INSERT INTO movimentacaoformulario (parFormularioID, id, usuarioID, unidadeID, papelID, dataHora, statusAnterior, statusAtual) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+            await db.promise().query(sqlInsert, [1, result[0].fornecedorID, 0, result[0].unidadeID, 2, new Date(), 10, 20]);
+
+            res.status(200).json({ message: 'Acesso liberado com sucesso!' });
+        }
+    }
 }
 
 async function hasUnityRole(cnpj) {
     const sql = ` 
     SELECT a.*, b.*,
-        (SELECT COUNT(*) FROM usuario_unidade WHERE unidadeID = a.unidadeID AND papelID = 2) AS existsFornecedor
+                (SELECT COUNT(*) FROM usuario_unidade WHERE unidadeID = a.unidadeID AND papelID = 2) AS existsFornecedor
     FROM unidade AS a 
-        LEFT JOIN usuario_unidade AS b ON (a.unidadeID = b.unidadeID)
+        LEFT JOIN usuario_unidade AS b ON(a.unidadeID = b.unidadeID)
     WHERE a.cnpj = ? `;
     const [result] = await db.promise().query(sql, [cnpj]);
     return result;
@@ -164,9 +189,9 @@ async function hasUnityRole(cnpj) {
 
 async function hasUser(cnpj) {
     const sql = ` 
-    SELECT * 
-    FROM usuario AS a 
-    WHERE a.cnpj = ?`;
+    SELECT *
+                FROM usuario AS a 
+    WHERE a.cnpj = ? `;
     const [result] = await db.promise().query(sql, [cnpj]);
     return result;
 }
