@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 17-Maio-2023 às 21:25
+-- Tempo de geração: 18-Maio-2023 às 21:22
 -- Versão do servidor: 10.4.22-MariaDB
 -- versão do PHP: 7.4.27
 
@@ -189,7 +189,14 @@ INSERT INTO `fabrica_fornecedor` (`fabricaFornecedorID`, `unidadeID`, `fornecedo
 (2, 1, '91.930.944/0001-13', NULL, 1),
 (3, 1, '41.153.569/0001-74', NULL, 1),
 (4, 1, '13.363.709/0001-01', NULL, 1),
-(5, 2, '13.363.709/0001-01', NULL, 1);
+(5, 2, '13.363.709/0001-01', NULL, 1),
+(6, 1, '92.949.754/0001-00', NULL, 1),
+(7, 1, '21.580.036/0001-61', NULL, 1),
+(8, 1, '49.810.962/0001-03', NULL, 1),
+(9, 1, '36.017.981/0001-27', NULL, 1),
+(10, 1, '94.195.676/0001-21', NULL, 1),
+(11, 1, '28.312.835/0001-04', NULL, 1),
+(13, 3, '28.312.835/0001-04', NULL, 1);
 
 -- --------------------------------------------------------
 
@@ -232,7 +239,15 @@ CREATE TABLE `fornecedor` (
 --
 
 INSERT INTO `fornecedor` (`fornecedorID`, `fabricante`, `importador`, `dataAvaliacao`, `cnpj`, `razaoSocial`, `nome`, `email`, `telefone`, `brasil`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `pais`, `ie`, `responsavel`, `principaisClientes`, `registroMapa`, `registroEstabelecimentoID`, `obs`, `unidadeID`, `status`, `atual`) VALUES
-(1, 1, 1, '1899-11-30', '13.363.709/0001-01', 'Abc', 'Abcff', 'contato@tozzo.com.br', '(45) 45454-5454', 0, 'aa', 'Rua Minas Gerais', 'aa33aa444', 'Sala 206', 'aa233', 'quilombo555', 'SC', 'Brasil', '545787824', 'aa', 'aa', 0, 5555, '', 1, 0, 1);
+(1, 1, 1, '1899-11-30', '13.363.709/0001-01', 'Abc', 'Abcff', 'contato@tozzo.com.br', '(45) 45454-5454', 0, 'aa', 'Rua Minas Gerais', 'aa33aa444', 'Sala 206', 'aa233', 'quilombo555', 'SC', 'Brasil', '545787824', 'aa', 'aa', 0, 5555, '', 1, 0, 1),
+(2, 0, 0, NULL, '94.195.676/0001-21', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, 1, 10, 1),
+(3, 0, 0, NULL, '28.312.835/0001-04', '', 'aliceeee', '', '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '', 0, NULL, '', 1, 30, 1),
+(4, 0, 0, NULL, '11.149.451/0001-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, 3, 10, 1),
+(5, 0, 0, NULL, '28.312.835/0001-04', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, 3, 30, 1),
+(6, 0, 0, NULL, '28.312.835/0001-04', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, 2, 40, 0),
+(7, 0, 0, NULL, '28.312.835/0001-04', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, 2, 50, 0),
+(8, 0, 0, NULL, '28.312.835/0001-04', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, 2, 60, 0),
+(9, 0, 0, NULL, '28.312.835/0001-04', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, 2, 70, 0);
 
 -- --------------------------------------------------------
 
@@ -369,8 +384,8 @@ INSERT INTO `menu` (`menuID`, `divisorID`, `nome`, `icone`, `rota`, `ordem`, `no
 (3, 2, 'Recebimento MP', 'icon-park-outline:receive', '/formularios/recebimento-mp', 3, 0, 1),
 (4, 3, 'Cadastros', 'ph:note-pencil', NULL, 4, 0, 1),
 (5, 3, 'Configurações', 'ph:gear', NULL, 5, 0, 1),
-(7, 4, 'Dashboard', '', '/home', 1, 0, 1),
-(8, 4, 'Formulários', '', '/formularios/fornecedor', 2, 0, 1);
+(7, 4, 'Meus Dados', '', '/meus-dados', 2, 0, 1),
+(8, 4, 'Formulários', '', '/formularios/fornecedor', 1, 0, 1);
 
 -- --------------------------------------------------------
 
@@ -1127,7 +1142,9 @@ INSERT INTO `unidade` (`unidadeID`, `nomeFantasia`, `razaoSocial`, `cnpj`, `tele
 (24, 'Nutri Vitalaaaaa', '565666', '91.507.596/0001-76', '(49) 98435-6670', NULL, 'jonatankalmeidakk5@gmail.com', NULL, '18087-149', 'Avenida Fernando Stecca', '11', 'Fundos', 'Iporanga', 'Sorocaba', 'SP', '2023-05-10', 1),
 (25, 'tetweeee', 'Ltda Nwe', '01.116.088/0001-74', '(49) 98435-6670', NULL, 'jonatankalmeidakk5@gmail.com', NULL, '18087-149', 'Avenida Fernando Stecca', '888', 'Fundos', 'Iporanga', 'Sorocaba', 'SP', '2023-05-10', 1),
 (26, 'Ltda New', '565666', '33.485.347/0001-20', '', NULL, 'jonatankalmeidakk5@gmail.com', NULL, '', '', '11', '', '', '', '', '2023-05-10', 1),
-(27, 'Ltda New', '565666', '45.014.434/0001-89', '', NULL, 'jonatankalmeidakk5@gmail.com', NULL, '', '', '11', '', '', '', '', '2023-05-11', 1);
+(27, 'Ltda New', '565666', '45.014.434/0001-89', '', NULL, 'jonatankalmeidakk5@gmail.com', NULL, '', '', '11', '', '', '', '', '2023-05-11', 1),
+(28, 'Tozzo Alimentos', 'Tozzo Alimentos', '94.195.676/0001-21', '', NULL, 'roberto.delavy@gmail.com', NULL, '89812-600', 'Rua Euclides Prade', '465E', '', 'Santa Maria', 'Chapecó', 'SC', '2023-05-17', 1),
+(29, 'Brasão Supermercado', 'Almeida Prado Supermercado', '28.312.835/0001-04', '(49) 99494-5454', NULL, 'ropioo@gmail.com', NULL, '97250-000', 'Rua Getulio Vargas', '465', 'Apto 500', 'Centro', 'Nova Palma', 'RS', '2023-05-18', 1);
 
 -- --------------------------------------------------------
 
@@ -1154,7 +1171,7 @@ CREATE TABLE `usuario` (
 --
 
 INSERT INTO `usuario` (`usuarioID`, `nome`, `cpf`, `cnpj`, `dataNascimento`, `rg`, `email`, `senha`, `admin`, `role`, `status`) VALUES
-(1, 'Roberto D Ara', '089.092.569-07', '11.149.451/0001-01', NULL, '510177319933312', 'admin@materialize.com', '81dc9bdb52d04dc20036dbd8313ed055', 1, 'admin', 1),
+(1, 'Roberto D Ara', '089.092.569-07', NULL, NULL, '510177319933312', 'admin@materialize.com', '81dc9bdb52d04dc20036dbd8313ed055', 1, 'admin', 1),
 (21, 'sasasa', '021.164.710-10', NULL, '1899-11-30', 'sasaas', 'saassaas', '81dc9bdb52d04dc20036dbd8313ed055', 0, '', 1),
 (22, 'teste', '8998', NULL, '0000-00-00', '9898', '9898', '81dc9bdb52d04dc20036dbd8313ed055', 0, '', 1),
 (23, 'sasa', '3333', NULL, '0000-00-00', '4343', '32', '81dc9bdb52d04dc20036dbd8313ed055', 0, '', 1),
@@ -1165,7 +1182,9 @@ INSERT INTO `usuario` (`usuarioID`, `nome`, `cpf`, `cnpj`, `dataNascimento`, `rg
 (28, 'Nutri Vitalaaaaa', NULL, '91.507.596/0001-76', NULL, NULL, 'jonatankalmeidakk5@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1),
 (29, 'tetweeee', NULL, '01.116.088/0001-74', NULL, NULL, 'jonatankalmeidakk5@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1),
 (30, 'Ltda New', NULL, '33.485.347/0001-20', NULL, NULL, 'jonatankalmeidakk5@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1),
-(31, 'Ltda New', NULL, '45.014.434/0001-89', NULL, NULL, 'jonatankalmeidakk5@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1);
+(31, 'Ltda New', NULL, '45.014.434/0001-89', NULL, NULL, 'jonatankalmeidakk5@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1),
+(32, 'Tozzo Alimentos', NULL, '94.195.676/0001-21', NULL, NULL, 'roberto.delavy@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1),
+(33, 'Brasão Supermercado', NULL, '28.312.835/0001-04', NULL, NULL, 'ropioo@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1);
 
 -- --------------------------------------------------------
 
@@ -1201,7 +1220,9 @@ INSERT INTO `usuario_unidade` (`usuarioUnidadeID`, `usuarioID`, `unidadeID`, `pa
 (21, 29, 25, 2, NULL, NULL, 1),
 (22, 30, 26, 2, NULL, NULL, 1),
 (23, 31, 27, 2, NULL, NULL, 1),
-(24, 1, 2, 1, 1, NULL, 1);
+(24, 1, 2, 1, 1, NULL, 1),
+(25, 32, 28, 2, NULL, NULL, 1),
+(26, 33, 29, 2, NULL, NULL, 1);
 
 -- --------------------------------------------------------
 
@@ -1535,13 +1556,13 @@ ALTER TABLE `divisor`
 -- AUTO_INCREMENT de tabela `fabrica_fornecedor`
 --
 ALTER TABLE `fabrica_fornecedor`
-  MODIFY `fabricaFornecedorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `fabricaFornecedorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT de tabela `fornecedor`
 --
 ALTER TABLE `fornecedor`
-  MODIFY `fornecedorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `fornecedorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT de tabela `fornecedor_atividade`
@@ -1739,19 +1760,19 @@ ALTER TABLE `transportador`
 -- AUTO_INCREMENT de tabela `unidade`
 --
 ALTER TABLE `unidade`
-  MODIFY `unidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `unidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT de tabela `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `usuarioID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `usuarioID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT de tabela `usuario_unidade`
 --
 ALTER TABLE `usuario_unidade`
-  MODIFY `usuarioUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `usuarioUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT de tabela `usuario_unidade_cargo`

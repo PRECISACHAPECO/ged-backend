@@ -3,35 +3,42 @@ const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class UnidadeController {
     getList(req, res) {
-        const { usuarioID } = req.query;
+        const { admin, unidadeID, usuarioID } = req.query;
 
-        db.query("SELECT admin FROM usuario WHERE usuarioID = ?", [usuarioID], (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                const admin = result[0].admin;
-                if (admin == 1) {
-                    db.query("SELECT unidadeID AS id, nomeFantasia AS nome, status FROM unidade", (err, result) => {
-                        if (err) {
-                            res.status(500).json(err);
-                        } else {
-                            res.status(200).json(result);
-                        }
-                    })
-                } else {
-                    db.query("SELECT unidadeID AS id, nomeFantasia AS nome, status FROM unidade WHERE unidadeID IN (SELECT unidadeID FROM usuario_unidade WHERE usuarioID = ?)", [usuarioID], (err, result) => {
-                        if (err) {
-                            res.status(500).json(err);
-                        } else {
-                            res.status(200).json(result);
-                        }
-                    })
-                }
-            }
+        const sql = `
+        SELECT unidadeID AS id, nomeFantasia AS nome, status
+        FROM unidade 
+        WHERE unidadeID > 0 `
+        console.log('==> ', sql)
+        db.query(sql, (err, result) => {
+            // if (err) { return res.status(500).json(err); }
+            res.status(200).json(result);
         })
 
-
-
+        // db.query("SELECT admin FROM usuario WHERE usuarioID = ?", [usuarioID], (err, result) => {
+        //     if (err) {
+        //         res.status(500).json(err);
+        //     } else {
+        //         const admin = result[0].admin;
+        //         if (admin == 1) {
+        //             db.query("SELECT unidadeID AS id, nomeFantasia AS nome, status FROM unidade", (err, result) => {
+        //                 if (err) {
+        //                     res.status(500).json(err);
+        //                 } else {
+        //                     res.status(200).json(result);
+        //                 }
+        //             })
+        //         } else {
+        //             db.query("SELECT unidadeID AS id, nomeFantasia AS nome, status FROM unidade WHERE unidadeID IN (SELECT unidadeID FROM usuario_unidade WHERE usuarioID = ?)", [usuarioID], (err, result) => {
+        //                 if (err) {
+        //                     res.status(500).json(err);
+        //                 } else {
+        //                     res.status(200).json(result);
+        //                 }
+        //             })
+        //         }
+        //     }
+        // })
     }
 
     getData(req, res) {
