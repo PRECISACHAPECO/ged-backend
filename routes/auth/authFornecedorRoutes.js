@@ -8,7 +8,7 @@ const authControllerFornecedor = new AuthControllerFornecedor();
 const routeFornecedor = '/login-fornecedor';
 authFornecedorRoutes.post(`${routeFornecedor}`, authControllerFornecedor.loginFornecedor);
 authFornecedorRoutes.get(`${routeFornecedor}`, authControllerFornecedor.getAvailableRoutes);
-
+authFornecedorRoutes.post(`${routeFornecedor}/setAcessLink`, authControllerFornecedor.setAcessLink);
 
 //* Cadastro do fornecedor
 const routeRegister = '/registro-fornecedor';

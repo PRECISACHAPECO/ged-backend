@@ -129,4 +129,8 @@ const criptoMd5 = (senha) => {
     return hash;
 }
 
-module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5 };
+const onlyNumbers = (string) => {
+    return string.replace(/[^0-9]/g, '');
+}
+
+module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers };

@@ -6,8 +6,8 @@ const urlBase = process.env.BASE_URL;
 
 async function instructionsNewFornecedor(cnpj, unidade) {
     // link login e registro enviando cnpj e unidade como parâmetros
-    const linkLogin = `${urlBase}/fornecedor/?cnpj=${cnpj}&unidade=${unidade}`;
-    const linkRegistro = `${urlBase}/registro/?cnpj=${cnpj}&unidade=${unidade}`;
+    const linkLogin = `${urlBase}/fornecedor/?c=${cnpj}&u=${unidade}`;
+    const linkRegistro = `${urlBase}/registro/?c=${cnpj}&u=${unidade}`;
     let html = `
     <html>`;
     // CSS
