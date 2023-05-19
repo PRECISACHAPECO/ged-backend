@@ -151,9 +151,11 @@ class AuthControllerFornecedor {
     }
 
 
+    //? Quando o fornecedor acessa o link de acesso enviado por email / Muda o stado de 10 para 20 na tabela de fornecedor e salva na tabela de movimentaçãoFornecedor
     async setAcessLink(req, res) {
         const { data } = req.body;
 
+        //? Verificar se o link é válido
         const sqlGet = `
         SELECT  fornecedorID, unidadeID
         FROM fornecedor
@@ -161,11 +163,12 @@ class AuthControllerFornecedor {
 
         const [result] = await db.promise().query(sqlGet);
 
+        //? Se o link for válido, atualizar o status do fornecedor para 20 e salvar na tabela de movimentação
         if (result.length > 0 && result[0].fornecedorID > 0) {
             const sqlUpdate = `UPDATE fornecedor SET status = 20 WHERE fornecedorID = ${result[0].fornecedorID}`;
             await db.promise().query(sqlUpdate);
 
-            const sqlInsert = `INSERT INTO movimentacaoformulario (parFormularioID, id, usuarioID, unidadeID, papelID, dataHora, tatusAnterior, statusAtual) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+            const sqlInsert = `INSERT INTO movimentacaoformulario (parFormularioID, id, usuarioID, unidadeID, papelID, dataHora, statusAnterior, statusAtual) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
             await db.promise().query(sqlInsert, [1, result[0].fornecedorID, 0, result[0].unidadeID, 2, new Date(), 10, 20]);
 
             res.status(200).json({ message: 'Acesso liberado com sucesso!' });
