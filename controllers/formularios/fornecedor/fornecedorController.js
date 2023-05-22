@@ -461,14 +461,21 @@ class FornecedorController {
         res.status(200).json(result);
     }
 
-    // Função que envia email para o fornecedor
+    //? Função que envia email para o fornecedor
     async sendMail(req, res) {
         const { data } = req.body;
         const destinatario = data.destinatario
+        let haveLogin = false
+
+        // Verifica se o fornecedor já possui login
+        const sql = `SELECT * FROM usuario WHERE cnpj = ?`
+        const [result] = await db.promise().query(sql, [data.cnpj])
+        if (result.length > 0) {
+            haveLogin = true
+        }
 
         let assunto = 'Solicitação de Cadastro de Fornecedor'
-        const html = await instructionsNewFornecedor(criptoMd5(onlyNumbers(data.cnpj.toString())), criptoMd5(data.unidadeID.toString()));
-
+        const html = await instructionsNewFornecedor(criptoMd5(onlyNumbers(data.cnpj.toString())), criptoMd5(data.unidadeID.toString()), haveLogin);
         res.status(200).json(sendMailConfig(destinatario, assunto, html))
     }
 
