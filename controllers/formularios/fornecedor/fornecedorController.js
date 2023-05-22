@@ -29,68 +29,27 @@ class FornecedorController {
         }
     }
 
-    //* Retorna a estrutura do formulário (sem os dados)
-    async getFormStructure(req, res) {
-        const { unidadeID } = req.body; // unidade da fábrica (configurações do formulário)
-        console.log("🚀 ~ getFormStructure ~ unidadeID:", unidadeID)
-
-        // Fields do header
-        const [resultFields] = await getResultFields(unidadeID)
-        if (resultFields.length === 0) { return res.status(500).json('Error'); }
-
-        // Atividades 
-        const [resultAtividade] = await getResultAtividades(0)
-        if (resultAtividade.length === 0) { return res.status(500).json('Error'); }
-
-        // Sistemas de qualidade 
-        const [resultSistemaQualidade] = await getResultSistemasQualidade(0)
-        if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
-
-        // Blocos 
-        const [resultBlocos] = await getBlocos(unidadeID)
-
-        // Itens
-        const sqlItem = getSqlItem()
-        for (const item of resultBlocos) {
-            const [resultItem] = await db.promise().query(sqlItem, [0, 0, 0, item.parFornecedorBlocoID])
-
-            // Obter alternativas para cada item 
-            const sqlAlternativa = getAlternativasSql()
-            for (const item2 of resultItem) {
-                const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.itemID])
-                item2.alternativas = resultAlternativa
-            }
-
-            item.itens = resultItem
-        }
-
-        const data = {
-            fields: resultFields,
-            data: null,
-            atividades: resultAtividade,
-            sistemasQualidade: resultSistemaQualidade,
-            blocos: resultBlocos,
-            info: {
-                obs: null,
-                status: null,
-            }
-        }
-
-        res.status(200).json(data);
-    }
-
     //* Retorna a estrutura do formulário configurada pra aquela unidade
     async getData(req, res) {
         const { id } = req.params; // id do formulário
 
         //? obtém a unidadeID (fábrica) do formulário, pro formulário ter os campos de preenchimento de acordo com o configurado pra aquela fábrica.
-        const sqlUnidade = `SELECT unidadeID FROM fornecedor WHERE fornecedorID = ${id}`
+        const sqlUnidade = `
+        SELECT f.unidadeID, u.nomeFantasia
+        FROM fornecedor AS f
+            LEFT JOIN unidade AS u ON (f.unidadeID = u.unidadeID)
+        WHERE f.fornecedorID = ${id}`
         const [resultUnidade] = await db.promise().query(sqlUnidade)
-        const unidadeID = resultUnidade[0].unidadeID
+        const unidade = resultUnidade[0]
 
         // Fields do header
-        const [resultFields] = await getResultFields(unidadeID)
-        if (resultFields.length === 0) { return res.status(500).json('Error'); }
+        const sqlFields = `
+        SELECT * 
+        FROM par_fornecedor AS pf 
+            LEFT JOIN par_fornecedor_unidade AS pfu ON (pf.parFornecedorID = pfu.parFornecedorID) 
+        WHERE pfu.unidadeID = ? 
+        ORDER BY pf.ordem ASC`
+        const [resultFields] = await db.promise().query(sqlFields, [unidade.unidadeID])
 
         // Varrer result, pegando nomeColuna e inserir em um array 
         const columns = resultFields.map(row => row.nomeColuna);
@@ -98,18 +57,35 @@ class FornecedorController {
         // Montar select na tabela fornecedor, onde as colunas do select serão as colunas do array columns
         const sqlData = `SELECT ${columns.join(', ')} FROM fornecedor WHERE fornecedorID = ?`;
         const [resultData] = await db.promise().query(sqlData, [id])
-        if (resultData.length === 0) { return res.status(500).json('Error'); }
 
         // Atividades 
-        const [resultAtividade] = await getResultAtividades(id)
-        if (resultAtividade.length === 0) { return res.status(500).json('Error'); }
+        const sqlAtividade = `
+        SELECT a.*, 
+            (SELECT IF(COUNT(*) > 0, 1, 0)
+            FROM fornecedor_atividade AS fa 
+            WHERE fa.atividadeID = a.atividadeID AND fa.fornecedorID = ?) AS checked
+        FROM atividade AS a 
+        ORDER BY a.nome ASC;`
+        const [resultAtividade] = await db.promise().query(sqlAtividade, [id])
 
         // Sistemas de qualidade 
-        const [resultSistemaQualidade] = await getResultSistemasQualidade(id)
+        const sqlSistemaQualidade = `
+        SELECT s.*, 
+            (SELECT IF(COUNT(*) > 0, 1, 0)
+            FROM fornecedor_sistemaqualidade AS fs
+            WHERE fs.sistemaQualidadeID = s.sistemaQualidadeID AND fs.fornecedorID = ?) AS checked
+        FROM sistemaqualidade AS s
+        ORDER BY s.nome ASC;`
+        const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id])
         if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
 
         // Blocos 
-        const [resultBlocos] = await getBlocos(unidadeID)
+        const sqlBlocos = `
+        SELECT * 
+        FROM par_fornecedor_bloco
+        WHERE unidadeID = ? AND status = 1
+        ORDER BY ordem ASC`
+        const [resultBlocos] = await db.promise().query(sqlBlocos, [unidade.unidadeID])
 
         // Itens
         const sqlItem = getSqlItem()
@@ -131,6 +107,7 @@ class FornecedorController {
         const [resultOtherInformations] = await db.promise().query(sqlOtherInformations, [id])
 
         const data = {
+            unidade: unidade,
             fields: resultFields,
             data: resultData[0],
             atividades: resultAtividade,
@@ -198,8 +175,6 @@ class FornecedorController {
             for (const item of bloco.itens) {
                 if (item.resposta || item.observacao) {
 
-                    console.log('==> ', item)
-
                     // Verifica se já existe registro em fornecedor_resposta, com o fornecedorID, parFornecedorBlocoID e itemID, se houver, faz update, senao faz insert 
                     const sqlVerificaResposta = `SELECT * FROM fornecedor_resposta WHERE fornecedorID = ? AND parFornecedorBlocoID = ? AND itemID = ?`
                     const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parFornecedorBlocoID, item.itemID])
@@ -244,9 +219,7 @@ class FornecedorController {
 
         }
 
-        console.log('Até aqui ok!')
         res.status(200).json(resultHeader)
-
     }
 
     async updateData(req, res) {
@@ -564,47 +537,6 @@ class FornecedorController {
 }
 
 //* Functions 
-const getResultFields = async (unidadeID) => {
-    const sqlFields = `
-    SELECT * 
-    FROM par_fornecedor AS pf 
-        JOIN par_fornecedor_unidade AS pfu ON (pf.parFornecedorID = pfu.parFornecedorID) 
-    WHERE pfu.unidadeID = ? 
-    ORDER BY pf.ordem ASC`
-    return await db.promise().query(sqlFields, [unidadeID])
-}
-
-const getResultAtividades = async (fornecedorID) => {
-    const sqlAtividade = `
-    SELECT a.*, 
-        (SELECT IF(COUNT(*) > 0, 1, 0)
-        FROM fornecedor_atividade AS fa 
-        WHERE fa.atividadeID = a.atividadeID AND fa.fornecedorID = ?) AS checked
-    FROM atividade AS a 
-    ORDER BY a.nome ASC;`
-    return await db.promise().query(sqlAtividade, [fornecedorID])
-}
-
-const getResultSistemasQualidade = async (fornecedorID) => {
-    const sqlSistemaQualidade = `
-    SELECT s.*, 
-        (SELECT IF(COUNT(*) > 0, 1, 0)
-        FROM fornecedor_sistemaqualidade AS fs
-        WHERE fs.sistemaQualidadeID = s.sistemaQualidadeID AND fs.fornecedorID = ?) AS checked
-    FROM sistemaqualidade AS s
-    ORDER BY s.nome ASC;`
-    return await db.promise().query(sqlSistemaQualidade, [fornecedorID])
-}
-
-const getBlocos = async (unidadeID) => {
-    const sqlBlocos = `
-    SELECT * 
-    FROM par_fornecedor_bloco
-    WHERE unidadeID = ? AND status = 1
-    ORDER BY ordem ASC`
-    return await db.promise().query(sqlBlocos, [unidadeID])
-}
-
 const getSqlItem = () => {
     const sql = `
     SELECT pfbi.*, i.*, a.nome AS alternativa,
