@@ -3,6 +3,7 @@ const { hasPending, deleteItem, criptoMd5, onlyNumbers } = require('../../../con
 const instructionsNewFornecedor = require('../../../email/template/formularios/fornecedor/instructionsNewFornecedor');
 const conclusionFormFornecedor = require('../../../email/template/formularios/fornecedor/conclusionFormFornecedor');
 const sendMailConfig = require('../../../config/email');
+const { addFormStatusMovimentation } = require('../../../defaults/functions');
 
 class FornecedorController {
     async getList(req, res) {
@@ -212,22 +213,25 @@ class FornecedorController {
                     }
                 }
             }
-
-            // Observação
-            const sqlUpdateObs = `UPDATE fornecedor SET obs = ?, status = ? WHERE fornecedorID = ?`
-            const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, data.status, id])
-            if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
-
         }
+
+        // Observação
+        const sqlUpdateObs = `UPDATE fornecedor SET obs = ? WHERE fornecedorID = ?`
+        const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, id])
+        if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
 
         res.status(200).json(resultHeader)
     }
 
     async updateData(req, res) {
         const { id } = req.params
-        const data = req.body
+        const data = req.body.forms
+        const { usuarioID, papelID, unidadeID } = req.body.auth
 
-        // Atualizar o header e setar o status com 30
+        const sqlSelect = `SELECT status FROM fornecedor WHERE fornecedorID = ?`
+        const [resultFornecedor] = await db.promise().query(sqlSelect, [id])
+
+        // Atualizar o header e setar o status
         const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id}`;
         const [resultHeader] = await db.promise().query(sqlHeader, [data.header])
         if (resultHeader.length === 0) { return res.status(500).json('Error'); }
@@ -311,15 +315,56 @@ class FornecedorController {
                     }
                 }
             }
+        } // laço blocos..
 
-            // Observação
-            const sqlUpdateObs = `UPDATE fornecedor SET obs = ?, status = ? WHERE fornecedorID = ?`
-            const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, 30, id])
-            if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
+        // Observação
+        const sqlUpdateObs = `UPDATE fornecedor SET obs = ? WHERE fornecedorID = ?`
+        const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, id])
+        if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
 
-        }
+        // //* Status 
+        // let statusUpdate = null
+        // //? É uma fábrica, e formulário já foi concluído pelo fornecedor
+        // if (data.status && papelID == 1 && resultFornecedor[0]['status'] >= 40) {
+        //     statusUpdate = data.status
+        // }
+        // //? É um fornecedor e alterou o formulário, seta status pra "Em preenchimento"
+        // else if (papelID == 2) {
+        //     statusUpdate = 30
+        // }
+        // if (statusUpdate && statusUpdate > 0) {
+        //     const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ?`
+        //     const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [statusUpdate, id])
+
+        //     //? Gera histórico de alteração de status
+        //     const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', statusUpdate)
+        //     if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+        // }
 
         res.status(200).json(resultHeader)
+    }
+
+    //? Atualiza resultado (aprovador, aprovado parcial, reprovado)
+    async updateFormStatus(req, res) {
+        const { id } = req.params
+        const status = req.body.status
+        const { usuarioID, papelID, unidadeID } = req.body.auth
+        console.log("🚀 ~ status:::", status)
+
+        // const sqlSelect = `SELECT status FROM fornecedor WHERE fornecedorID = ?`
+        // const [resultFornecedor] = await db.promise().query(sqlSelect, [id])
+
+        // //? É uma fábrica, e formulário já foi concluído pelo fornecedor
+        // if (data.status && papelID == 1 && resultFornecedor[0]['status'] >= 40) {
+        //     const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ?`
+        //     const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [data.status, id])
+
+        //     //? Gera histórico de alteração de status
+        //     const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', data.status)
+        //     if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+        // }
+
+        res.status(200).json({ message: 'Ok' })
     }
 
     deleteData(req, res) {
@@ -387,13 +432,13 @@ class FornecedorController {
     }
 
     async makeFornecedor(req, res) {
-        const { unidadeID, cnpj } = req.body;
+        const { usuarioID, unidadeID, papelID, cnpj } = req.body;
 
         // Verifica duplicidade 
         const sqlVerify = `
         SELECT * 
         FROM fabrica_fornecedor
-        WHERE unidadeID = ? AND fornecedorCnpj = ?`
+        WHERE unidadeID = ? AND fornecedorCnpj = "?"`
         const [resultVerify] = await db.promise().query(sqlVerify, [unidadeID, cnpj])
         if (resultVerify.length > 0) {
             return res.status(409).json({ message: 'Essa empresa já é um fornecedor desta unidade.' });
@@ -402,15 +447,22 @@ class FornecedorController {
         // Insere na tabela fabrica_fornecedor
         const sqlInsert = `
         INSERT INTO fabrica_fornecedor (unidadeID, fornecedorCnpj, status)
-        VALUES (?, ?, ?)`
+        VALUES (?, "?", ?)`
         const [resultInsert] = await db.promise().query(sqlInsert, [unidadeID, cnpj, 1])
-        if (resultInsert.length === 0) { return res.status(500).json('Error'); }
+        // if (resultInsert.length === 0) { return res.status(500).json('Error'); }
 
         // Gera um novo formulário em branco, pro fornecedor preencher depois quando acessar o sistema
+        const initialStatus = 10
         const sqlFornecedor = `
         INSERT INTO fornecedor (cnpj, unidadeID, status, atual)
-        VALUES (?, ?, ?, ?)`
-        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [cnpj, unidadeID, 10, 1])
+        VALUES ("?", ?, ?, ?)`
+        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [cnpj, unidadeID, initialStatus, 1])
+        const fornecedorID = resultFornecedor.insertId
+        console.log("🚀 ~ fornecedorID:", fornecedorID)
+
+        //? Gera histórico de alteração de status
+        const movimentation = await addFormStatusMovimentation(1, fornecedorID, usuarioID, unidadeID, papelID, '0', initialStatus)
+        if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário!" }) }
 
         const result = {
             cnpj: cnpj,
@@ -494,7 +546,6 @@ class FornecedorController {
 
         res.status(200).json({ message: 'Ok' })
     }
-
 
     //? Função que pega as alternativas do item
     async getItemScore(req, res) {

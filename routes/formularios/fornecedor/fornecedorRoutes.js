@@ -23,5 +23,6 @@ fornecedorRoutes.post(`${route}/getItemScore`, fornecedorController.getItemScore
 fornecedorRoutes.post(`${route}/saveItemScore`, fornecedorController.saveItemScore);
 
 fornecedorRoutes.post(`${route}/conclusionAndSendForm/:id`, fornecedorController.conclusionAndSendForm);
+fornecedorRoutes.post(`${route}/updateFormStatus/:id`, fornecedorController.updateFormStatus);
 
 module.exports = fornecedorRoutes;
