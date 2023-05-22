@@ -1,6 +1,7 @@
 const db = require('../../../config/db');
 const { hasPending, deleteItem, criptoMd5, onlyNumbers } = require('../../../config/defaultConfig');
 const instructionsNewFornecedor = require('../../../email/template/formularios/fornecedor/instructionsNewFornecedor');
+const conclusionFormFornecedor = require('../../../email/template/formularios/fornecedor/conclusionFormFornecedor');
 const sendMailConfig = require('../../../config/email');
 
 class FornecedorController {
@@ -471,6 +472,22 @@ class FornecedorController {
         res.status(200).json(sendMailConfig(destinatario, assunto, html))
     }
 
+    async conclusionAndSendForm(req, res) {
+        const { id } = req.params;
+
+        //? Atualiza pro status de conclusão do formulário (40)
+        console.log('conclusionAndSendForm: ', id)
+        const sqlUpdate = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ?`
+        const [resultUpdate] = await db.promise().query(sqlUpdate, [40, id])
+        if (resultUpdate.length === 0) { return res.status(201).json({ message: 'Erro ao atualizar status do formulário! ' }) }
+
+        //? Envia e-mail pra fábrica
+        const sentMail = sendMailFornecedorConclusion(id)
+        if (!sentMail) { return res.status(202).json({ message: 'Erro ao enviar e-mail para a fábrica!' }) }
+
+        res.status(200).json({ message: 'Ok' })
+    }
+
 
     //? Função que pega as alternativas do item
     async getItemScore(req, res) {
@@ -570,6 +587,38 @@ const getSqlOtherInfos = () => {
     FROM fornecedor
     WHERE fornecedorID = ?`
     return sql
+}
+
+const sendMailFornecedorConclusion = async (fornecedorID) => {
+    const sql = `
+    SELECT ufa.razaoSocial AS fabrica, ufa.email AS emailFabrica, ufo.razaoSocial AS fornecedor, ufo.cnpj AS cnpjFornecedor
+    FROM fornecedor AS f 
+        JOIN unidade AS ufa ON (f.unidadeID = ufa.unidadeID)
+        JOIN unidade AS ufo ON (f.cnpj = ufo.cnpj)
+    WHERE f.fornecedorID = ?`
+    const [result] = await db.promise().query(sql, [fornecedorID])
+
+    if (result.length > 0 && result[0]['emailFabrica']) {
+        const destinatario = result[0]['emailFabrica']
+        let assunto = 'Fornecedor enviou formulário'
+        const data = {
+            fabrica: {
+                razaoSocial: result[0]['fabrica']
+            },
+            fornecedor: {
+                fornecedorID: fornecedorID,
+                razaoSocial: result[0]['fornecedor'],
+                cnpj: result[0]['cnpjFornecedor']
+            }
+        }
+
+        const html = await conclusionFormFornecedor(data);
+        await sendMailConfig(destinatario, assunto, html)
+
+        return true
+    }
+
+    return false; // fornecedor não encontrado
 }
 
 module.exports = FornecedorController;

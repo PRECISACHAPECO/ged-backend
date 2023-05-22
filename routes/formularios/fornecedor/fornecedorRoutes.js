@@ -22,4 +22,6 @@ fornecedorRoutes.post(`${route}/sendMail`, fornecedorController.sendMail);
 fornecedorRoutes.post(`${route}/getItemScore`, fornecedorController.getItemScore);
 fornecedorRoutes.post(`${route}/saveItemScore`, fornecedorController.saveItemScore);
 
+fornecedorRoutes.post(`${route}/conclusionAndSendForm/:id`, fornecedorController.conclusionAndSendForm);
+
 module.exports = fornecedorRoutes;

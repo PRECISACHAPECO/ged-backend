@@ -25,12 +25,13 @@ const SendMailConfig = async (destinatario, assunto, html) => {
     transporter.sendMail(mailOptions, function (error, info) {
         if (error) {
             console.log(error);
-            res.status(500).json(error);
+            return false;
         } else {
             console.log('Email enviado: ' + info.response);
-            res.status(200).json(info.response);
+            return true;
         }
     });
+
 };
 
 module.exports = SendMailConfig;
