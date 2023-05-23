@@ -24,5 +24,8 @@ fornecedorRoutes.post(`${route}/saveItemScore`, fornecedorController.saveItemSco
 
 fornecedorRoutes.post(`${route}/conclusionAndSendForm/:id`, fornecedorController.conclusionAndSendForm);
 fornecedorRoutes.post(`${route}/updateFormStatus/:id`, fornecedorController.updateFormStatus);
+fornecedorRoutes.post(`${route}/getMovementHistory/:id`, fornecedorController.getMovementHistory);
+fornecedorRoutes.post(`${route}/verifyFormPending/:id`, fornecedorController.verifyFormPending);
+fornecedorRoutes.post(`${route}/reOpenFormStatus/:id`, fornecedorController.reOpenFormStatus);
 
 module.exports = fornecedorRoutes;

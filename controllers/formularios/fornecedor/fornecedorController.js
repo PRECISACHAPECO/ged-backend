@@ -322,24 +322,18 @@ class FornecedorController {
         const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, id])
         if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
 
-        // //* Status 
-        // let statusUpdate = null
-        // //? É uma fábrica, e formulário já foi concluído pelo fornecedor
-        // if (data.status && papelID == 1 && resultFornecedor[0]['status'] >= 40) {
-        //     statusUpdate = data.status
-        // }
-        // //? É um fornecedor e alterou o formulário, seta status pra "Em preenchimento"
-        // else if (papelID == 2) {
-        //     statusUpdate = 30
-        // }
-        // if (statusUpdate && statusUpdate > 0) {
-        //     const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ?`
-        //     const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [statusUpdate, id])
+        //* Status (só altera se for fornecedor)
+        //? É um fornecedor e é um status anterior, seta status pra "Em preenchimento" (30)
+        if (papelID == 2 && resultFornecedor[0]['status'] < 30) {
+            const newStatus = 30
 
-        //     //? Gera histórico de alteração de status
-        //     const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', statusUpdate)
-        //     if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
-        // }
+            const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ?`
+            const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])
+
+            //? Gera histórico de alteração de status
+            const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', newStatus)
+            if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+        }
 
         res.status(200).json(resultHeader)
     }
@@ -347,22 +341,45 @@ class FornecedorController {
     //? Atualiza resultado (aprovador, aprovado parcial, reprovado)
     async updateFormStatus(req, res) {
         const { id } = req.params
+        const { edit, status } = req.body.status
+        const { usuarioID, papelID, unidadeID } = req.body.auth
+
+        if (edit) {
+            const sqlSelect = `SELECT status FROM fornecedor WHERE fornecedorID = ?`
+            const [resultFornecedor] = await db.promise().query(sqlSelect, [id])
+
+            // //? É uma fábrica, e formulário já foi concluído pelo fornecedor
+            if (status && papelID == 1 && resultFornecedor[0]['status'] >= 40) {
+                const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ?`
+                const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [status, id])
+
+                //? Gera histórico de alteração de status
+                const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', status)
+                if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+            }
+        }
+
+        res.status(200).json({ message: 'Ok' })
+    }
+
+    //? Atualiza resultado (aprovador, aprovado parcial, reprovado)
+    async reOpenFormStatus(req, res) {
+        const { id } = req.params
         const status = req.body.status
         const { usuarioID, papelID, unidadeID } = req.body.auth
-        console.log("🚀 ~ status:::", status)
 
-        // const sqlSelect = `SELECT status FROM fornecedor WHERE fornecedorID = ?`
-        // const [resultFornecedor] = await db.promise().query(sqlSelect, [id])
+        const sqlSelect = `SELECT status FROM fornecedor WHERE fornecedorID = ?`
+        const [resultFornecedor] = await db.promise().query(sqlSelect, [id])
 
         // //? É uma fábrica, e formulário já foi concluído pelo fornecedor
-        // if (data.status && papelID == 1 && resultFornecedor[0]['status'] >= 40) {
-        //     const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ?`
-        //     const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [data.status, id])
+        if (status && papelID == 1) {
+            const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ?`
+            const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [status, id])
 
-        //     //? Gera histórico de alteração de status
-        //     const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', data.status)
-        //     if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
-        // }
+            //? Gera histórico de alteração de status
+            const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', status)
+            if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+        }
 
         res.status(200).json({ message: 'Ok' })
     }
@@ -434,31 +451,29 @@ class FornecedorController {
     async makeFornecedor(req, res) {
         const { usuarioID, unidadeID, papelID, cnpj } = req.body;
 
-        // Verifica duplicidade 
+        //? Verifica duplicidade 
         const sqlVerify = `
         SELECT * 
         FROM fabrica_fornecedor
-        WHERE unidadeID = ? AND fornecedorCnpj = "?"`
-        const [resultVerify] = await db.promise().query(sqlVerify, [unidadeID, cnpj])
+        WHERE unidadeID = ? AND fornecedorCnpj = "${cnpj}"`
+        const [resultVerify] = await db.promise().query(sqlVerify, [unidadeID])
         if (resultVerify.length > 0) {
             return res.status(409).json({ message: 'Essa empresa já é um fornecedor desta unidade.' });
         }
 
-        // Insere na tabela fabrica_fornecedor
+        //? Insere na tabela fabrica_fornecedor
         const sqlInsert = `
         INSERT INTO fabrica_fornecedor (unidadeID, fornecedorCnpj, status)
-        VALUES (?, "?", ?)`
-        const [resultInsert] = await db.promise().query(sqlInsert, [unidadeID, cnpj, 1])
-        // if (resultInsert.length === 0) { return res.status(500).json('Error'); }
+        VALUES (?, "${cnpj}", ?)`
+        const [resultInsert] = await db.promise().query(sqlInsert, [unidadeID, 1])
 
-        // Gera um novo formulário em branco, pro fornecedor preencher depois quando acessar o sistema
+        //? Gera um novo formulário em branco, pro fornecedor preencher depois quando acessar o sistema
         const initialStatus = 10
         const sqlFornecedor = `
         INSERT INTO fornecedor (cnpj, unidadeID, status, atual)
-        VALUES ("?", ?, ?, ?)`
-        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [cnpj, unidadeID, initialStatus, 1])
+        VALUES ("${cnpj}", ?, ?, ?)`
+        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [unidadeID, initialStatus, 1])
         const fornecedorID = resultFornecedor.insertId
-        console.log("🚀 ~ fornecedorID:", fornecedorID)
 
         //? Gera histórico de alteração de status
         const movimentation = await addFormStatusMovimentation(1, fornecedorID, usuarioID, unidadeID, papelID, '0', initialStatus)
@@ -533,12 +548,21 @@ class FornecedorController {
 
     async conclusionAndSendForm(req, res) {
         const { id } = req.params;
+        const { usuarioID, unidadeID, papelID } = req.body;
+
+        //? Obtém o status atual pra setar como status anterior da movimentação
+        const sqlSelect = `SELECT status FROM fornecedor WHERE fornecedorID = ?`
+        const [resultFornecedor] = await db.promise().query(sqlSelect, [id])
 
         //? Atualiza pro status de conclusão do formulário (40)
-        console.log('conclusionAndSendForm: ', id)
+        const newStatus = 40
         const sqlUpdate = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ?`
-        const [resultUpdate] = await db.promise().query(sqlUpdate, [40, id])
+        const [resultUpdate] = await db.promise().query(sqlUpdate, [newStatus, id])
         if (resultUpdate.length === 0) { return res.status(201).json({ message: 'Erro ao atualizar status do formulário! ' }) }
+
+        //? Gera histórico de alteração de status
+        const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', newStatus)
+        if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
 
         //? Envia e-mail pra fábrica
         const sentMail = sendMailFornecedorConclusion(id)
@@ -602,6 +626,42 @@ class FornecedorController {
         res.status(200).json('ok');
     }
 
+    //! ENVIAR PRA UM ARQUIVO PADRAO!!!
+    //? Obtém o histórico de movimentações do formulário
+    async getMovementHistory(req, res) {
+        const { id } = req.params;
+        const { parFormularioID } = req.body;
+
+        if (id && parFormularioID) {
+            const sql = `
+            SELECT u.nome AS usuario, un.nomeFantasia AS unidade, m.papelID, DATE_FORMAT(m.dataHora, "%d/%m/%Y") AS data, DATE_FORMAT(m.dataHora, "%H:%ih") AS hora, m.statusAnterior, m.statusAtual
+            FROM movimentacaoformulario AS m
+                LEFT JOIN usuario AS u ON (m.usuarioID = u.usuarioID)
+                LEFT JOIN unidade AS un ON (m.unidadeID = un.unidadeID)
+            WHERE m.parFormularioID = ? AND m.id = ?
+            ORDER BY m.movimentacaoFormularioID DESC`
+            const [result] = await db.promise().query(sql, [parFormularioID, id])
+
+            return res.status(200).json(result)
+        }
+
+        res.status(201).json({ message: 'Nenhum dado encontrado!' })
+    }
+    async verifyFormPending(req, res) {
+        const { id } = req.params;
+        const { parFormularioID } = req.body;
+
+        //? Fornecedor
+        if (parFormularioID == 1) {
+            const sql = `SELECT * FROM recebimentomp WHERE fornecedorID = ?`
+            const [result] = await db.promise().query(sql, [id])
+
+            const pending = result.length === 0 ? false : true
+            return res.status(200).json(pending)
+        }
+
+        res.status(200).json(true)
+    }
 }
 
 //* Functions 
