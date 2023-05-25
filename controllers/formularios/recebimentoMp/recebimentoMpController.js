@@ -1,4 +1,5 @@
 const db = require('../../../config/db');
+require('dotenv/config')
 const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class RecebimentoMpController {
@@ -49,7 +50,7 @@ class RecebimentoMpController {
                             sqlOptions = `
                             SELECT ${alternatives.tabela}ID AS id, nome
                             FROM ${alternatives.tabela} 
-                            WHERE status = 1 ${hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                            WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
                             ORDER BY nome ASC`
                         }
 
@@ -112,7 +113,7 @@ class RecebimentoMpController {
                         let sqlProductsOptions = `
                         SELECT ${alternatives.tabela}ID AS id, nome
                         FROM ${alternatives.tabela} 
-                        WHERE status = 1 ${hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                        WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
                         ORDER BY nome ASC`
 
                         // Executar select e inserir no objeto alternatives
@@ -190,14 +191,14 @@ class RecebimentoMpController {
                     const [resultItem] = await db.promise().query(sqlItem, [id, id, id, item.parRecebimentompBlocoID])
 
                     // Obter alternativas para cada item 
-                    const sqlAlternativa = `
-                    SELECT *
-                    FROM par_recebimentomp_bloco_item AS prbi 
-                        JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
-                        JOIN alternativa_item AS ai ON (a.alternativaID = ai.alternativaID)
-                    WHERE prbi.itemID = ?`
                     for (const item2 of resultItem) {
-                        const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.itemID])
+                        const sqlAlternativa = `
+                        SELECT *
+                        FROM par_recebimentomp_bloco_item AS prbi 
+                            JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
+                            JOIN alternativa_item AS ai ON (a.alternativaID = ai.alternativaID)
+                        WHERE prbi.parRecebimentompBlocoItemID = ?`
+                        const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.parRecebimentompBlocoItemID])
                         item2.alternativas = resultAlternativa
                     }
 
@@ -368,7 +369,7 @@ class RecebimentoMpController {
 }
 
 // varrer data.header verificando se é um objeto ou nao, se for objeto inserir o id em dataHeader, senao, inserir o valor em dataHeader
-function getDataOfAllTypes(dataFromFrontend) {
+const getDataOfAllTypes = (dataFromFrontend) => {
     let dataHeader = {}
     for (const key in dataFromFrontend) {
         if (typeof dataFromFrontend[key] === 'object') {
@@ -381,8 +382,14 @@ function getDataOfAllTypes(dataFromFrontend) {
     return dataHeader;
 }
 
-function hasUnidadeID(tabela) {
-    return false
+const hasUnidadeID = async (table) => {
+    const sql = `
+    SELECT *
+    FROM information_schema.columns
+    WHERE table_schema = "${process.env.DB_DATABASE}" AND table_name = "${table}" AND column_name = "unidadeID" `
+    const [result] = await db.promise().query(sql)
+
+    return result.length === 0 ? false : true;
 }
 
 module.exports = RecebimentoMpController;

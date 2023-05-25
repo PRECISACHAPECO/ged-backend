@@ -1,4 +1,5 @@
 const db = require('../../../config/db');
+require('dotenv/config')
 const { hasPending, deleteItem, criptoMd5, onlyNumbers } = require('../../../config/defaultConfig');
 const instructionsNewFornecedor = require('../../../email/template/formularios/fornecedor/instructionsNewFornecedor');
 const conclusionFormFornecedor = require('../../../email/template/formularios/fornecedor/conclusionFormFornecedor');
@@ -69,12 +70,53 @@ class FornecedorController {
         ORDER BY pf.ordem ASC`
         const [resultFields] = await db.promise().query(sqlFields, [unidade.unidadeID])
 
-        // Varrer result, pegando nomeColuna e inserir em um array 
-        const columns = resultFields.map(row => row.nomeColuna);
+        // Varre fields, verificando se há tipo == 'int', se sim, busca opções pra selecionar no select 
+        for (const alternatives of resultFields) {
+            if (alternatives.tipo === 'int' && alternatives.tabela) {
+                // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
+                const sqlOptions = `
+                SELECT ${alternatives.tabela}ID AS id, nome
+                FROM ${alternatives.tabela} 
+                WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidade.unidadeID} ` : ``}
+                ORDER BY nome ASC`
 
-        // Montar select na tabela fornecedor, onde as colunas do select serão as colunas do array columns
-        const sqlData = `SELECT ${columns.join(', ')} FROM fornecedor WHERE fornecedorID = ?`;
-        const [resultData] = await db.promise().query(sqlData, [id])
+                // Executar select e inserir no objeto alternatives
+                const [resultOptions] = await db.promise().query(sqlOptions)
+                alternatives.options = resultOptions
+            }
+        }
+
+        // Varrer result, pegando nomeColuna e inserir em um array se row.tabela == null
+        let columns = []
+        for (const row of resultFields) {
+            if (!row.tabela) { columns.push(row.nomeColuna) }
+        }
+
+        // varrer resultFields 
+        let sqlData = ``
+        let resultData = {}
+        for (const field of resultFields) {
+            if (field.tabela) {
+                // Monta objeto pra preencher select 
+                // Ex.: pessoa:{
+                //     id: 1,
+                //     nome: 'Fulano'
+                // }
+                sqlData = `
+                SELECT t.${field.nomeColuna} AS id, t.nome
+                FROM fornecedor AS f 
+                    JOIN ${field.tabela} AS t ON (f.${field.nomeColuna} = t.${field.nomeColuna}) 
+                WHERE f.fornecedorID = ${id}`
+                let [temp] = await db.promise().query(sqlData)
+                if (temp) {
+                    resultData[field.tabela] = temp[0]
+                }
+            }
+        }
+
+        sqlData = `SELECT ${columns.join(', ')} FROM fornecedor WHERE fornecedorID = ${id}`;
+        let [temp2] = await db.promise().query(sqlData)
+        resultData = { ...resultData, ...temp2[0] }
 
         // Atividades 
         const sqlAtividade = `
@@ -111,9 +153,9 @@ class FornecedorController {
             const [resultItem] = await db.promise().query(sqlItem, [id, id, id, item.parFornecedorBlocoID])
 
             // Obter alternativas para cada item 
-            const sqlAlternativa = getAlternativasSql()
             for (const item2 of resultItem) {
-                const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.itemID])
+                const sqlAlternativa = getAlternativasSql()
+                const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2['parFornecedorBlocoItemID']])
                 item2.alternativas = resultAlternativa
             }
 
@@ -127,7 +169,7 @@ class FornecedorController {
         const data = {
             unidade: unidade,
             fields: resultFields,
-            data: resultData[0],
+            data: resultData,
             atividades: resultAtividade,
             sistemasQualidade: resultSistemaQualidade,
             blocos: resultBlocos,
@@ -248,9 +290,12 @@ class FornecedorController {
         const [resultFornecedor] = await db.promise().query(sqlSelect, [id])
 
         // Atualizar o header e setar o status
-        const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id}`;
-        const [resultHeader] = await db.promise().query(sqlHeader, [data.header])
-        if (resultHeader.length === 0) { return res.status(500).json('Error'); }
+        if (data.header) {
+            let dataHeader = getDataOfAllTypes(data.header) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
+            const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id}`;
+            const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
+            if (resultHeader.length === 0) { return res.status(500).json('Error'); }
+        }
 
         // Atividades
         for (const atividade of data.atividades) {
@@ -351,7 +396,7 @@ class FornecedorController {
             if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
         }
 
-        res.status(200).json(resultHeader)
+        res.status(200).json({})
     }
 
     //? Atualiza resultado (aprovador, aprovado parcial, reprovado)
@@ -711,7 +756,7 @@ const getAlternativasSql = () => {
     FROM par_fornecedor_bloco_item AS pfbi 
         JOIN alternativa AS a ON (pfbi.alternativaID = a.alternativaID)
         JOIN alternativa_item AS ai ON (a.alternativaID = ai.alternativaID)
-    WHERE pfbi.itemID = ?`
+    WHERE pfbi.parFornecedorBlocoItemID = ?`
     return sql
 }
 
@@ -753,6 +798,30 @@ const sendMailFornecedorConclusion = async (fornecedorID) => {
     }
 
     return false; // fornecedor não encontrado
+}
+
+// varrer data.header verificando se é um objeto ou nao, se for objeto inserir o id em dataHeader, senao, inserir o valor em dataHeader
+const getDataOfAllTypes = (dataFromFrontend) => {
+    let dataHeader = {}
+    for (const key in dataFromFrontend) {
+        if (typeof dataFromFrontend[key] === 'object') {
+            dataHeader[`${key}ID`] = dataFromFrontend[key].id
+        } else if (dataFromFrontend[key]) {
+            dataHeader[key] = dataFromFrontend[key]
+        }
+    }
+
+    return dataHeader;
+}
+
+const hasUnidadeID = async (table) => {
+    const sql = `
+    SELECT *
+    FROM information_schema.columns
+    WHERE table_schema = "${process.env.DB_DATABASE}" AND table_name = "${table}" AND column_name = "unidadeID" `
+    const [result] = await db.promise().query(sql)
+
+    return result.length === 0 ? false : true;
 }
 
 module.exports = FornecedorController;
