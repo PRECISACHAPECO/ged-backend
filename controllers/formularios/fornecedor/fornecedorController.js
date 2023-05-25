@@ -118,6 +118,16 @@ class FornecedorController {
         let [temp2] = await db.promise().query(sqlData)
         resultData = { ...resultData, ...temp2[0] }
 
+        // Categorias 
+        const sqlCategoria = `
+        SELECT c.*, 
+            (SELECT IF(COUNT(*) > 0, 1, 0)
+            FROM fornecedor_categoria AS fc 
+            WHERE fc.categoriaID = c.categoriaID AND fc.fornecedorID = ?) AS checked
+        FROM categoria AS c
+        ORDER BY c.nome ASC;`
+        const [resultCategoria] = await db.promise().query(sqlCategoria, [id])
+
         // Atividades 
         const sqlAtividade = `
         SELECT a.*, 
@@ -139,7 +149,6 @@ class FornecedorController {
         const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id])
         if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
 
-        // Blocos 
         const sqlBlocos = `
         SELECT * 
         FROM par_fornecedor_bloco
@@ -147,19 +156,29 @@ class FornecedorController {
         ORDER BY ordem ASC`
         const [resultBlocos] = await db.promise().query(sqlBlocos, [unidade.unidadeID])
 
-        // Itens
-        const sqlItem = getSqlItem()
-        for (const item of resultBlocos) {
-            const [resultItem] = await db.promise().query(sqlItem, [id, id, id, item.parFornecedorBlocoID])
+        //? Blocos
+        const sqlBloco = getSqlBloco()
+        for (const bloco of resultBlocos) {
+            const [resultBloco] = await db.promise().query(sqlBloco, [id, id, id, bloco.parFornecedorBlocoID])
 
-            // Obter alternativas para cada item 
-            for (const item2 of resultItem) {
+            //? Categorias do bloco
+            const sqlCategorias = `SELECT categoriaID FROM par_fornecedor_bloco_categoria WHERE parFornecedorBlocoID = ? AND unidadeID = ?`
+            const [resultCategorias] = await db.promise().query(sqlCategorias, [bloco.parFornecedorBlocoID, unidade.unidadeID])
+
+            //? Atividades do bloco
+            const sqlAtividades = `SELECT atividadeID FROM par_fornecedor_bloco_atividade WHERE parFornecedorBlocoID = ? AND unidadeID = ?`
+            const [resultAtividades] = await db.promise().query(sqlAtividades, [bloco.parFornecedorBlocoID, unidade.unidadeID])
+
+            //? Itens
+            for (const item of resultBloco) {
                 const sqlAlternativa = getAlternativasSql()
-                const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2['parFornecedorBlocoItemID']])
-                item2.alternativas = resultAlternativa
+                const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item['parFornecedorBlocoItemID']])
+                item.alternativas = resultAlternativa
             }
 
-            item.itens = resultItem
+            bloco.categorias = resultCategorias ? resultCategorias : []
+            bloco.atividades = resultAtividades ? resultAtividades : []
+            bloco.itens = resultBloco
         }
 
         // Observação e status
@@ -170,6 +189,7 @@ class FornecedorController {
             unidade: unidade,
             fields: resultFields,
             data: resultData,
+            categorias: resultCategoria,
             atividades: resultAtividade,
             sistemasQualidade: resultSistemaQualidade,
             blocos: resultBlocos,
@@ -295,6 +315,25 @@ class FornecedorController {
             const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id}`;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
+        }
+
+        // Categorias
+        for (const categoria of data.categorias) {
+            if (categoria.checked) {
+                // Verifica se já existe registro desse dado na tabela fornecedor_categoria
+                const sqlCategoria = `SELECT * FROM fornecedor_categoria WHERE fornecedorID = ? AND categoriaID = ?`
+                const [resultSelectCategoria] = await db.promise().query(sqlCategoria, [id, categoria.categoriaID])
+                // Se ainda não houver registro, fazer insert na tabela 
+                if (resultSelectCategoria.length === 0) {
+                    const sqlCategoria2 = `INSERT INTO fornecedor_categoria (fornecedorID, categoriaID) VALUES (?, ?)`
+                    const [resultCategoria] = await db.promise().query(sqlCategoria2, [id, categoria.categoriaID])
+                    if (resultCategoria.length === 0) { return res.status(500).json('Error'); }
+                }
+            } else {
+                const sqlCategoria = `DELETE FROM fornecedor_categoria WHERE fornecedorID = ? AND categoriaID = ?`
+                const [resultCategoria] = await db.promise().query(sqlCategoria, [id, categoria.categoriaID])
+                if (resultCategoria.length === 0) { return res.status(500).json('Error'); }
+            }
         }
 
         // Atividades
@@ -726,7 +765,7 @@ class FornecedorController {
 }
 
 //* Functions 
-const getSqlItem = () => {
+const getSqlBloco = () => {
     const sql = `
     SELECT pfbi.*, i.*, a.nome AS alternativa,
 

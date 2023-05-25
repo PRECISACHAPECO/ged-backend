@@ -57,13 +57,21 @@ class FornecedorController {
                     const sqlBloco = `SELECT * FROM par_fornecedor_bloco WHERE unidadeID = ? ORDER BY ordem ASC`;
                     const [resultBloco] = await db.promise().query(sqlBloco, [unidadeID]);
 
+                    const sqlCategoria = `
+                    SELECT c.*, 
+                        (SELECT IF(COUNT(*) > 0, 1, 0)
+                        FROM par_fornecedor_bloco_categoria AS pfbc
+                        WHERE pfbc.categoriaID = c.categoriaID AND pfbc.parFornecedorBlocoID = ? AND pfbc.unidadeID = ?) AS checked
+                    FROM categoria AS c
+                    ORDER BY c.nome ASC`;
+
                     const sqlAtividade = `
                     SELECT a.*, 
                         (SELECT IF(COUNT(*) > 0, 1, 0)
                         FROM par_fornecedor_bloco_atividade AS pfba 
                         WHERE pfba.atividadeID = a.atividadeID AND pfba.parFornecedorBlocoID = ? AND pfba.unidadeID = ?) AS checked
                     FROM atividade AS a 
-                    ORDER BY a.nome ASC;`;
+                    ORDER BY a.nome ASC`;
 
                     const sqlItem = `
                     SELECT pfbi.*, i.*, a.nome AS alternativa 
@@ -75,24 +83,14 @@ class FornecedorController {
 
                     // Varre bloco
                     for (const item of resultBloco) {
+                        const [resultCategoria] = await db.promise().query(sqlCategoria, [item.parFornecedorBlocoID, unidadeID]);
                         const [resultAtividade] = await db.promise().query(sqlAtividade, [item.parFornecedorBlocoID, unidadeID]);
                         const [resultItem] = await db.promise().query(sqlItem, [item.parFornecedorBlocoID]);
 
                         const objData = {
                             dados: item,
                             atividades: resultAtividade ? resultAtividade : [],
-                            categorias: [
-                                {
-                                    categoriaID: 1,
-                                    nome: 'Fabricante',
-                                    checked: 1
-                                },
-                                {
-                                    categoriaID: 2,
-                                    nome: 'Importador',
-                                    checked: 0
-                                }
-                            ],
+                            categorias: resultCategoria ? resultCategoria : [],
                             itens: resultItem
                         };
 
@@ -120,7 +118,7 @@ class FornecedorController {
         const unidadeID = req.params.id;
         const { header, blocks, orientacoes } = req.body
 
-        // Header
+        //? Header
         header && header.forEach((item) => {
             if (item) {
                 if (item.mostra) {
@@ -161,7 +159,7 @@ class FornecedorController {
             }
         })
 
-        // Blocos 
+        //? Blocos 
         blocks && blocks.forEach((block, index) => {
             if (block) {
                 const sql = `
@@ -173,7 +171,40 @@ class FornecedorController {
                     if (err) { return res.status(500).json(err); }
                 })
 
-                // Atividades
+                //? Categoria (Fabricante / Importador)
+                block.categorias && block.categorias.forEach((categoria, indexCategoria) => {
+                    if (categoria) {
+                        if (categoria.checked) {
+                            // Verifica se já existe registro em "par_fornecedor_bloco_categoria" para o fornecedor e unidade
+                            const sql = `
+                            SELECT COUNT(*) AS count
+                            FROM par_fornecedor_bloco_categoria AS pfbc
+                            WHERE pfbc.parFornecedorBlocoID = ? AND pfbc.categoriaID = ? AND pfbc.unidadeID = ?`
+                            // Verifica numero de linhas do sql
+                            db.query(sql, [block.parFornecedorBlocoID, categoria.categoriaID, unidadeID], (err, result) => {
+                                if (err) { return res.status(500).json(err); }
+                                if (result[0].count == 0) { // Insert 
+                                    const sql = `
+                                    INSERT INTO par_fornecedor_bloco_categoria (parFornecedorBlocoID, categoriaID, unidadeID)
+                                    VALUES (?, ?, ?)`
+                                    db.query(sql, [block.parFornecedorBlocoID, categoria.categoriaID, unidadeID], (err2, result2) => {
+                                        if (err2) { return res.status(500).json(err2); }
+                                    });
+                                }
+                            })
+                        } else { // Deleta
+                            const sql = `
+                            DELETE FROM par_fornecedor_bloco_categoria
+                            WHERE parFornecedorBlocoID = ? AND categoriaID = ? AND unidadeID = ?;`
+
+                            db.query(sql, [block.parFornecedorBlocoID, categoria.categoriaID, unidadeID], (err, result) => {
+                                if (err) { return res.status(503).json(err); }
+                            })
+                        }
+                    }
+                })
+
+                //? Atividades
                 block.atividades && block.atividades.forEach((atividade, indexAtividade) => {
                     if (atividade) {
                         if (atividade.checked) {
@@ -184,7 +215,6 @@ class FornecedorController {
                             WHERE pfba.parFornecedorBlocoID = ? AND pfba.atividadeID = ? AND pfba.unidadeID = ?`
                             // Verifica numero de linhas do sql
                             db.query(sql, [block.parFornecedorBlocoID, atividade.atividadeID, unidadeID], (err, result) => {
-
                                 if (err) { return res.status(500).json(err); }
                                 if (result[0].count == 0) { // Insert 
                                     const sql = `
@@ -207,7 +237,7 @@ class FornecedorController {
                     }
                 })
 
-                // Itens 
+                //? Itens 
                 // Varre itens e verifica se existe parFornecedorBlocoItemID, se sim, faz update na tabela par_fornecedor_bloco_item, se nao, faz insert
                 block.itens && block.itens.forEach((item, indexItem) => {
                     if (item) {
@@ -234,7 +264,7 @@ class FornecedorController {
             }
         })
 
-        // Orientações
+        //? Orientações
         const sql = `
         UPDATE par_formulario
         SET obs = ? 
