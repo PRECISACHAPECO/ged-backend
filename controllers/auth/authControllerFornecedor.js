@@ -92,6 +92,18 @@ class AuthControllerFornecedor {
 
         switch (functionName) {
 
+            //? Verifica se o cnpj já existe na tabela fabrica_fornecedor
+            case 'VerifyCnpjTableFactory':
+                const { value } = req.body;
+                const verifyCnpjFactory = `SELECT * FROM fabrica_fornecedor WHERE fornecedorCnpj = ?`;
+                const [resultCnpjFactory] = await db.promise().query(verifyCnpjFactory, [value]);
+                if (resultCnpjFactory.length > 0) {
+                    return res.status(200).json(true);
+                } else {
+                    return res.status(200).json(false);
+                }
+                break;
+
             //? Função que valida se o cnpj já existe no banco de dados
             case 'handleGetCnpj':
                 const { cnpj } = req.body;
