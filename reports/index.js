@@ -10,4 +10,8 @@ routerReports.post(`${urlBase}/relatorio/fornecedor/`, reportFornecedor);
 const { reportRecebimentoMP } = require('../reports/recebimentoMP/generate');
 routerReports.post(`${urlBase}/relatorio/recebimentoMP/`, reportRecebimentoMP);
 
+//teste
+const { teste } = require('../reports/teste/generate');
+routerReports.post(`${urlBase}/teste`, teste);
+
 module.exports = routerReports;
