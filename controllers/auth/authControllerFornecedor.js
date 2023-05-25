@@ -92,6 +92,18 @@ class AuthControllerFornecedor {
 
         switch (functionName) {
 
+            //? Verifica se o cnpj já existe na tabela fabrica_fornecedor
+            case 'VerifyCnpjTableFactory':
+                const { value } = req.body;
+                const verifyCnpjFactory = `SELECT * FROM fabrica_fornecedor WHERE fornecedorCnpj = ?`;
+                const [resultCnpjFactory] = await db.promise().query(verifyCnpjFactory, [value]);
+                if (resultCnpjFactory.length > 0) {
+                    return res.status(200).json(true);
+                } else {
+                    return res.status(200).json(false);
+                }
+                break;
+
             //? Função que valida se o cnpj já existe no banco de dados
             case 'handleGetCnpj':
                 const { cnpj } = req.body;
@@ -157,9 +169,16 @@ class AuthControllerFornecedor {
 
         //? Verificar se o link é válido
         const sqlGet = `
-        SELECT  fornecedorID, unidadeID
+        SELECT  fornecedorID, unidadeID, cnpj
         FROM fornecedor
         WHERE MD5(REGEXP_REPLACE(cnpj, '[^0-9]', '')) = "${data.cnpj}" AND MD5(unidadeID) = "${data.unidadeID}" AND status = 10`;
+
+        const sqlGetCnpj = `
+        SELECT  fornecedorID, unidadeID, cnpj
+        FROM fornecedor
+        WHERE MD5(REGEXP_REPLACE(cnpj, '[^0-9]', '')) = "${data.cnpj}" AND MD5(unidadeID) = "${data.unidadeID}" `;
+
+        const [resultCnpj] = await db.promise().query(sqlGetCnpj);
 
         const [result] = await db.promise().query(sqlGet);
 
@@ -171,8 +190,8 @@ class AuthControllerFornecedor {
             const sqlInsert = `INSERT INTO movimentacaoformulario (parFormularioID, id, usuarioID, unidadeID, papelID, dataHora, statusAnterior, statusAtual) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
             await db.promise().query(sqlInsert, [1, result[0].fornecedorID, 0, result[0].unidadeID, 2, new Date(), 10, 20]);
 
-            res.status(200).json({ message: 'Acesso liberado com sucesso!' });
         }
+        res.status(200).json(resultCnpj);
     }
 }
 
