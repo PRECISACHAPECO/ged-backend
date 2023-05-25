@@ -115,6 +115,7 @@ class FornecedorController {
     }
 
     updateData(req, res) {
+
         const unidadeID = req.params.id;
         const { header, blocks, orientacoes } = req.body
 
