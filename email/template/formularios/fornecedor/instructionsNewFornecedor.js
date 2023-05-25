@@ -5,7 +5,6 @@ require('dotenv/config');
 const urlBase = process.env.BASE_URL;
 
 async function instructionsNewFornecedor(cnpj, unidade, haveLogin) {
-    console.log("haveLogin: ", haveLogin);
     // link login e registro enviando cnpj e unidade como parâmetros
     const linkLogin = `${urlBase}/fornecedor/?c=${cnpj}&u=${unidade}`;
     const linkRegistro = `${urlBase}/registro/?c=${cnpj}&u=${unidade}`;

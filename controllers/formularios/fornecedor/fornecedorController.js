@@ -12,22 +12,38 @@ class FornecedorController {
         //* Fábrica 
         if (papelID == 1) {
             const sql = `
-            SELECT f.fornecedorID AS id, f.cnpj, f.nome AS fantasia, f.cidade, f.estado, f.telefone, f.status, u.nomeFantasia AS fabrica
+            SELECT 
+                f.fornecedorID AS id, 
+                f.cnpj, 
+                IF(f.nome, f.nome, '') AS fantasia, 
+                IF(f.cidade, f.cidade, '') AS cidade, 
+                IF(f.estado,f.estado, '' ) AS estado, 
+                IF(f.telefone, f.telefone, '') AS telefone, 
+                f.status, 
+                IF(u.nomeFantasia, u.nomeFantasia, '') AS fabrica
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON (f.unidadeID = u.unidadeID)
             WHERE f.unidadeID = ${unidadeID}`
             const [result] = await db.promise().query(sql)
-            res.status(200).json(result);
+            return res.status(200).json(result);
         }
         //* Fornecedor 
         else if (papelID == 2 && cnpj) {
             const sql = `
-            SELECT f.fornecedorID AS id, f.cnpj, f.nome, f.cidade, f.estado, f.telefone, f.status, u.nomeFantasia AS fabrica
+            SELECT 
+                f.fornecedorID AS id, 
+                f.cnpj, 
+                IF(f.nome, f.nome, '') AS fantasia, 
+                IF(f.cidade, f.cidade, '') AS cidade, 
+                IF(f.estado,f.estado, '' ) AS estado, 
+                IF(f.telefone, f.telefone, '') AS telefone, 
+                f.status, 
+                IF(u.nomeFantasia, u.nomeFantasia, '') AS fabrica
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON (f.unidadeID = u.unidadeID)
             WHERE f.cnpj = "${cnpj}"`
             const [result] = await db.promise().query(sql)
-            res.status(200).json(result);
+            return res.status(200).json(result);
         }
     }
 
