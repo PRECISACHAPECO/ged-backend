@@ -114,7 +114,7 @@ class FornecedorController {
         }
     }
 
-    updateData(req, res) {
+    async updateData(req, res) {
 
         const unidadeID = req.params.id;
         const { header, blocks, orientacoes } = req.body
@@ -161,16 +161,27 @@ class FornecedorController {
         })
 
         //? Blocos 
-        blocks && blocks.forEach((block, index) => {
+        blocks && blocks.forEach(async (block, index) => {
             if (block) {
-                const sql = `
-                UPDATE par_fornecedor_bloco
-                SET ordem = ?, nome = ?, obs = ?, status = ?
-                WHERE parFornecedorBlocoID = ?`
+                if (block.parFornecedorBlocoID && parseInt(block.parFornecedorBlocoID) > 0) {
+                    //? Bloco já existe, Update
+                    const sqlUpdateBlock = `
+                    UPDATE par_fornecedor_bloco
+                    SET ordem = ?, nome = ?, obs = ?, status = ?
+                    WHERE parFornecedorBlocoID = ?`
+                    const [resultUpdateBlock] = await db.promise().query(sqlUpdateBlock, [block.sequencia, block.nome, (block.obs ? 1 : 0), (block.status ? 1 : 0), block.parFornecedorBlocoID])
+                    if (resultUpdateBlock.length === 0) { return res.status(500).json(err); }
+                } else {
+                    //? Bloco novo, Insert
+                    const sqlNewBlock = `
+                    INSERT INTO par_fornecedor_bloco(ordem, nome, obs, unidadeID, status) 
+                    VALUES (?, ?, ?, ?, ?)`
+                    const [resultNewBlock] = await db.promise().query(sqlNewBlock, [block.sequencia, block.nome, (block.obs ? 1 : 0), unidadeID, (block.status ? 1 : 0)])
+                    if (resultNewBlock.length === 0) { return res.status(500).json(err); }
+                    block.parFornecedorBlocoID = resultNewBlock.insertId //? parFornecedorBlocoID que acabou de ser gerado
+                }
 
-                db.query(sql, [block.sequencia, block.nome, (block.obs ? 1 : 0), (block.status ? 1 : 0), block.parFornecedorBlocoID], (err, result) => {
-                    if (err) { return res.status(500).json(err); }
-                })
+                console.log('block.parFornecedorBlocoID ====> ', block.parFornecedorBlocoID)
 
                 //? Categoria (Fabricante / Importador)
                 block.categorias && block.categorias.forEach((categoria, indexCategoria) => {
