@@ -17,28 +17,34 @@ app.get('/api/report', async (req, res) => {
         const page = await browser.newPage();
 
         const html = `
-      <html>
-        <head>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-            }
-            h1 {
-              color: #333;
-            }
-            p {
-              color: #777;
-            }
-          </style>
-        </head>
-        <body>
-        <div style="display: flex; background-color: red;">
-        <h1>Relatório</h1>
-        <p>Este é um exemplo de relatório gerado com Puppeteer.</p>
-        </div>
-        </body>
-      </html>
-    `;
+        <html>
+          <head>
+            <style>
+              body {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                font-family: Arial, sans-serif;
+                height: 100vh;
+                margin: 0;
+                padding: 0;
+                background-color: #f0f0f0;
+              }
+              h1 {
+                color: #333;
+              }
+              p {
+                color: #777;
+              }
+            </style>
+          </head>
+          <body>
+            <h1>Relatório</h1>
+            <p>Este é um exemplo de relatório gerado com Headless Chrome.</p>
+          </body>
+        </html>
+      `;
 
         await page.setContent(html);
 
