@@ -1,29 +1,30 @@
-const puppeteer = require('puppeteer');
-const db = require('../../config/db');
+const pdf = require('html-pdf');
 const { generateContent } = require('./content');
 
 async function teste(req, res) {
+    let nome = "jONATAN"
+    const content = await generateContent(nome);
 
-    try {
-        const browser = await puppeteer.launch({ headless: 'new' });
+    //? Define as margens do PDF
+    const styledContent = `
+        <style>
+            @page {
+                margin: 4cm; 
+            }
+        </style>
+        ${content}
+    `;
 
-        const page = await browser.newPage();
-
-        const html = await generateContent();
-        await page.setContent(html);
-
+    pdf.create(styledContent).toBuffer((err, buffer) => {
+        if (err) {
+            console.error('Erro ao gerar relatório:', err);
+            res.status(500).send('Erro ao gerar relatório');
+            return;
+        }
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="meu_relatorio.pdf"`);
-
-        const pdfBuffer = await page.pdf({});
-        await browser.close();
-
-
-        res.send(pdfBuffer);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Erro ao gerar relatório');
-    }
+        res.setHeader('Content-Disposition', 'attachment; filename=relatorio.pdf');
+        res.send(buffer);
+    });
 }
 
 module.exports = { teste };

@@ -12,6 +12,8 @@ routerReports.post(`${urlBase}/relatorio/recebimentoMP/`, reportRecebimentoMP);
 
 //teste
 const { teste } = require('../reports/teste/generate');
-routerReports.post(`${urlBase}/teste`, teste);
+routerReports.get(`/gerar-relatorio`, teste);
+
+
 
 module.exports = routerReports;
