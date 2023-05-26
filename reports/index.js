@@ -12,7 +12,7 @@ routerReports.post(`${urlBase}/relatorio/recebimentoMP/`, reportRecebimentoMP);
 
 //teste
 const { teste } = require('../reports/teste/generate');
-routerReports.get(`/gerar-relatorio`, teste);
+routerReports.get(`/api/gerar-relatorio`, teste);
 
 
 
