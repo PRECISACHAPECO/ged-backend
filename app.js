@@ -10,7 +10,6 @@ app.use(cors({ origin: '*' }));
 app.use(routes);
 app.use(routerReports);
 
-
 app.listen(3333, (req, res) => {
     console.log('Server is running on port 3333');
 });
