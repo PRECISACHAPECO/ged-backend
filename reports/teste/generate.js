@@ -2,7 +2,7 @@ const pdf = require('html-pdf');
 const { generateContent } = require('./content');
 
 async function teste(req, res) {
-    let nome = "jONATAN"
+    let nome = "John"
     const content = await generateContent(nome);
 
     //? Define as margens do PDF
