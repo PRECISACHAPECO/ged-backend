@@ -74,7 +74,10 @@ class FornecedorController {
                     ORDER BY a.nome ASC`;
 
                     const sqlItem = `
-                    SELECT pfbi.*, i.*, a.nome AS alternativa 
+                    SELECT pfbi.*, i.*, a.nome AS alternativa, 
+                        (SELECT IF(COUNT(*) > 0, 1, 0)
+                        FROM fornecedor_resposta AS fr 
+                        WHERE fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS hasPending
                     FROM par_fornecedor_bloco_item AS pfbi 
                         LEFT JOIN item AS i ON (pfbi.itemID = i.itemID)
                         LEFT JOIN alternativa AS a ON (pfbi.alternativaID = a.alternativaID)
@@ -107,8 +110,7 @@ class FornecedorController {
                 // Obtem orientacoes da tabela par_formulario e retorna 
                 const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 1`;
                 const [resultOrientacoes] = await db.promise().query(sqlOrientacoes)
-                res.status(200).json(resultOrientacoes[0]);
-
+                return res.status(200).json(resultOrientacoes[0]);
                 break;
 
         }
@@ -181,8 +183,6 @@ class FornecedorController {
                     block.parFornecedorBlocoID = resultNewBlock.insertId //? parFornecedorBlocoID que acabou de ser gerado
                 }
 
-                console.log('block.parFornecedorBlocoID ====> ', block.parFornecedorBlocoID)
-
                 //? Categoria (Fabricante / Importador)
                 block.categorias && block.categorias.forEach((categoria, indexCategoria) => {
                     if (categoria) {
@@ -253,16 +253,24 @@ class FornecedorController {
                 // Varre itens e verifica se existe parFornecedorBlocoItemID, se sim, faz update na tabela par_fornecedor_bloco_item, se nao, faz insert
                 block.itens && block.itens.forEach((item, indexItem) => {
                     if (item) {
-                        if (item.parFornecedorBlocoItemID) {
-                            // Update
+                        if (item.parFornecedorBlocoItemID && !item.removed) {
+                            //? Update
                             const sql = `
                             UPDATE par_fornecedor_bloco_item
                             SET ordem = ?, ${item.itemID ? 'itemID = ?, ' : ''} ${item.alternativaID ? 'alternativaID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
                             WHERE parFornecedorBlocoItemID = ?`
 
                             db.query(sql, [item.sequencia, ...(item.itemID ? [item.itemID] : []), ...(item.alternativaID ? [item.alternativaID] : []), (item.obs ? 1 : 0), (item.obrigatorio ? 1 : 0), (item.status ? 1 : 0), item.parFornecedorBlocoItemID], (err, result) => { if (err) { return res.status(500).json(err); } })
-                        } else {
-                            // Insert
+                        } else if (item.parFornecedorBlocoItemID && item.removed) {
+                            //? Remove 
+                            // par_fornecedor_bloco_item
+                            const sql = `DELETE FROM par_fornecedor_bloco_item WHERE parFornecedorBlocoItemID = ?`
+                            db.query(sql, [item.parFornecedorBlocoItemID], (err, result) => { if (err) { return res.status(500).json(err); } })
+                            // par_fornecedor_bloco_item_pontuacao
+                            const sql2 = `DELETE FROM par_fornecedor_bloco_item_pontuacao WHERE parFornecedorBlocoItemID = ?`
+                            db.query(sql2, [item.parFornecedorBlocoItemID], (err, result) => { if (err) { return res.status(500).json(err); } })
+                        } else if (!item.removed) {
+                            //? Insert
                             const sql = `
                             INSERT INTO par_fornecedor_bloco_item (parFornecedorBlocoID, ordem, itemID, alternativaID, obs, obrigatorio, status)
                             VALUES (?, ?, ?, ?, ?, ?, ?)`
