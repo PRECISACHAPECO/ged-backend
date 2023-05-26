@@ -5,7 +5,8 @@ const { generateContent } = require('./content');
 async function teste(req, res) {
 
     try {
-        const browser = await puppeteer.launch();
+        const browser = await puppeteer.launch({ headless: 'new' });
+
         const page = await browser.newPage();
 
         const html = await generateContent();
@@ -14,16 +15,7 @@ async function teste(req, res) {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="meu_relatorio.pdf"`);
 
-        const pdfBuffer = await page.pdf({
-            printBackground: true,
-            format: 'A4',
-            margin: {
-                top: '30px',
-                bottom: '20px',
-                left: '50px',
-                right: '50px'
-            }
-        });
+        const pdfBuffer = await page.pdf({});
         await browser.close();
 
 

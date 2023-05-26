@@ -72,7 +72,7 @@ async function reportFornecedor(req, res) {
     const [sistemaQualidade] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as sistemaQualidade FROM sistemaqualidade a  LEFT JOIN fornecedor_sistemaqualidade b on (a.sistemaQualidadeID = b.sistemaQualidadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
 
     try {
-        const browser = await puppeteer.launch();
+        const browser = await puppeteer.launch({ headless: 'new' });
         const page = await browser.newPage();
 
         const html = await generateContent(resultData, atividades, sistemaQualidade, resultBlocos);
