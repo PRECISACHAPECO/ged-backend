@@ -1,10 +1,11 @@
 const pdf = require('html-pdf');
 const { generateContent } = require('./content');
 
-async function teste(req, res) {
-    let nome = "John"
-    const content = await generateContent(nome);
+async function reportFornecedor(req, res) {
+    const { fornecedorID, unidadeID } = req.query;
 
+
+    const content = '<h1>Teste</h1>'
     //? Define as margens do PDF
     const styledContent = `
         <style>
@@ -27,4 +28,4 @@ async function teste(req, res) {
     });
 }
 
-module.exports = { teste };
+module.exports = { reportFornecedor };
