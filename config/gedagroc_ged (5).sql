@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 25-Maio-2023 às 22:37
+-- Tempo de geração: 26-Maio-2023 às 21:14
 -- Versão do servidor: 10.4.22-MariaDB
 -- versão do PHP: 7.4.27
 
@@ -360,8 +360,8 @@ CREATE TABLE `fornecedor_categoria` (
 --
 
 INSERT INTO `fornecedor_categoria` (`fornecedorCategoriaID`, `fornecedorID`, `categoriaID`) VALUES
-(8, 2, 1),
-(9, 2, 2);
+(13, 2, 2),
+(14, 2, 1);
 
 -- --------------------------------------------------------
 
@@ -390,7 +390,12 @@ INSERT INTO `fornecedor_resposta` (`fornecedorRespostaID`, `fornecedorID`, `parF
 (3, 1, 1, 12, 'New desc...', 0, NULL, ''),
 (4, 1, 1, 3, '', 0, NULL, 'só obs uppp'),
 (5, 1, 2, 4, 'Não Conforme', 4, NULL, ''),
-(6, 7, 3, 23, '', 0, NULL, 'aaa');
+(6, 7, 3, 23, '', 0, NULL, 'aaa'),
+(7, 2, 1, 12, 'Sim', 1, NULL, ''),
+(8, 2, 2, 4, 'Não', 1, NULL, '555'),
+(9, 2, 2, 3, 'uhuhuh', 0, NULL, ''),
+(10, 2, 1, 1, 'Não', 1, NULL, '555'),
+(11, 2, 1, 3, 'Conforme', 4, NULL, '');
 
 -- --------------------------------------------------------
 
@@ -701,7 +706,9 @@ CREATE TABLE `par_fornecedor_bloco` (
 INSERT INTO `par_fornecedor_bloco` (`parFornecedorBlocoID`, `ordem`, `nome`, `obs`, `unidadeID`, `status`) VALUES
 (1, 2, 'Fabricante e Importador', 1, 1, 1),
 (2, 2, 'Só Importador', 1, 1, 1),
-(3, 1, 'Itens Avaliados uni 2', 1, 2, 1);
+(3, 1, 'Itens Avaliados uni 2', 1, 2, 1),
+(9, 3, 'Só Fabricante', 0, 1, 1),
+(10, 4, 'Outro só de importador', 0, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -723,10 +730,9 @@ CREATE TABLE `par_fornecedor_bloco_atividade` (
 INSERT INTO `par_fornecedor_bloco_atividade` (`parFornecedorBlocoAtividadeID`, `parFornecedorBlocoID`, `atividadeID`, `unidadeID`) VALUES
 (4, 2, 7, 1),
 (5, 1, 3, 1),
-(6, 3, 5, 2),
-(7, 3, 7, 2),
-(12, 0, 7, 1),
-(14, 0, 5, 1);
+(17, 9, 6, 1),
+(18, 9, 5, 1),
+(19, 10, 6, 1);
 
 -- --------------------------------------------------------
 
@@ -749,7 +755,9 @@ INSERT INTO `par_fornecedor_bloco_categoria` (`parFornecedorBlocoCategoriaID`, `
 (1, 1, 1, 1),
 (5, 1, 2, 1),
 (6, 2, 2, 1),
-(7, 0, 1, 1);
+(10, 4, 1, 1),
+(11, 9, 1, 1),
+(12, 10, 2, 1);
 
 -- --------------------------------------------------------
 
@@ -776,22 +784,20 @@ CREATE TABLE `par_fornecedor_bloco_item` (
 INSERT INTO `par_fornecedor_bloco_item` (`parFornecedorBlocoItemID`, `parFornecedorBlocoID`, `ordem`, `itemID`, `alternativaID`, `obs`, `obrigatorio`, `pontuacao`, `status`) VALUES
 (1, 1, 1, 1, 1, 0, 1, 1, 1),
 (2, 2, 200, 3, 5, 1, 1, 0, 1),
-(3, 1, 7, 2, 6, 1, 0, 0, 1),
+(3, 1, 6, 2, 6, 1, 0, 0, 1),
 (5, 3, 1, 3, 1, 1, 0, 0, 1),
-(6, 1, 4, 4, 5, 1, 1, 0, 1),
-(7, 1, 3, 3, 4, 1, 1, 0, 1),
-(8, 1, 5, 12, 1, 0, 1, 0, 1),
+(6, 1, 3, 4, 5, 1, 1, 0, 1),
+(7, 1, 2, 3, 4, 1, 1, 0, 1),
+(8, 1, 4, 12, 1, 0, 1, 0, 1),
 (9, 2, 2, 4, 4, 1, 1, 0, 1),
-(10, 1, 6, 23, 2, 0, 1, 0, 1),
-(11, 1, 6, 23, 1, 1, 1, 0, 1),
+(10, 1, 5, 23, 2, 0, 1, 0, 1),
 (14, 3, 3, 23, 3, 1, 1, 0, 1),
 (15, 3, 2, 4, 2, 1, 1, 0, 1),
 (17, 3, 4, 2, 2, 1, 1, 0, 1),
-(18, 0, 1, 12, 2, 1, 1, 0, 1),
-(19, 1, 8, 12, 1, 1, 1, 0, 1),
-(20, 0, 1, 1, 4, 1, 1, 0, 1),
-(21, 0, 2, 4, 5, 1, 1, 0, 1),
-(22, 0, 1, 4, 4, 1, 1, 0, 1);
+(28, 4, 1, 1, 1, 1, 1, 0, 1),
+(29, 4, 2, 3, 3, 1, 1, 0, 1),
+(30, 9, 1, 3, 5, 1, 1, 0, 1),
+(32, 10, 1, 3, 5, 1, 1, 0, 1);
 
 -- --------------------------------------------------------
 
@@ -1854,13 +1860,13 @@ ALTER TABLE `fornecedor_atividade`
 -- AUTO_INCREMENT de tabela `fornecedor_categoria`
 --
 ALTER TABLE `fornecedor_categoria`
-  MODIFY `fornecedorCategoriaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `fornecedorCategoriaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT de tabela `fornecedor_resposta`
 --
 ALTER TABLE `fornecedor_resposta`
-  MODIFY `fornecedorRespostaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `fornecedorRespostaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT de tabela `fornecedor_sistemaqualidade`
@@ -1908,25 +1914,25 @@ ALTER TABLE `par_fornecedor`
 -- AUTO_INCREMENT de tabela `par_fornecedor_bloco`
 --
 ALTER TABLE `par_fornecedor_bloco`
-  MODIFY `parFornecedorBlocoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `parFornecedorBlocoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT de tabela `par_fornecedor_bloco_atividade`
 --
 ALTER TABLE `par_fornecedor_bloco_atividade`
-  MODIFY `parFornecedorBlocoAtividadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `parFornecedorBlocoAtividadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT de tabela `par_fornecedor_bloco_categoria`
 --
 ALTER TABLE `par_fornecedor_bloco_categoria`
-  MODIFY `parFornecedorBlocoCategoriaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `parFornecedorBlocoCategoriaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT de tabela `par_fornecedor_bloco_item`
 --
 ALTER TABLE `par_fornecedor_bloco_item`
-  MODIFY `parFornecedorBlocoItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `parFornecedorBlocoItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT de tabela `par_fornecedor_bloco_item_pontuacao`
