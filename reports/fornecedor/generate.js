@@ -3,7 +3,7 @@ const db = require('../../config/db');
 const { generateContent } = require('./content');
 
 async function reportFornecedor(req, res) {
-    const { fornecedorID, unidadeID } = req.body;
+    const { fornecedorID, unidadeID } = req.query;
 
     const [colunsFornecedor] = await db.promise().query(`
         SELECT * 
@@ -21,18 +21,23 @@ async function reportFornecedor(req, res) {
         const sqlQuery = `SELECT ${columns[i]} FROM fornecedor WHERE fornecedorID = ?`;
         const [queryResult] = await db.promise().query(sqlQuery, [fornecedorID]);
 
-        if (columns[i] === 'dataAvaliacao') {
-            const dataAvaliacao = new Date(queryResult[0][columns[i]]).toLocaleDateString('pt-BR');
-            resultData.push({
-                title: titleColumns[i],
-                value: dataAvaliacao
-            });
-        } else {
-            resultData.push({
-                title: titleColumns[i],
-                value: queryResult[0][columns[i]]
-            });
-        }
+        // if (columns[i] === 'dataAvaliacao') {
+        //     const dataAvaliacao = new Date(queryResult[0][columns[i]]).toLocaleDateString('pt-BR');
+        //     resultData.push({
+        //         title: titleColumns[i],
+        //         value: dataAvaliacao
+        //     });
+        // } else {
+        //     resultData.push({
+        //         title: titleColumns[i],
+        //         value: queryResult[0][columns[i]]
+        //     });
+        // }
+
+        resultData.push({
+            title: titleColumns[i],
+            dataAvaliacao: "10/10/20202"
+        });
     }
 
     const [blocos] = await db.promise().query(`SELECT * FROM par_fornecedor_bloco a WHERE a.unidadeID = ? `, [unidadeID]);
