@@ -1,7 +1,7 @@
 const pdf = require('html-pdf');
 const { generateContent } = require('./content');
 
-async function reportFornecedor(req, res) {
+async function teste(req, res) {
     const { fornecedorID, unidadeID } = req.query;
 
 
@@ -28,4 +28,4 @@ async function reportFornecedor(req, res) {
     });
 }
 
-module.exports = { reportFornecedor };
+module.exports = { teste };
