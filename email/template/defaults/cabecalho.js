@@ -2,6 +2,7 @@ const cabecalho = (titulo) => {
     let html = `
     <div class="cabecalho">
         <img src="https://gglasify.sirv.com/logoColorida.png" alt="Ultima" class="logo">
+        
 
         <h1 class="titulo">
             ${titulo}
