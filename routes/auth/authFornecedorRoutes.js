@@ -9,6 +9,7 @@ const routeFornecedor = '/login-fornecedor';
 authFornecedorRoutes.post(`${routeFornecedor}`, authControllerFornecedor.loginFornecedor);
 authFornecedorRoutes.get(`${routeFornecedor}`, authControllerFornecedor.getAvailableRoutes);
 authFornecedorRoutes.post(`${routeFornecedor}/setAcessLink`, authControllerFornecedor.setAcessLink);
+authFornecedorRoutes.post(`${routeFornecedor}/validationCNPJ`, authControllerFornecedor.ValidationCNPJ);
 
 //* Cadastro do fornecedor
 const routeRegister = '/registro-fornecedor';

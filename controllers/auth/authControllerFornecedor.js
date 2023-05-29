@@ -193,6 +193,23 @@ class AuthControllerFornecedor {
         }
         res.status(200).json(resultCnpj);
     }
+    // Verifica se o CNPJ já existe na tabela de fabrica_forncedor
+    async ValidationCNPJ(req, res) {
+        const cnpj = req.body.cnpj;
+
+        const existTableUsuario = `SELECT * FROM usuario WHERE cnpj = ?`;
+        const existTableFabricaFornecedor = `SELECT * FROM fabrica_fornecedor WHERE fornecedorCnpj = ?`;
+        const [resultUsuario] = await db.promise().query(existTableUsuario, [cnpj]);
+        const [resultFabricaFornecedor] = await db.promise().query(existTableFabricaFornecedor, [cnpj]);
+
+        if (resultFabricaFornecedor.length > 0 && resultUsuario.length === 0) {
+            res.status(201).json({ message: 'É necessário se cadastrar' });
+        } else if (resultFabricaFornecedor.length === 0 && resultUsuario.length === 0) {
+            res.status(202).json({ message: 'É necessário que uma fábrica habilite o seu CNPJ para fazer cadastro' });
+        } else {
+            res.status(200).json({ message: 'Tudo certo, só fazer login' });
+        }
+    }
 }
 
 async function hasUnityRole(cnpj) {
