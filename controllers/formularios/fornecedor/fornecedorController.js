@@ -7,6 +7,7 @@ const sendMailConfig = require('../../../config/email');
 const { addFormStatusMovimentation } = require('../../../defaults/functions');
 
 class FornecedorController {
+
     async getList(req, res) {
         const { unidadeID, papelID, cnpj } = req.body;
 
@@ -15,16 +16,15 @@ class FornecedorController {
             const sql = `
             SELECT 
                 f.fornecedorID AS id, 
+                IF(f.dataAvaliacao <> '', DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS dataAvaliacao,
                 f.cnpj, 
-                IF(f.nome, f.nome, '') AS fantasia, 
-                IF(f.cidade, f.cidade, '') AS cidade, 
-                IF(f.estado,f.estado, '' ) AS estado, 
-                IF(f.telefone, f.telefone, '') AS telefone, 
-                f.status, 
-                IF(u.nomeFantasia, u.nomeFantasia, '') AS fabrica
+                IF(f.nome <> '', f.nome, '--') AS fantasia, 
+                IF(f.cidade <> '', CONCAT(f.cidade, '/', f.estado), '--') AS cidade,
+                f.status
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON (f.unidadeID = u.unidadeID)
-            WHERE f.unidadeID = ${unidadeID}`
+            WHERE f.unidadeID = ${unidadeID}
+            ORDER BY f.fornecedorID DESC, f.status ASC`
             const [result] = await db.promise().query(sql)
             return res.status(200).json(result);
         }
@@ -33,16 +33,15 @@ class FornecedorController {
             const sql = `
             SELECT 
                 f.fornecedorID AS id, 
-                f.cnpj, 
-                IF(f.nome, f.nome, '') AS fantasia, 
-                IF(f.cidade, f.cidade, '') AS cidade, 
-                IF(f.estado,f.estado, '' ) AS estado, 
-                IF(f.telefone, f.telefone, '') AS telefone, 
+                DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y") AS dataAvaliacao,
                 f.status, 
-                IF(u.nomeFantasia, u.nomeFantasia, '') AS fabrica
+                IF(u.nomeFantasia <> '', u.nomeFantasia, '') AS fabrica,
+                IF(u.cnpj <> '', u.cnpj, '') AS cnpjFabrica,
+                IF(u.cidade <> '', CONCAT(u.cidade, '/', u.uf), '') AS cidade
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON (f.unidadeID = u.unidadeID)
-            WHERE f.cnpj = "${cnpj}"`
+            WHERE f.cnpj = "${cnpj}"
+            ORDER BY f.fornecedorID DESC, f.status ASC`
             const [result] = await db.promise().query(sql)
             return res.status(200).json(result);
         }
@@ -51,6 +50,8 @@ class FornecedorController {
     //* Retorna a estrutura do formulário configurada pra aquela unidade
     async getData(req, res) {
         const { id } = req.params; // id do formulário
+
+        if (!id) { return res.status(409).json({ message: 'No ID received!' }) }
 
         //? obtém a unidadeID (fábrica) do formulário, pro formulário ter os campos de preenchimento de acordo com o configurado pra aquela fábrica.
         const sqlUnidade = `

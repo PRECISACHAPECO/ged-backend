@@ -18,7 +18,7 @@ class AuthControllerFornecedor {
         const { cnpj, password } = req.body;
 
         const sql = `
-        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel
+        SELECT u.*, un.*, p.papelID, p.nome as papel
         FROM usuario AS u 
             LEFT JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
             LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
@@ -34,13 +34,14 @@ class AuthControllerFornecedor {
                 return res.status(401).json({ message: 'CNPJ ou senha incorretos' });
             }
 
-
             const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
 
             const response = {
                 accessToken,
                 userData: { ...result[0], senha: undefined },
-                unidades: [{ unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia, papelID: result[0].papelID, papel: result[0].papel }]
+                unidades: [
+                    result[0] // objeto com todos os dados da unidade
+                ]
             }
             res.status(200).json(response);
 
@@ -215,7 +216,7 @@ class AuthControllerFornecedor {
 async function hasUnityRole(cnpj) {
     const sql = ` 
     SELECT a.*, b.*,
-                (SELECT COUNT(*) FROM usuario_unidade WHERE unidadeID = a.unidadeID AND papelID = 2) AS existsFornecedor
+        (SELECT COUNT(*) FROM usuario_unidade WHERE unidadeID = a.unidadeID AND papelID = 2) AS existsFornecedor
     FROM unidade AS a 
         LEFT JOIN usuario_unidade AS b ON(a.unidadeID = b.unidadeID)
     WHERE a.cnpj = ? `;
@@ -226,7 +227,7 @@ async function hasUnityRole(cnpj) {
 async function hasUser(cnpj) {
     const sql = ` 
     SELECT *
-                FROM usuario AS a 
+    FROM usuario AS a 
     WHERE a.cnpj = ? `;
     const [result] = await db.promise().query(sql, [cnpj]);
     return result;
