@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-
+const db = require('./config/db');
 
 const routes = require("./routes");
 const routerReports = require("./reports");
@@ -11,19 +11,13 @@ app.use(cors({ origin: '*' }));
 app.use(routes);
 app.use(routerReports);
 
-app.get('/report', (req, res) => {
-    const invoiceData = {
-        nome: 'Fornecedor 1',
-        cnpj: '123456789',
-        dataAvaliacao: '2021-01-01',
-        status: 'Aprovado',
-        observacao: 'Observação do fornecedor 1',
-    };
-    if (invoiceData) {
-        res.status(200).json(invoiceData);
-    } else {
-        res.status(404).json({ message: 'Unable to find the requested invoice!' });
+app.get('/api/report', (req, res) => {
+    async function getReport() {
+        const sql = `SELECT * FROM usuario`;
+        const [result] = await db.promise().query(sql)
+        return res.json(result)
     }
+    getReport()
 });
 
 
