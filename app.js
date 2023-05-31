@@ -11,16 +11,6 @@ app.use(cors({ origin: '*' }));
 app.use(routes);
 app.use(routerReports);
 
-app.get('/api/report', (req, res) => {
-    async function getReport() {
-        const sql = `SELECT * FROM usuario`;
-        const [result] = await db.promise().query(sql)
-        return res.json(result)
-    }
-    getReport()
-});
-
-
 
 // Rota para fornecer o arquivo PDF do relatório
 app.listen(3333, () => {

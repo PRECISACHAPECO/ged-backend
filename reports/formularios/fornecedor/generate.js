@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const db = require('../../config/db');
+const db = require('../../../config/db');
 const { generateContent } = require('./content');
 
 async function reportFornecedor(req, res) {
