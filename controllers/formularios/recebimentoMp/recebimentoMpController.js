@@ -233,12 +233,12 @@ class RecebimentoMpController {
     }
 
     async insertData(req, res) {
-        const data = req.body
+        const { data, unidadeID } = req.body
 
         // Header         
         if (data.header) {
             let dataHeader = getDataOfAllTypes(data.header) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
-
+            dataHeader.unidadeID = unidadeID
             console.log('antes: ', data.header)
             console.log('depois: ', dataHeader)
 
