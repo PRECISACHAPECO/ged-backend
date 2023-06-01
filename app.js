@@ -3,9 +3,13 @@ const cors = require('cors');
 const app = express();
 const puppeteer = require('puppeteer');
 const fs = require('fs');
-
+const routes = require("./routes");
+const routerReports = require("./reports");
 app.use(express.json());
 app.use(cors({ origin: '*' }));
+app.use(routes);
+app.use(routerReports);
+
 
 // Rota para criar o PDF
 app.post('/api/pdf', async (req, res) => {
