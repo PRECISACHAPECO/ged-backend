@@ -13,33 +13,33 @@ app.use(routerReports);
 
 // Rota para criar o PDF
 app.post('/api/pdf', async (req, res) => {
-  try {
-    await createPdf();
+    try {
+        await createPdf();
 
-    res.sendStatus(200);
-  } catch (error) {
-    console.error(error);
-    res.sendStatus(500);
-  }
+        res.sendStatus(200);
+    } catch (error) {
+        console.error(error);
+        res.sendStatus(500);
+    }
 });
 
 // Rota para fazer o download do PDF
 app.get('/api/pdf/download', (req, res) => {
-  const filePath = 'report.pdf';
+    const filePath = 'report.pdf';
 
-  if (fs.existsSync(filePath)) {
-    res.download(filePath);
-  } else {
-    res.sendStatus(404);
-  }
+    if (fs.existsSync(filePath)) {
+        res.download(filePath);
+    } else {
+        res.sendStatus(404);
+    }
 });
 
 // Função para criar o PDF usando Puppeteer
 async function createPdf() {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
 
-  await page.setContent(`
+    await page.setContent(`
     <!DOCTYPE html>
     <html>
     <head>
@@ -53,9 +53,9 @@ async function createPdf() {
     </html>
   `);
 
-  await page.pdf({ path: 'report.pdf' });
+    await page.pdf({ path: 'report.pdf' });
 
-  await browser.close();
+    // await browser.close();
 }
 
 
@@ -68,26 +68,26 @@ async function createPdf() {
 
 // Rota para criar o PDF
 app.post('/api/pdf/gerar', async (req, res) => {
-  try {
-    const pdfBuffer = await createPdf();
+    try {
+        const pdfBuffer = await createPdf();
 
-    // Define o cabeçalho Content-Type para indicar que é um arquivo PDF
-    res.setHeader('Content-Type', 'application/pdf');
+        // Define o cabeçalho Content-Type para indicar que é um arquivo PDF
+        res.setHeader('Content-Type', 'application/pdf');
 
-    // Envia o buffer do PDF como resposta
-    res.send(pdfBuffer);
-  } catch (error) {
-    console.error(error);
-    res.sendStatus(500);
-  }
+        // Envia o buffer do PDF como resposta
+        res.send(pdfBuffer);
+    } catch (error) {
+        console.error(error);
+        res.sendStatus(500);
+    }
 });
 
 // Função para criar o PDF usando Puppeteer
 async function createPdf() {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
 
-  await page.setContent(`
+    await page.setContent(`
     <!DOCTYPE html>
     <html>
     <head>
@@ -101,13 +101,13 @@ async function createPdf() {
     </html>
   `);
 
-  const pdfBuffer = await page.pdf();
+    const pdfBuffer = await page.pdf();
 
-  await browser.close();
+    await browser.close();
 
-  return pdfBuffer;
+    return pdfBuffer;
 }
 
 app.listen(3333, () => {
-  console.log('Server is running on port 3333');
+    console.log('Server is running on port 3333');
 });
