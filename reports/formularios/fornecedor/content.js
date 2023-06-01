@@ -113,4 +113,4 @@ async function generateContent(
   return html;
 }
 
-module.exports = { generateContent, };
+module.exports = { generateContent };

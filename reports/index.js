@@ -6,4 +6,6 @@ const { fornecedor } = require('./formularios/fornecedor/fornecedor');
 routerReports.post(`${urlBase}/relatorio/fornecedor/`, fornecedor);
 
 
+
+
 module.exports = routerReports;
