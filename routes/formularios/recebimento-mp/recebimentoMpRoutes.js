@@ -6,9 +6,12 @@ const recebimentoMpController = new RecebimentoMpController();
 
 const route = '/formularios/recebimento-mp';
 
-recebimentoMpRoutes.get(`${route}/:id`, recebimentoMpController.getData);
+recebimentoMpRoutes.get(`${route}/getList/:unidadeID`, recebimentoMpController.getList);
+recebimentoMpRoutes.post(`${route}/getData/:id`, recebimentoMpController.getData);
+
+recebimentoMpRoutes.post(`${route}/insertData`, recebimentoMpController.insertData);
 recebimentoMpRoutes.put(`${route}/:id`, recebimentoMpController.updateData);
+
 recebimentoMpRoutes.delete(`${route}/:id`, recebimentoMpController.deleteData);
-recebimentoMpRoutes.post(`${route}/novo`, recebimentoMpController.insertData);
 
 module.exports = recebimentoMpRoutes;
