@@ -12,7 +12,7 @@ class FornecedorController {
         // const { papelID, cnpj } = req.body;
         const papelID = 1;
         const cnpj = '041.156.569/0001-74'
-        const { unidadeID } = req.params;
+        const unidadeID = 1; // } = req.params;
         console.log("🚀 ~ unidadeID:", unidadeID)
 
         //* Fábrica 
