@@ -9,11 +9,7 @@ const { addFormStatusMovimentation } = require('../../../defaults/functions');
 class FornecedorController {
 
     async getList(req, res) {
-        // const { unidadeID, papelID, cnpj } = req.body;
-        const unidadeID = 1
-        const papelID = 1
-        const cnpj = '13.363.709/0001-01'
-
+        const { unidadeID, papelID, cnpj } = req.body;
 
         //* Fábrica 
         if (papelID == 1) {

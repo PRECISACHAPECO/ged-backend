@@ -7,8 +7,7 @@ const fornecedorController = new FornecedorController();
 const route = '/formularios/fornecedor';
 
 // Padrões
-fornecedorRoutes.get(`${route}/getList`, fornecedorController.getList);
-// fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
+fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
 
 
 fornecedorRoutes.get(`${route}/:id`, fornecedorController.getData);
