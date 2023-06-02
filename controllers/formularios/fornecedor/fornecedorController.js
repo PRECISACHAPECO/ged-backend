@@ -10,10 +10,11 @@ class FornecedorController {
 
     async getList(req, res) {
         // const { unidadeID, papelID, cnpj } = req.body;
-        const { unidadeID } = req.params;
-        // const unidadeID = 1
+        const unidadeID = 1
         const papelID = 1
-        const cnpj = '11.149.451/0001-01'
+        const cnpj = '13.363.709/0001-01'
+
+
         //* Fábrica 
         if (papelID == 1) {
             const sql = `
