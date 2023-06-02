@@ -22,6 +22,8 @@ class RecebimentoMpController {
         const { id } = req.params;
         const { type, unidadeID } = req.body;
 
+        if (!id) { return res.status(500).json({ message: 'Erro ao listar recebimento' }) }
+
         // Fields do header
         const sqlFields = `
                 SELECT * 
@@ -39,16 +41,16 @@ class RecebimentoMpController {
                 let sqlOptions = ``
                 if (alternatives.tabela == 'fornecedor') {
                     sqlOptions = `
-                            SELECT fornecedorID AS id, nome AS nome
-                            FROM fornecedor 
-                            WHERE atual = 1 AND status = 70 AND unidadeID = ${unidadeID} 
-                            ORDER BY nome ASC`
+                    SELECT fornecedorID AS id, nome AS nome
+                    FROM fornecedor 
+                    WHERE atual = 1 AND status = 70 AND unidadeID = ${unidadeID} 
+                    ORDER BY nome ASC`
                 } else {
                     sqlOptions = `
-                            SELECT ${alternatives.tabela}ID AS id, nome
-                            FROM ${alternatives.tabela} 
-                            WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
-                            ORDER BY nome ASC`
+                    SELECT ${alternatives.tabela}ID AS id, nome
+                    FROM ${alternatives.tabela} 
+                    WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                    ORDER BY nome ASC`
                 }
 
                 // Executar select e inserir no objeto alternatives
@@ -81,9 +83,6 @@ class RecebimentoMpController {
                     WHERE rm.recebimentompID = ${id}`
                     let [temp] = await db.promise().query(sqlData)
                     if (temp) {
-                        // let objTemp = {}
-                        // objTemp[field.tabela] = temp[0]
-                        // resultData.push(objTemp)
                         resultData[field.tabela] = temp[0]
                     }
                 }
@@ -139,10 +138,10 @@ class RecebimentoMpController {
                         //     nome: 'Fulano'
                         // }
                         sqlProductsData = `
-                                SELECT t.${field.nomeColuna} AS id, t.nome
-                                FROM recebimentomp_produto AS rm 
-                                    JOIN ${field.tabela} AS t ON (rm.${field.nomeColuna} = t.${field.nomeColuna}) 
-                                WHERE rm.recebimentompID = ${id} AND t.${field.nomeColuna} = ${data[field.nomeColuna]}`
+                        SELECT t.${field.nomeColuna} AS id, t.nome
+                        FROM recebimentomp_produto AS rm 
+                            JOIN ${field.tabela} AS t ON (rm.${field.nomeColuna} = t.${field.nomeColuna}) 
+                        WHERE rm.recebimentompID = ${id} AND t.${field.nomeColuna} = ${data[field.nomeColuna]}`
 
                         let [temp] = await db.promise().query(sqlProductsData)
                         if (temp) {
@@ -173,15 +172,18 @@ class RecebimentoMpController {
 
             (SELECT rr.respostaID
             FROM recebimentomp_resposta AS rr 
-            WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID) AS respostaID,
+            WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID
+            LIMIT 1) AS respostaID,
             
             (SELECT rr.resposta
             FROM recebimentomp_resposta AS rr 
-            WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID) AS resposta,
+            WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID
+            LIMIT 1) AS resposta,
 
             (SELECT rr.obs
             FROM recebimentomp_resposta AS rr 
-            WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID) AS observacao
+            WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID
+            LIMIT 1) AS observacao
 
         FROM par_recebimentomp_bloco_item AS prbi 
             LEFT JOIN item AS i ON (prbi.itemID = i.itemID)
@@ -193,12 +195,21 @@ class RecebimentoMpController {
 
             // Obter alternativas para cada item 
             for (const item2 of resultItem) {
+
+                // Cria objeto da resposta (se for de selecionar)
+                if (item2?.respostaID > 0) {
+                    item2.resposta = {
+                        id: item2.respostaID,
+                        nome: item2.resposta
+                    }
+                }
+
                 const sqlAlternativa = `
-                        SELECT *
-                        FROM par_recebimentomp_bloco_item AS prbi 
-                            JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
-                            JOIN alternativa_item AS ai ON (a.alternativaID = ai.alternativaID)
-                        WHERE prbi.parRecebimentompBlocoItemID = ?`
+                SELECT *
+                FROM par_recebimentomp_bloco_item AS prbi 
+                    JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
+                    JOIN alternativa_item AS ai ON (a.alternativaID = ai.alternativaID)
+                WHERE prbi.parRecebimentompBlocoItemID = ?`
                 const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.parRecebimentompBlocoItemID])
                 item2.alternativas = resultAlternativa
             }
@@ -266,38 +277,48 @@ class RecebimentoMpController {
                 // Itens 
                 for (const item of bloco.itens) {
                     if (item.resposta || item.observacao) {
-                        // insert na tabela fornecedor_resposta
-                        const sqlInsert = `INSERT INTO recebimentomp_resposta (recebimentompID, parRecebimentompBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [id, bloco.parRecebimentompBlocoID, item.itemID, (item.resposta ?? ''), (item.respostaID ?? 0), (item.observacao ?? '')])
-                        if (resultInsert.length === 0) { return res.status(500).json('Error'); }
+                        // valida duplicidade
+                        const sqlVerify = `SELECT recebimentompID FROM recebimentomp_resposta WHERE recebimentompID = ? AND parRecebimentompBlocoID = ? AND itemID = ?`
+                        const [resultVerify] = await db.promise().query(sqlVerify, [id, bloco.parRecebimentompBlocoID, item.itemID])
+                        if (resultVerify.length === 0) {
+                            // insert na tabela fornecedor_resposta
+                            const sqlInsert = `INSERT INTO recebimentomp_resposta (recebimentompID, parRecebimentompBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
+                            const [resultInsert] = await db.promise().query(sqlInsert, [
+                                id,
+                                bloco.parRecebimentompBlocoID,
+                                item.itemID,
+                                (item.resposta?.nome ? item.resposta.nome : item.resposta ? item.resposta : ''),
+                                (item.resposta?.id > 0 ? item.resposta.id : 0),
+                                (item.observacao ?? '')
+                            ])
+                            if (resultInsert.length === 0) { return res.status(500).json('Error'); }
+                        }
                     }
                 }
-
-                // Observação e Status (se houver)
-                const sqlUpdateObs = `UPDATE recebimentomp SET obs = ? ${data.status > 0 ? ', status = ? ' : ''} WHERE recebimentompID = ?`
-                const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [
-                    data.obs,
-                    ...(data.status > 0 ? [data.status] : []),
-                    id
-                ])
-                if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
-
             }
 
-            console.log('Até aqui ok!')
-            res.status(200).json(id)
+            // Observação e Status (se houver)
+            const sqlUpdateObs = `UPDATE recebimentomp SET obs = ? ${data.status > 0 ? ', status = ? ' : ''} WHERE recebimentompID = ?`
+            const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [
+                data.obs,
+                ...(data.status > 0 ? [data.status] : []),
+                id
+            ])
+            if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
 
-            // res.status(200).json({})
+            res.status(200).json(id)
         }
     }
 
     async updateData(req, res) {
         const { id } = req.params
-        const data = req.body
+        const { data, removedProducts, unidadeID } = req.body
+        console.log("🚀 ~ removedProducts:", removedProducts)
 
         // Header         
         if (data.header) {
             let dataHeader = getDataOfAllTypes(data.header) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
+            // console.log("🚀 ~ dataHeader:", dataHeader)
             const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentompID = ${id}`;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
@@ -307,6 +328,7 @@ class RecebimentoMpController {
         if (data.produtos) {
             for (const produto of data.produtos) {
                 let dataProduto = getDataOfAllTypes(produto) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
+                // console.log("🚀 ~ dataProduto:", dataProduto)
 
                 if (produto.recebimentompProdutoID > 0) { // UPDATE
                     const sqlUpdateProduto = `UPDATE recebimentomp_produto SET ? WHERE recebimentompProdutoID = ?`
@@ -317,6 +339,14 @@ class RecebimentoMpController {
                     const sqlInsertProduto = `INSERT INTO recebimentomp_produto SET ?`
                     const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [dataProduto])
                     if (resultInsertProduto.length === 0) { return res.status(500).json('Error'); }
+                }
+            }
+            // Remove os produtos removidos
+            if (removedProducts.length > 0) {
+                const sqlRemoveProduct = `DELETE FROM recebimentomp_produto WHERE recebimentompProdutoID IN (${removedProducts.join(',')})`
+                const [resultRemoveProduct] = await db.promise().query(sqlRemoveProduct)
+                if (resultRemoveProduct.length === 0) {
+                    return res.status(500).json('Error');
                 }
             }
         }
@@ -334,7 +364,14 @@ class RecebimentoMpController {
                         console.log('Insere resposta')
                         // insert na tabela fornecedor_resposta
                         const sqlInsert = `INSERT INTO recebimentomp_resposta (recebimentompID, parRecebimentompBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [id, bloco.parRecebimentompBlocoID, item.itemID, (item.resposta ?? ''), (item.respostaID ?? 0), (item.observacao ?? '')])
+                        const [resultInsert] = await db.promise().query(sqlInsert, [
+                            id,
+                            bloco.parRecebimentompBlocoID,
+                            item.itemID,
+                            (item.resposta?.nome ? item.resposta.nome : item.resposta ? item.resposta : ''),
+                            (item.resposta?.id > 0 ? item.resposta.id : 0),
+                            (item.observacao ?? '')
+                        ])
                         if (resultInsert.length === 0) { return res.status(500).json('Error'); }
                     } else {
                         console.log('Altera resposta')
@@ -343,15 +380,15 @@ class RecebimentoMpController {
                         UPDATE 
                             recebimentomp_resposta 
                         SET ${item.resposta ? 'resposta = ?, ' : ''} 
-                            ${item.respostaID ? 'respostaID = ?, ' : ''} 
+                            ${item.resposta?.id ? 'respostaID = ?, ' : ''} 
                             ${item.observacao != undefined ? 'obs = ?, ' : ''} 
                             recebimentompID = ?
                         WHERE recebimentompID = ? 
                             AND parRecebimentompBlocoID = ? 
                             AND itemID = ?`
                         const [resultUpdate] = await db.promise().query(sqlUpdate, [
-                            ...(item.resposta ? [item.resposta] : []),
-                            ...(item.respostaID ? [item.respostaID] : []),
+                            ...(item.resposta?.nome ? [item.resposta.nome] : item.resposta ? [item.resposta] : []),
+                            ...(item.resposta?.id > 0 ? [item.resposta.id] : []),
                             ...(item.observacao != undefined ? [item.observacao] : []),
                             id,
                             id,
