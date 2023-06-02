@@ -10,13 +10,14 @@ class FornecedorController {
 
     async getList(req, res) {
         const { unidadeID, papelID, cnpj } = req.body;
+        console.log("🚀 ~ nidadeID, papelID, cnpj:", unidadeID, papelID, cnpj)
 
         //* Fábrica 
         if (papelID == 1) {
             const sql = `
             SELECT 
                 f.fornecedorID AS id, 
-                IF(f.dataAvaliacao <> '', DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS dataAvaliacao,
+                IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS dataAvaliacao,
                 f.cnpj, 
                 IF(f.nome <> '', f.nome, '--') AS fantasia, 
                 IF(f.cidade <> '', CONCAT(f.cidade, '/', f.estado), '--') AS cidade,
