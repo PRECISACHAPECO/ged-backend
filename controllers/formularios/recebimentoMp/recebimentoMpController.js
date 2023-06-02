@@ -5,6 +5,7 @@ const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 class RecebimentoMpController {
     async getList(req, res) {
         const { unidadeID } = req.params;
+        console.log("🚀 ~ unidadeID:", unidadeID)
 
         const sql = `
         SELECT rm.recebimentompID AS id, DATE_FORMAT(rm.data, "%d/%m/%Y") AS data, t.nome AS transportador, top.nome AS tipoOperacao, rm.status 
@@ -13,7 +14,6 @@ class RecebimentoMpController {
             LEFT JOIN tipooperacao AS top ON (rm.tipoOperacaoID = top.tipoOperacaoID)
         WHERE rm.unidadeID = ?`
         const [result] = await db.promise().query(sql, [unidadeID])
-        if (result.length === 0) { return res.status(500).json({ message: 'Erro ao listar recebimentos' }) }
 
         res.status(200).json(result)
     }

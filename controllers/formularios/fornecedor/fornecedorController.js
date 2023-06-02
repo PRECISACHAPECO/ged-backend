@@ -45,6 +45,9 @@ class FornecedorController {
             const [result] = await db.promise().query(sql)
             return res.status(200).json(result);
         }
+
+        return res.status(409).json({ message: 'Nenhum registro encontrado!' })
+
     }
 
     //* Retorna a estrutura do formulário configurada pra aquela unidade

@@ -9,7 +9,6 @@ const route = '/formularios/fornecedor';
 // Padrões
 fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
 
-
 fornecedorRoutes.get(`${route}/:id`, fornecedorController.getData);
 fornecedorRoutes.put(`${route}/:id`, fornecedorController.updateData);
 fornecedorRoutes.delete(`${route}/:id`, fornecedorController.deleteData);
