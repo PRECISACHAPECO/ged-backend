@@ -21,7 +21,7 @@ class RecebimentoMpController {
         const { id } = req.params;
         const { type, unidadeID } = req.body;
 
-        if (!id) { return res.status(500).json({ message: 'Erro ao listar recebimento' }) }
+        if (!id) { return res.json({ message: 'Erro ao listar recebimento' }) }
 
         // Fields do header
         const sqlFields = `
@@ -314,10 +314,11 @@ class RecebimentoMpController {
         const { data, removedProducts, unidadeID } = req.body
         console.log("🚀 ~ removedProducts:", removedProducts)
 
+        if (!id) { return res.json({ message: 'ID não recebido!' }); }
+
         // Header         
         if (data.header) {
             let dataHeader = getDataOfAllTypes(data.header) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
-            // console.log("🚀 ~ dataHeader:", dataHeader)
             const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentompID = ${id}`;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
@@ -327,7 +328,7 @@ class RecebimentoMpController {
         if (data.produtos) {
             for (const produto of data.produtos) {
                 let dataProduto = getDataOfAllTypes(produto) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
-                // console.log("🚀 ~ dataProduto:", dataProduto)
+                console.log("🚀 ~ dataProduto:", dataProduto)
 
                 if (produto.recebimentompProdutoID > 0) { // UPDATE
                     const sqlUpdateProduto = `UPDATE recebimentomp_produto SET ? WHERE recebimentompProdutoID = ?`
@@ -342,10 +343,11 @@ class RecebimentoMpController {
             }
             // Remove os produtos removidos
             if (removedProducts.length > 0) {
-                const sqlRemoveProduct = `DELETE FROM recebimentomp_produto WHERE recebimentompProdutoID IN (${removedProducts.join(',')})`
+                const removedProductIds = removedProducts.map(product => product.recebimentompProdutoID);
+                const sqlRemoveProduct = `DELETE FROM recebimentomp_produto WHERE recebimentompProdutoID IN (${removedProductIds.join(',')})`;
                 const [resultRemoveProduct] = await db.promise().query(sqlRemoveProduct)
                 if (resultRemoveProduct.length === 0) {
-                    return res.status(500).json('Error');
+                    return res.json('Error');
                 }
             }
         }
@@ -398,17 +400,16 @@ class RecebimentoMpController {
                     }
                 }
             }
-
-            // Observação e Status (se houver)
-            const sqlUpdateObs = `UPDATE recebimentomp SET obs = ? ${data.status > 0 ? ', status = ? ' : ''} WHERE recebimentompID = ?`
-            const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [
-                data.obs,
-                ...(data.status > 0 ? [data.status] : []),
-                id
-            ])
-            if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
-
         }
+
+        // Observação e Status (se houver)
+        const sqlUpdateObs = `UPDATE recebimentomp SET obs = ? ${data.status > 0 ? ', status = ? ' : ''} WHERE recebimentompID = ?`
+        const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [
+            data.obs,
+            ...(data.status > 0 ? [data.status] : []),
+            id
+        ])
+        if (resultUpdateObs.length === 0) { return res.json('Error'); }
 
         res.status(200).json({})
     }
@@ -445,10 +446,10 @@ class RecebimentoMpController {
 const getDataOfAllTypes = (dataFromFrontend) => {
     let dataHeader = {}
     for (const key in dataFromFrontend) {
-        if (typeof dataFromFrontend[key] === 'object') {
+        if (typeof dataFromFrontend[key] === 'object' && dataFromFrontend[key]?.id > 0) {
             dataHeader[`${key}ID`] = dataFromFrontend[key].id
         } else if (dataFromFrontend[key]) {
-            dataHeader[key] = dataFromFrontend[key]
+            dataHeader[key] = dataFromFrontend[key] ? dataFromFrontend[key] : null
         }
     }
 
