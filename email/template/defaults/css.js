@@ -1,4 +1,6 @@
 const css = () => {
+    // cor padrão do sistema
+    // background-color: #5A5FE0;
     let css = `
     <head>
         <style>
@@ -18,7 +20,7 @@ const css = () => {
                 background-color: #fff;
             }
             .cabecalho {
-                background-color: #5A5FE0;
+                background-color: #282A42;
                 padding: 25px;
                 z-index: -1;
             }
