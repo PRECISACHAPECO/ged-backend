@@ -5,10 +5,9 @@ const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 class RecebimentoMpController {
     async getList(req, res) {
         const { unidadeID } = req.params;
-        console.log("🚀 ~ unidadeID:", unidadeID)
 
         const sql = `
-        SELECT rm.recebimentompID AS id, DATE_FORMAT(rm.data, "%d/%m/%Y") AS data, t.nome AS transportador, top.nome AS tipoOperacao, rm.status 
+        SELECT rm.recebimentompID AS id, IF(MONTH(rm.data) > 0, DATE_FORMAT(rm.data, "%d/%m/%Y"), '') AS data, t.nome AS transportador, top.nome AS tipoOperacao, rm.status 
         FROM recebimentomp AS rm
             LEFT JOIN transportador AS t ON (rm.transportadorID = t.transportadorID)
             LEFT JOIN tipooperacao AS top ON (rm.tipoOperacaoID = top.tipoOperacaoID)
@@ -32,7 +31,7 @@ class RecebimentoMpController {
                 WHERE pru.unidadeID = ? 
                 ORDER BY pr.ordem ASC`
         const [resultFields] = await db.promise().query(sqlFields, [unidadeID])
-        if (resultFields.length === 0) { res.status(500).json('Error'); }
+        if (resultFields.length === 0) { return res.json({ message: 'Nenhum campo encontrado' }) }
 
         // Varre fields, verificando se há tipo == 'int', se sim, busca opções pra selecionar no select 
         for (const alternatives of resultFields) {
@@ -103,16 +102,16 @@ class RecebimentoMpController {
                 WHERE rpu.unidadeID = ? 
                 ORDER BY rp.ordem ASC`
         const [resultFieldsProducts] = await db.promise().query(sqlFieldsProducts, [unidadeID])
-        if (resultFieldsProducts.length === 0) { return res.status(500).json({ message: 'Erro ao obter produtos!' }); }
+        if (resultFieldsProducts.length === 0) { return res.json({ message: 'Erro ao obter produtos!' }); }
         // Se houver join com outra tabela, monta as opções pra selecionar no select (autocomplete)
         for (const alternatives of resultFieldsProducts) {
             if (alternatives.tipo === 'int' && alternatives.tabela) {
                 // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
                 let sqlProductsOptions = `
-                        SELECT ${alternatives.tabela}ID AS id, nome
-                        FROM ${alternatives.tabela} 
-                        WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
-                        ORDER BY nome ASC`
+                SELECT ${alternatives.tabela}ID AS id, nome
+                FROM ${alternatives.tabela} 
+                WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                ORDER BY nome ASC`
 
                 // Executar select e inserir no objeto alternatives
                 const [resultProductsOptions] = await db.promise().query(sqlProductsOptions)
