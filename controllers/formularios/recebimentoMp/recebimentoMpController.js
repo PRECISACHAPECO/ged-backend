@@ -247,22 +247,22 @@ class RecebimentoMpController {
 
         // Header         
         if (data.header) {
-            let dataHeader = getDataOfAllTypes(data.header) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
+            //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
+            let dataHeader = await formatFieldsToTable('par_recebimentomp', data.header)
             dataHeader.unidadeID = unidadeID
-            console.log('antes: ', data.header)
-            console.log('depois: ', dataHeader)
 
             const sqlInsertHeader = `INSERT INTO recebimentomp SET ?`
             const [resultInsertHeader] = await db.promise().query(sqlInsertHeader, [dataHeader])
             if (resultInsertHeader.length === 0) { return res.status(500).json('Error'); }
             const id = resultInsertHeader.insertId
 
-            if (!id) { return res.status(500).json('Error'); }
+            if (!id) { return res.json('Error'); }
 
             // Produtos 
             if (data.produtos) {
                 for (const produto of data.produtos) {
-                    let dataProduto = getDataOfAllTypes(produto) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
+                    //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
+                    let dataProduto = await formatFieldsToTable('par_recebimentomp_produto', produto)
 
                     dataProduto['recebimentompID'] = id
                     const sqlInsertProduto = `INSERT INTO recebimentomp_produto SET ?`
@@ -312,13 +312,13 @@ class RecebimentoMpController {
     async updateData(req, res) {
         const { id } = req.params
         const { data, removedProducts, unidadeID } = req.body
-        console.log("🚀 ~ removedProducts:", removedProducts)
 
         if (!id) { return res.json({ message: 'ID não recebido!' }); }
 
         // Header         
         if (data.header) {
-            let dataHeader = getDataOfAllTypes(data.header) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
+            //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
+            let dataHeader = await formatFieldsToTable('par_recebimentomp', data.header)
             const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentompID = ${id}`;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
@@ -327,8 +327,8 @@ class RecebimentoMpController {
         // Produtos 
         if (data.produtos) {
             for (const produto of data.produtos) {
-                let dataProduto = getDataOfAllTypes(produto) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
-                console.log("🚀 ~ dataProduto:", dataProduto)
+                //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
+                let dataProduto = await formatFieldsToTable('par_recebimentomp_produto', produto)
 
                 if (produto.recebimentompProdutoID > 0) { // UPDATE
                     const sqlUpdateProduto = `UPDATE recebimentomp_produto SET ? WHERE recebimentompProdutoID = ?`
@@ -362,7 +362,6 @@ class RecebimentoMpController {
                     const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parRecebimentompBlocoID, item.itemID])
 
                     if (resultVerificaResposta.length === 0) {
-                        console.log('Insere resposta')
                         // insert na tabela fornecedor_resposta
                         const sqlInsert = `INSERT INTO recebimentomp_resposta (recebimentompID, parRecebimentompBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
                         const [resultInsert] = await db.promise().query(sqlInsert, [
@@ -375,37 +374,37 @@ class RecebimentoMpController {
                         ])
                         if (resultInsert.length === 0) { return res.status(500).json('Error'); }
                     } else {
-                        console.log('Altera resposta')
                         // update na tabela fornecedor_resposta
                         const sqlUpdate = `
                         UPDATE 
                             recebimentomp_resposta 
-                        SET ${item.resposta ? 'resposta = ?, ' : ''} 
-                            ${item.resposta?.id ? 'respostaID = ?, ' : ''} 
-                            ${item.observacao != undefined ? 'obs = ?, ' : ''} 
+                        SET resposta = ?,
+                            respostaID = ?,
+                            obs = ?,
                             recebimentompID = ?
                         WHERE recebimentompID = ? 
                             AND parRecebimentompBlocoID = ? 
                             AND itemID = ?`
                         const [resultUpdate] = await db.promise().query(sqlUpdate, [
-                            ...(item.resposta?.nome ? [item.resposta.nome] : item.resposta ? [item.resposta] : []),
-                            ...(item.resposta?.id > 0 ? [item.resposta.id] : []),
-                            ...(item.observacao != undefined ? [item.observacao] : []),
+                            ...(item.resposta?.nome ? [item.resposta.nome] : item.resposta ? [item.resposta] : ['']),
+                            ...(item.resposta?.id > 0 ? [item.resposta.id] : [null]),
+                            ...(item.observacao != undefined ? [item.observacao] : ['']),
                             id,
                             id,
                             bloco.parRecebimentompBlocoID,
                             item.itemID
                         ])
-                        if (resultUpdate.length === 0) { return res.status(500).json('Error'); }
+                        if (resultUpdate.length === 0) { return res.json('Error'); }
                     }
                 }
             }
         }
 
         // Observação e Status (se houver)
-        const sqlUpdateObs = `UPDATE recebimentomp SET obs = ? ${data.status > 0 ? ', status = ? ' : ''} WHERE recebimentompID = ?`
+        const sqlUpdateObs = `UPDATE recebimentomp SET obs = ?, obsConclusao = ? ${data.status > 0 ? ', status = ? ' : ''} WHERE recebimentompID = ?`
         const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [
             data.obs,
+            data?.obsConclusao ? data?.obsConclusao : null,
             ...(data.status > 0 ? [data.status] : []),
             id
         ])
@@ -442,17 +441,18 @@ class RecebimentoMpController {
 
 }
 
-// varrer data.header verificando se é um objeto ou nao, se for objeto inserir o id em dataHeader, senao, inserir o valor em dataHeader
-const getDataOfAllTypes = (dataFromFrontend) => {
+//* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
+const formatFieldsToTable = async (table, fields) => {
     let dataHeader = {}
-    for (const key in dataFromFrontend) {
-        if (typeof dataFromFrontend[key] === 'object' && dataFromFrontend[key]?.id > 0) {
-            dataHeader[`${key}ID`] = dataFromFrontend[key].id
-        } else if (dataFromFrontend[key]) {
-            dataHeader[key] = dataFromFrontend[key] ? dataFromFrontend[key] : null
+    for (const columnName in fields) {
+        const sql = `SELECT * FROM ${table} WHERE tabela = "${columnName}" `
+        const [result] = await db.promise().query(sql)
+        if (result.length > 0) {
+            dataHeader[`${columnName}ID`] = fields[columnName]?.id > 0 ? fields[columnName].id : 0
+        } else {
+            dataHeader[columnName] = fields[columnName] ? fields[columnName] : null
         }
     }
-
     return dataHeader;
 }
 
