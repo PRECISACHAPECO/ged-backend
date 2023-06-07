@@ -396,18 +396,21 @@ class FornecedorController {
         for (const bloco of data.blocos) {
             // Itens 
             // Jonatan / Adicionado if (bloco) {
-            if (bloco) {
+            if (bloco && bloco.parFornecedorBlocoID && bloco.parFornecedorBlocoID > 0) {
+                console.log("🚀 ~ bloco.parFornecedorBlocoID:", bloco.parFornecedorBlocoID)
+
                 for (const item of bloco.itens) {
                     // Jonatan / Adicionado if (item) {
-                    if (item) {
-                        console.log("dentro do for", bloco)
-                        if (item.resposta || item.observacao) {
+                    if (item && item.itemID && item.itemID > 0) {
+                        console.log("🚀 ~ item.itemID:", item.itemID)
+
+                        if (item?.resposta || item?.observacao) {
                             // Verifica se já existe registro em fornecedor_resposta, com o fornecedorID, parFornecedorBlocoID e itemID, se houver, faz update, senao faz insert 
                             const sqlVerificaResposta = `SELECT * FROM fornecedor_resposta WHERE fornecedorID = ? AND parFornecedorBlocoID = ? AND itemID = ?`
                             const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parFornecedorBlocoID, item.itemID])
 
                             // Jonatan / Adicionado && bloco.parFornecedorBlocoID && item.itemID
-                            if (resultVerificaResposta.length === 0 && bloco.parFornecedorBlocoID && item.itemID) {
+                            if (resultVerificaResposta.length === 0) {
                                 // insert na tabela fornecedor_resposta
                                 const sqlInsert = `INSERT INTO fornecedor_resposta (fornecedorID, parFornecedorBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
                                 const [resultInsert] = await db.promise().query(sqlInsert, [
@@ -420,22 +423,33 @@ class FornecedorController {
                                 ])
                                 if (resultInsert.length === 0) { return res.json('Error'); }
                                 // Jonatan / Adicionado if (item.respostaID) {
-                            } else if (item.respostaID) {
+                            } else {
                                 // update na tabela fornecedor_resposta
+
+                                console.log('==============>> ')
+
+                                const resposta = item.resposta?.id > 0 ? item.resposta.nome : item.resposta ? item.resposta : ''
+                                const respostaID = item.resposta?.id > 0 ? item.resposta.id : null
+                                const observacao = item.observacao != undefined ? item.observacao : ''
+
+                                console.log("🚀 ~ resposta:", resposta)
+                                console.log("🚀 ~ respostaID:", respostaID)
+                                console.log("🚀 ~ observacao:", observacao)
+
                                 const sqlUpdate = `
-                            UPDATE 
-                                fornecedor_resposta 
-                            SET resposta = ?,
-                                respostaID = ?,
-                                obs = ?,
-                                fornecedorID = ?
-                            WHERE fornecedorID = ? 
-                                AND parFornecedorBlocoID = ? 
-                                AND itemID = ?`
+                                UPDATE 
+                                    fornecedor_resposta 
+                                SET resposta = ?,
+                                    respostaID = ?,
+                                    obs = ?,
+                                    fornecedorID = ?
+                                WHERE fornecedorID = ? 
+                                    AND parFornecedorBlocoID = ? 
+                                    AND itemID = ?`
                                 const [resultUpdate] = await db.promise().query(sqlUpdate, [
-                                    ...(item.resposta?.nome ? [item.resposta.nome] : item.resposta ? [item.resposta] : ['']),
-                                    ...(item.resposta?.id > 0 ? [item.resposta.id] : [null]),
-                                    ...(item.observacao != undefined ? [item.observacao] : ['']),
+                                    resposta,
+                                    respostaID,
+                                    observacao,
                                     id,
                                     id,
                                     bloco.parFornecedorBlocoID,
