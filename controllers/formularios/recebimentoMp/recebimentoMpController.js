@@ -21,7 +21,7 @@ class RecebimentoMpController {
         const { id } = req.params;
         const { type, unidadeID } = req.body;
 
-        if (!id) { return res.json({ message: 'Erro ao listar recebimento' }) }
+        if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar recebimento' }) }
 
         // Fields do header
         const sqlFields = `

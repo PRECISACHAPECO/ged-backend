@@ -14,6 +14,9 @@ class FornecedorController {
 
         //* Fábrica 
         if (papelID == 1) {
+
+            if (!unidadeID) { return res.json({ message: 'Erro ao receber unidadeID!' }) }
+
             const sql = `
             SELECT 
                 f.fornecedorID AS id, 
@@ -31,6 +34,7 @@ class FornecedorController {
         }
         //* Fornecedor 
         else if (papelID == 2 && cnpj) {
+
             const sql = `
             SELECT 
                 f.fornecedorID AS id, 
@@ -54,8 +58,9 @@ class FornecedorController {
     //* Retorna a estrutura do formulário configurada pra aquela unidade
     async getData(req, res) {
         const { id } = req.params; // id do formulário
+        console.log("🚀 ~ id:", id)
 
-        if (!id) { return res.status(409).json({ message: 'No ID received!' }) }
+        if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar formulário!' }) }
 
         //? obtém a unidadeID (fábrica) do formulário, pro formulário ter os campos de preenchimento de acordo com o configurado pra aquela fábrica.
         const sqlUnidade = `
@@ -179,6 +184,14 @@ class FornecedorController {
                 const sqlAlternativa = getAlternativasSql()
                 const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item['parFornecedorBlocoItemID']])
                 item.alternativas = resultAlternativa
+
+                // Cria objeto da resposta (se for de selecionar)
+                if (item?.respostaID > 0) {
+                    item.resposta = {
+                        id: item.respostaID,
+                        nome: item.resposta
+                    }
+                }
             }
 
             bloco.categorias = resultCategorias ? resultCategorias : []
@@ -311,12 +324,16 @@ class FornecedorController {
         const data = req.body.forms
         const { usuarioID, papelID, unidadeID } = req.body.auth
 
+        if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
+
         const sqlSelect = `SELECT status FROM fornecedor WHERE fornecedorID = ?`
         const [resultFornecedor] = await db.promise().query(sqlSelect, [id])
 
         // Atualizar o header e setar o status
         if (data.header) {
-            let dataHeader = getDataOfAllTypes(data.header) // Função que valida tipos dos campos, se for objeto, obtem objeto.id pra somente gravar no BD
+            //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
+            let dataHeader = await formatFieldsToTable('par_fornecedor', data.header)
+            console.log("🚀 ~ dataHeader:", dataHeader)
             const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id}`;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
@@ -341,7 +358,7 @@ class FornecedorController {
             }
         }
 
-        // Atividades
+        // // Atividades
         for (const atividade of data.atividades) {
             if (atividade.checked) {
                 // Verifica se já existe registro desse dado na tabela fornecedor_atividade
@@ -379,7 +396,7 @@ class FornecedorController {
             }
         }
 
-        // Blocos 
+        // // Blocos 
         for (const bloco of data.blocos) {
             // Itens 
             for (const item of bloco.itens) {
@@ -392,40 +409,47 @@ class FornecedorController {
                         console.log('Insere resposta')
                         // insert na tabela fornecedor_resposta
                         const sqlInsert = `INSERT INTO fornecedor_resposta (fornecedorID, parFornecedorBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [id, bloco.parFornecedorBlocoID, item.itemID, (item.resposta ?? ''), (item.respostaID ?? 0), (item.observacao ?? '')])
-                        if (resultInsert.length === 0) { return res.status(500).json('Error'); }
+                        const [resultInsert] = await db.promise().query(sqlInsert, [
+                            id,
+                            bloco.parFornecedorBlocoID,
+                            item.itemID,
+                            (item.resposta?.nome ? item.resposta.nome : item.resposta ? item.resposta : ''),
+                            (item.resposta?.id > 0 ? item.resposta.id : 0),
+                            (item.observacao ?? '')
+                        ])
+                        if (resultInsert.length === 0) { return res.json('Error'); }
                     } else {
-                        console.log('Altera resposta')
+                        console.log('Altera resposta: ', item)
                         // update na tabela fornecedor_resposta
                         const sqlUpdate = `
                         UPDATE 
                             fornecedor_resposta 
-                        SET ${item.resposta ? 'resposta = ?, ' : ''} 
-                            ${item.respostaID ? 'respostaID = ?, ' : ''} 
-                            ${item.observacao != undefined ? 'obs = ?, ' : ''} 
+                        SET resposta = ?,
+                            respostaID = ?,
+                            obs = ?,
                             fornecedorID = ?
                         WHERE fornecedorID = ? 
                             AND parFornecedorBlocoID = ? 
                             AND itemID = ?`
                         const [resultUpdate] = await db.promise().query(sqlUpdate, [
-                            ...(item.resposta ? [item.resposta] : []),
-                            ...(item.respostaID ? [item.respostaID] : []),
-                            ...(item.observacao != undefined ? [item.observacao] : []),
+                            ...(item.resposta?.nome ? [item.resposta.nome] : item.resposta ? [item.resposta] : ['']),
+                            ...(item.resposta?.id > 0 ? [item.resposta.id] : [null]),
+                            ...(item.observacao != undefined ? [item.observacao] : ['']),
                             id,
                             id,
                             bloco.parFornecedorBlocoID,
                             item.itemID
                         ])
-                        if (resultUpdate.length === 0) { return res.status(500).json('Error'); }
+                        if (resultUpdate.length === 0) { return res.json('Error'); }
                     }
                 }
             }
         } // laço blocos..
 
-        // Observação
+        // // Observação
         const sqlUpdateObs = `UPDATE fornecedor SET obs = ? WHERE fornecedorID = ?`
         const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, id])
-        if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
+        if (resultUpdateObs.length === 0) { return res.json('Error'); }
 
         //* Status (só altera se for fornecedor)
         //? É um fornecedor e é um status anterior, seta status pra "Em preenchimento" (30)
@@ -855,6 +879,21 @@ const getDataOfAllTypes = (dataFromFrontend) => {
         }
     }
 
+    return dataHeader;
+}
+
+//* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
+const formatFieldsToTable = async (table, fields) => {
+    let dataHeader = {}
+    for (const columnName in fields) {
+        const sql = `SELECT * FROM ${table} WHERE tabela = "${columnName}" `
+        const [result] = await db.promise().query(sql)
+        if (result.length > 0) {
+            dataHeader[`${columnName}ID`] = fields[columnName]?.id > 0 ? fields[columnName].id : 0
+        } else {
+            dataHeader[columnName] = fields[columnName] ? fields[columnName] : null
+        }
+    }
     return dataHeader;
 }
 
