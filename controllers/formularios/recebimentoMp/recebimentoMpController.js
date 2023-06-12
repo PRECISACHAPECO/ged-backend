@@ -1,6 +1,7 @@
 const db = require('../../../config/db');
 require('dotenv/config')
 const { hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { addFormStatusMovimentation } = require('../../../defaults/functions');
 
 class RecebimentoMpController {
     async getList(req, res) {
@@ -354,47 +355,55 @@ class RecebimentoMpController {
 
         // Blocos 
         for (const bloco of data.blocos) {
-            // Itens 
-            for (const item of bloco.itens) {
-                if (item.resposta || item.observacao) {
-                    // Verifica se já existe registro em fornecedor_resposta, com o fornecedorID, parFornecedorBlocoID e itemID, se houver, faz update, senao faz insert 
-                    const sqlVerificaResposta = `SELECT * FROM recebimentomp_resposta WHERE recebimentompID = ? AND parRecebimentompBlocoID = ? AND itemID = ?`
-                    const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parRecebimentompBlocoID, item.itemID])
+            if (bloco && bloco.parRecebimentompBlocoID && bloco.parRecebimentompBlocoID > 0) {
+                // Itens 
+                for (const item of bloco.itens) {
+                    if (item && item.itemID && item.itemID > 0) {
+                        if (item.resposta || item.observacao) {
+                            // Verifica se já existe registro em fornecedor_resposta, com o fornecedorID, parFornecedorBlocoID e itemID, se houver, faz update, senao faz insert 
+                            const sqlVerificaResposta = `SELECT * FROM recebimentomp_resposta WHERE recebimentompID = ? AND parRecebimentompBlocoID = ? AND itemID = ?`
+                            const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parRecebimentompBlocoID, item.itemID])
 
-                    if (resultVerificaResposta.length === 0) {
-                        // insert na tabela fornecedor_resposta
-                        const sqlInsert = `INSERT INTO recebimentomp_resposta (recebimentompID, parRecebimentompBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [
-                            id,
-                            bloco.parRecebimentompBlocoID,
-                            item.itemID,
-                            (item.resposta?.nome ? item.resposta.nome : item.resposta ? item.resposta : ''),
-                            (item.resposta?.id > 0 ? item.resposta.id : 0),
-                            (item.observacao ?? '')
-                        ])
-                        if (resultInsert.length === 0) { return res.status(500).json('Error'); }
-                    } else {
-                        // update na tabela fornecedor_resposta
-                        const sqlUpdate = `
-                        UPDATE 
-                            recebimentomp_resposta 
-                        SET resposta = ?,
-                            respostaID = ?,
-                            obs = ?,
-                            recebimentompID = ?
-                        WHERE recebimentompID = ? 
-                            AND parRecebimentompBlocoID = ? 
-                            AND itemID = ?`
-                        const [resultUpdate] = await db.promise().query(sqlUpdate, [
-                            ...(item.resposta?.nome ? [item.resposta.nome] : item.resposta ? [item.resposta] : ['']),
-                            ...(item.resposta?.id > 0 ? [item.resposta.id] : [null]),
-                            ...(item.observacao != undefined ? [item.observacao] : ['']),
-                            id,
-                            id,
-                            bloco.parRecebimentompBlocoID,
-                            item.itemID
-                        ])
-                        if (resultUpdate.length === 0) { return res.json('Error'); }
+                            const resposta = item.resposta?.id > 0 ? item.resposta.nome : item.resposta ? item.resposta : ''
+                            const respostaID = item.resposta?.id > 0 ? item.resposta.id : null
+                            const observacao = item.observacao != undefined ? item.observacao : ''
+
+                            if (resultVerificaResposta.length === 0) {
+                                // insert na tabela fornecedor_resposta
+                                const sqlInsert = `INSERT INTO recebimentomp_resposta (recebimentompID, parRecebimentompBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
+                                const [resultInsert] = await db.promise().query(sqlInsert, [
+                                    id,
+                                    bloco.parRecebimentompBlocoID,
+                                    item.itemID,
+                                    resposta,
+                                    respostaID,
+                                    observacao,
+                                ])
+                                if (resultInsert.length === 0) { return res.status(500).json('Error'); }
+                            } else {
+                                // update na tabela fornecedor_resposta
+                                const sqlUpdate = `
+                                UPDATE 
+                                    recebimentomp_resposta 
+                                SET resposta = ?,
+                                    respostaID = ?,
+                                    obs = ?,
+                                    recebimentompID = ?
+                                WHERE recebimentompID = ? 
+                                    AND parRecebimentompBlocoID = ? 
+                                    AND itemID = ?`
+                                const [resultUpdate] = await db.promise().query(sqlUpdate, [
+                                    resposta,
+                                    respostaID,
+                                    observacao,
+                                    id,
+                                    id,
+                                    bloco.parRecebimentompBlocoID,
+                                    item.itemID
+                                ])
+                                if (resultUpdate.length === 0) { return res.json('Error'); }
+                            }
+                        }
                     }
                 }
             }
@@ -411,6 +420,28 @@ class RecebimentoMpController {
         if (resultUpdateObs.length === 0) { return res.json('Error'); }
 
         res.status(200).json({})
+    }
+
+    //? Atualiza status
+    async changeFormStatus(req, res) {
+        const { id } = req.params
+        const status = req.body.status
+        const { usuarioID, papelID, unidadeID } = req.body.auth
+
+        const sqlData = `SELECT status FROM recebimentomp WHERE recebimentompID = ?`
+        const [resultData] = await db.promise().query(sqlData, [id])
+
+        //? Atualiza status do formulário
+        if (status) {
+            const sqlUpdateStatus = `UPDATE recebimentomp SET status = ? WHERE recebimentompID = ?`
+            const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [status, id])
+
+            //? Gera histórico de alteração de status
+            const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, resultData[0]['status'] ?? '0', status)
+            if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+        }
+
+        res.status(200).json({ message: 'Ok' })
     }
 
     deleteData(req, res) {
