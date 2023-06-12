@@ -458,16 +458,16 @@ class FornecedorController {
         const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, data.obsConclusao, id])
         if (resultUpdateObs.length === 0) { return res.json('Error'); }
 
-        //* Status (só altera se for fornecedor)
+        //* Status
         //? É um fornecedor e é um status anterior, seta status pra "Em preenchimento" (30)
-        if (papelID == 2) {
-            const newStatus = resultFornecedor[0]['status'] < 30 ? 30 : data.status
-            console.log("🚀 ~ newStatus:", newStatus)
+        const newStatus = papelID == 2 && data.status != 40 ? 30 : data.status
+        console.log("🚀 ~ newStatus:", newStatus)
 
-            const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ?`
-            const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])
+        const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ?`
+        const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])
 
-            //? Gera histórico de alteração de status
+        //? Gera histórico de alteração de status (se houve alteração)
+        if (resultFornecedor[0]['status'] != newStatus) {
             const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', newStatus)
             if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
         }
