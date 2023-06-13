@@ -312,9 +312,14 @@ class RecebimentoMpController {
 
     async updateData(req, res) {
         const { id } = req.params
-        const { data, removedProducts, unidadeID } = req.body
+        const data = req.body.forms
+        const { usuarioID, papelID, unidadeID } = req.body.auth
+        console.log("🚀 ~ usuarioID, papelID, unidadeID:", usuarioID, papelID, unidadeID)
 
-        if (!id) { return res.json({ message: 'ID não recebido!' }); }
+        if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
+
+        const sqlStatus = `SELECT status FROM recebimentomp WHERE recebimentompID = ?`
+        const [resultStatus] = await db.promise().query(sqlStatus, [id])
 
         // Header         
         if (data.header) {
@@ -343,8 +348,8 @@ class RecebimentoMpController {
                 }
             }
             // Remove os produtos removidos
-            if (removedProducts.length > 0) {
-                const removedProductIds = removedProducts.map(product => product.recebimentompProdutoID);
+            if (data.removedProducts.length > 0) {
+                const removedProductIds = data.removedProducts.map(product => product.recebimentompProdutoID);
                 const sqlRemoveProduct = `DELETE FROM recebimentomp_produto WHERE recebimentompProdutoID IN (${removedProductIds.join(',')})`;
                 const [resultRemoveProduct] = await db.promise().query(sqlRemoveProduct)
                 if (resultRemoveProduct.length === 0) {
@@ -419,7 +424,31 @@ class RecebimentoMpController {
         ])
         if (resultUpdateObs.length === 0) { return res.json('Error'); }
 
+        //? Gera histórico de alteração de status (se alterou de status)
+        if (resultStatus[0]['status'] != data.status) {
+            const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, resultStatus[0]['status'] ?? '0', data.status)
+            if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+        }
+
         res.status(200).json({})
+    }
+
+    async verifyFormPending(req, res) {
+        const { id } = req.params;
+        const { parFormularioID } = req.body;
+
+        //? Recebimento MP
+        if (parFormularioID == 2) {
+            //todo Inserir tabela verificando se há ocorrencia de recebimentompID
+            // const sql = `SELECT * FROM recebimentomp WHERE fornecedorID = ?`
+            // const [result] = await db.promise().query(sql, [id])
+            // const pending = result.length === 0 ? false : true
+
+            const pending = false
+            return res.status(200).json(pending)
+        }
+
+        res.status(200).json(true)
     }
 
     //? Atualiza status

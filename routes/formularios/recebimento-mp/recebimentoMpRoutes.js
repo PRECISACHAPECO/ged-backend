@@ -14,5 +14,6 @@ recebimentoMpRoutes.put(`${route}/:id`, recebimentoMpController.updateData);
 
 recebimentoMpRoutes.delete(`${route}/:id`, recebimentoMpController.deleteData);
 recebimentoMpRoutes.post(`${route}/changeFormStatus/:id`, recebimentoMpController.changeFormStatus);
+recebimentoMpRoutes.post(`${route}/verifyFormPending/:id`, recebimentoMpController.verifyFormPending);
 
 module.exports = recebimentoMpRoutes;
