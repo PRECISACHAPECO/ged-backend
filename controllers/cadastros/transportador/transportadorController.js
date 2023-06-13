@@ -81,7 +81,7 @@ class TransportadorController {
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'transportador',
+            table: ['transportador'],
             column: 'transportadorID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual

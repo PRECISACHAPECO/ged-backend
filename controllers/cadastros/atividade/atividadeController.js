@@ -72,7 +72,7 @@ class AtividadeController {
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'atividade',
+            table: ['atividade'],
             column: 'atividadeID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual

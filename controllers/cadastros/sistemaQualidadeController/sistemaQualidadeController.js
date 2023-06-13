@@ -77,7 +77,7 @@ class SistemaQualidadeController {
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'sistemaqualidade',
+            table: ['sistemaqualidade'],
             column: 'sistemaQualidadeID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual

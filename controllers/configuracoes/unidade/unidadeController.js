@@ -108,7 +108,7 @@ class UnidadeController {
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'unidade',
+            table: ['unidade'],
             column: 'unidadeID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
