@@ -18,46 +18,18 @@ class RecebimentoMpController {
         res.status(200).json(result)
     }
 
+    async getNewData(req, res) {
+
+    }
+
     async getData(req, res) {
         const { id } = req.params;
         const { type, unidadeID } = req.body;
 
         if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar recebimento' }) }
 
-        // Fields do header
-        const sqlFields = `
-                SELECT * 
-                FROM par_recebimentomp AS pr 
-                    JOIN par_recebimentomp_unidade AS pru ON (pr.parRecebimentompID = pru.parRecebimentompID) 
-                WHERE pru.unidadeID = ? 
-                ORDER BY pr.ordem ASC`
-        const [resultFields] = await db.promise().query(sqlFields, [unidadeID])
-        if (resultFields.length === 0) { return res.json({ message: 'Nenhum campo encontrado' }) }
-
-        // Varre fields, verificando se há tipo == 'int', se sim, busca opções pra selecionar no select 
-        for (const alternatives of resultFields) {
-            if (alternatives.tipo === 'int' && alternatives.tabela) {
-                // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
-                let sqlOptions = ``
-                if (alternatives.tabela == 'fornecedor') {
-                    sqlOptions = `
-                    SELECT fornecedorID AS id, nome AS nome
-                    FROM fornecedor 
-                    WHERE atual = 1 AND status = 70 AND unidadeID = ${unidadeID} 
-                    ORDER BY nome ASC`
-                } else {
-                    sqlOptions = `
-                    SELECT ${alternatives.tabela}ID AS id, nome
-                    FROM ${alternatives.tabela} 
-                    WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
-                    ORDER BY nome ASC`
-                }
-
-                // Executar select e inserir no objeto alternatives
-                const [resultOptions] = await db.promise().query(sqlOptions)
-                alternatives.options = resultOptions
-            }
-        }
+        //? Fields do header
+        const resultFields = await getFields(unidadeID)
 
         // Varrer result, pegando nomeColuna e inserir em um array se row.tabela == null
         let columns = []
@@ -95,30 +67,8 @@ class RecebimentoMpController {
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-        // Fields dos Produtos (colunas)
-        const sqlFieldsProducts = `
-                SELECT * 
-                FROM par_recebimentomp_produto AS rp 
-                    JOIN par_recebimentomp_produto_unidade AS rpu ON (rp.parRecebimentoMpProdutoID = rpu.parRecebimentoMpProdutoID) 
-                WHERE rpu.unidadeID = ? 
-                ORDER BY rp.ordem ASC`
-        const [resultFieldsProducts] = await db.promise().query(sqlFieldsProducts, [unidadeID])
-        if (resultFieldsProducts.length === 0) { return res.json({ message: 'Erro ao obter produtos!' }); }
-        // Se houver join com outra tabela, monta as opções pra selecionar no select (autocomplete)
-        for (const alternatives of resultFieldsProducts) {
-            if (alternatives.tipo === 'int' && alternatives.tabela) {
-                // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
-                let sqlProductsOptions = `
-                SELECT ${alternatives.tabela}ID AS id, nome
-                FROM ${alternatives.tabela} 
-                WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
-                ORDER BY nome ASC`
-
-                // Executar select e inserir no objeto alternatives
-                const [resultProductsOptions] = await db.promise().query(sqlProductsOptions)
-                alternatives.options = resultProductsOptions
-            }
-        }
+        //? Fields dos Produtos (colunas)
+        const resultFieldsProducts = await getFieldsProduct(unidadeID)
 
         // Dados (linhas)
         let dataProducts = []
@@ -499,6 +449,73 @@ class RecebimentoMpController {
             });
     }
 
+}
+
+//* Obtém colunas
+const getFields = async (unidadeID) => {
+    const sqlFields = `
+            SELECT * 
+            FROM par_recebimentomp AS pr 
+                JOIN par_recebimentomp_unidade AS pru ON (pr.parRecebimentompID = pru.parRecebimentompID) 
+            WHERE pru.unidadeID = ? 
+            ORDER BY pr.ordem ASC`
+    const [resultFields] = await db.promise().query(sqlFields, [unidadeID])
+    if (resultFields.length === 0) { return res.json({ message: 'Nenhum campo encontrado' }) }
+
+    // Varre fields, verificando se há tipo == 'int', se sim, busca opções pra selecionar no select 
+    for (const alternatives of resultFields) {
+        if (alternatives.tipo === 'int' && alternatives.tabela) {
+            // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
+            let sqlOptions = ``
+            if (alternatives.tabela == 'fornecedor') {
+                sqlOptions = `
+                SELECT fornecedorID AS id, nome AS nome
+                FROM fornecedor 
+                WHERE atual = 1 AND status = 70 AND unidadeID = ${unidadeID} 
+                ORDER BY nome ASC`
+            } else {
+                sqlOptions = `
+                SELECT ${alternatives.tabela}ID AS id, nome
+                FROM ${alternatives.tabela} 
+                WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                ORDER BY nome ASC`
+            }
+
+            // Executar select e inserir no objeto alternatives
+            const [resultOptions] = await db.promise().query(sqlOptions)
+            alternatives.options = resultOptions
+        }
+    }
+
+    return resultFields
+}
+
+const getFieldsProduct = async (unidadeID) => {
+    const sqlFieldsProducts = `
+    SELECT * 
+    FROM par_recebimentomp_produto AS rp 
+        JOIN par_recebimentomp_produto_unidade AS rpu ON (rp.parRecebimentoMpProdutoID = rpu.parRecebimentoMpProdutoID) 
+    WHERE rpu.unidadeID = ? 
+    ORDER BY rp.ordem ASC`
+    const [resultFieldsProducts] = await db.promise().query(sqlFieldsProducts, [unidadeID])
+    if (resultFieldsProducts.length === 0) { return res.json({ message: 'Erro ao obter produtos!' }); }
+    // Se houver join com outra tabela, monta as opções pra selecionar no select (autocomplete)
+    for (const alternatives of resultFieldsProducts) {
+        if (alternatives.tipo === 'int' && alternatives.tabela) {
+            // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
+            let sqlProductsOptions = `
+                SELECT ${alternatives.tabela}ID AS id, nome
+                FROM ${alternatives.tabela} 
+                WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                ORDER BY nome ASC`
+
+            // Executar select e inserir no objeto alternatives
+            const [resultProductsOptions] = await db.promise().query(sqlProductsOptions)
+            alternatives.options = resultProductsOptions
+        }
+    }
+
+    return resultFieldsProducts
 }
 
 //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
