@@ -61,7 +61,7 @@ class ProdutosController {
                 res.status(500).json(err);
             } else {
                 // Verifica se já existe um registro com o mesmo nome e id diferente
-                const rows = [] //result.find(row => row.nome == nome && row.produtoID != id);
+                const rows = result.find(row => row.nome == nome && row.produtoID != id);
                 if (rows) {
                     res.status(409).json({ message: "Dados já cadastrados!" });
                 } else {
@@ -82,7 +82,7 @@ class ProdutosController {
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'produto',
+            table: ['produto'],
             column: 'produtoID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual

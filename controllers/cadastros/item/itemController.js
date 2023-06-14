@@ -125,7 +125,7 @@ class ItemController {
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'item',
+            table: ['item'],
             column: 'itemID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual

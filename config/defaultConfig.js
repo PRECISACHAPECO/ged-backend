@@ -90,7 +90,8 @@ const getMenuPermissions = async (papelID, usuarioID, unidadeID) => {
     return menu;
 }
 
-const hasPending = (id, column, tables) => {
+
+const hasPending = async (id, column, tables) => {
     if (!tables) {
         // Se tables é nulo, você pode retornar uma Promise rejeitada com uma mensagem de erro
         return Promise.resolve('Erro hasPending: parâmetro tables é nulo');
@@ -112,16 +113,14 @@ const hasPending = (id, column, tables) => {
     });
 };
 
-const deleteItem = (id, table, column, res) => {
-    db.query(`DELETE FROM ${table} WHERE ${column} = ?`, [id], (err, result) => {
-        if (err) {
-            console.log(err);
-            res.status(500).json(err);
-        } else {
-            res.status(200).json(result);
-        }
-    });
+const deleteItem = async (id, table, column, res) => {
+    for (const item of table) {
+        console.log("🚀 ~ item:", id, item, column)
+        const [result] = await db.promise().query(`DELETE FROM ${item} WHERE ${column} = ?`, [id])
+    }
+    return res.json({})
 }
+
 
 const criptoMd5 = (senha) => {
     const crypto = require('crypto');
