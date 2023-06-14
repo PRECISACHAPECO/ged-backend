@@ -8,7 +8,7 @@ const route = '/grupo-anexos';
 
 grupoAnexosRoutes.get(`${route}`, grupoAnexosController.getList);
 
-grupoAnexosRoutes.get(`${route}/novo/getData/:id`, grupoAnexosController.getData);
+grupoAnexosRoutes.get(`${route}/getData/:id`, grupoAnexosController.getData);
 grupoAnexosRoutes.get(`${route}/novo/getDataNew`, grupoAnexosController.getDataNew);
 
 grupoAnexosRoutes.post(`${route}/:id`, grupoAnexosController.updateData);

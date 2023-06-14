@@ -61,7 +61,7 @@ class ProdutosController {
                 res.status(500).json(err);
             } else {
                 // Verifica se já existe um registro com o mesmo nome e id diferente
-                const rows = [] //result.find(row => row.nome == nome && row.produtoID != id);
+                const rows = result.find(row => row.nome == nome && row.produtoID != id);
                 if (rows) {
                     res.status(409).json({ message: "Dados já cadastrados!" });
                 } else {

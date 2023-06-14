@@ -114,16 +114,13 @@ const hasPending = async (id, column, tables) => {
 };
 
 const deleteItem = async (id, table, column, res) => {
-    table.map(async (item) => {
-        await db.promise().query(`DELETE FROM ${item} WHERE ${column} = ?`, [id])
-            .then(result => {
-                return res.status(200).json({ message: 'Deletado com sucesso' })
-            }).catch(error => {
-                return res.json({ message: 'Erro interno do servidor' })
-            })
-    })
-
+    for (const item of table) {
+        console.log("🚀 ~ item:", id, item, column)
+        const [result] = await db.promise().query(`DELETE FROM ${item} WHERE ${column} = ?`, [id])
+    }
+    return res.json({})
 }
+
 
 const criptoMd5 = (senha) => {
     const crypto = require('crypto');

@@ -4,13 +4,16 @@ const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 class GrupoAnexosController {
     async getList(req, res) {
         try {
-            const sqlGetGrupoAnexos = `SELECT grupoanexoID AS id, a.nome, a.status, a.descricao, b.nome AS formulario FROM grupoanexo AS a LEFT JOIN par_formulario b ON (a.parFormularioID = b.parFormularioID) ORDER BY b.parFormularioID ASC, a.nome ASC`
+            const sqlGetGrupoAnexos = `
+            SELECT grupoanexoID AS id, a.nome, a.status, a.descricao
+            FROM grupoanexo AS a 
+            ORDER BY a.nome ASC`
             const [resultSqlGetGrupoAnexos] = await db.promise().query(sqlGetGrupoAnexos);
             return res.status(200).json(resultSqlGetGrupoAnexos)
             console.log(resultSqlGetGrupoAnexos)
         }
         catch (err) {
-            return res.status(500).json(err);
+            return res.json(err);
         }
     }
 
@@ -18,20 +21,19 @@ class GrupoAnexosController {
         const id = req.params.id
         try {
             const sqlData = `
-                    SELECT a.grupoanexoID AS id, a.nome, a.descricao, a.status, b.parFormularioID, b.nome AS formulario
-                    FROM grupoanexo AS a 
-                        JOIN par_formulario AS b ON (a.parFormularioID = b.parFormularioID)
-                    WHERE a.grupoanexoID = ?`
+            SELECT a.grupoanexoID AS id, a.nome, a.descricao, a.status
+            FROM grupoanexo AS a 
+            WHERE a.grupoanexoID = ?`
             const [resultData] = await db.promise().query(sqlData, [id]);
 
             if (!resultData || resultData.length === 0) {
                 return res.status(404).json({ error: "Nenhum dado encontrado." });
             }
 
-            const [resultOptionsFormulario] = await db.promise().query("SELECT  *, par_formulario.parFormularioID AS id FROM par_formulario");
+            const [resultOptionsFormulario] = await db.promise().query("SELECT *, par_formulario.parFormularioID AS id FROM par_formulario");
 
-            const requisitosSql = `SELECT * FROM  grupoanexo_item WHERE grupoanexoID = ?`
-            const [resultRequisitos] = await db.promise().query(requisitosSql, [req.params.id]);
+            const requisitosSql = `SELECT * FROM grupoanexo_item WHERE grupoanexoID = ?`
+            const [resultRequisitos] = await db.promise().query(requisitosSql, [id]);
 
             const objForm = {
                 id: resultData[0].parFormularioID,
@@ -50,21 +52,17 @@ class GrupoAnexosController {
         }
     }
 
-    async getDataNew(req, res, next) {
+    async getDataNew(req, res) {
 
         try {
-            const [resultOptionsFormulario] = await db.promise().query("SELECT  *, par_formulario.parFormularioID AS id FROM par_formulario");
-
             const objForm = {
                 id: null,
                 nome: null,
-                options: resultOptionsFormulario
+                options: null
             }
-
             const result = {}
-            result.formulario = objForm
+            result.formulario = []
             result.requisitos = []
-
             res.status(200).json(result);
         } catch (error) {
             console.error("Erro ao buscar dados no banco de dados: ", error);
@@ -74,11 +72,12 @@ class GrupoAnexosController {
 
     async insertData(req, res) {
         const newData = req.body.newData
+        const unidadeID = newData.unidade
 
         try {
             //? Insere os dados do grupo
-            const sqlInsertData = `INSERT INTO grupoanexo (nome, descricao, parFormularioID, status) VALUES (?, ?, ?, ?)`
-            const [resultSqlExistsItem] = await db.promise().query(sqlInsertData, [newData.nome, newData.descricao, newData.formulario.parFormularioID, newData.status == true ? 1 : 0]);
+            const sqlInsertData = `INSERT INTO grupoanexo (nome, descricao, unidadeID, status) VALUES (?, ?, ?, ?)`
+            const [resultSqlExistsItem] = await db.promise().query(sqlInsertData, [newData.nome, newData.descricao, unidadeID, newData.status == true ? 1 : 0]);
             const idGroup = resultSqlExistsItem.insertId
 
             // //? Insere os dados dos itens do grupo
@@ -95,7 +94,6 @@ class GrupoAnexosController {
 
     }
 
-
     //! Atualiza os dados no banco de dados
     async updateData(req, res) {
         const { id } = req.params
@@ -108,8 +106,8 @@ class GrupoAnexosController {
             if (resultSqlExistItem) {
                 //? Verifica se grupoanexo existe no banco
                 //? Faz update no grupoanexo
-                const sqlUpdateGrupoAnexo = `UPDATE grupoanexo SET nome = ? ,descricao = ? ,parFormularioID = ? ,status = ? WHERE grupoanexoID = ?`;
-                const [resultSqlUpdateGrupoAnexo] = await db.promise().query(sqlUpdateGrupoAnexo, [newData.nome, newData.descricao, newData.formulario.id, newData.status, id]);
+                const sqlUpdateGrupoAnexo = `UPDATE grupoanexo SET nome = ? ,descricao = ?  ,status = ? WHERE grupoanexoID = ?`;
+                const [resultSqlUpdateGrupoAnexo] = await db.promise().query(sqlUpdateGrupoAnexo, [newData.nome, newData.descricao, newData.status, id]);
                 //? Faz update no item do grupo de anexos
                 const sqlUpdateItem = `UPDATE grupoanexo_item SET nome = ? ,descricao = ? ,grupoanexoID = ? ,status = ?, obrigatorio = ? WHERE grupoanexoitemID = ?`
                 //? Insere novo tem no grupo de anexos
@@ -154,16 +152,17 @@ class GrupoAnexosController {
         }
     }
 
-    deleteData(req, res) {
+    async deleteData(req, res) {
         const { id } = req.params
         const objModule = {
             table: ['grupoanexo', 'grupoanexo_item'],
-            column: 'grupoanexoID '
+            column: 'grupoanexoID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
 
         if (!tablesPending || tablesPending.length === 0) {
-            return deleteItem(id, objModule.table, objModule.column, res)
+            console.log("entrou ")
+            return await deleteItem(id, objModule.table, objModule.column, res)
         }
 
         hasPending(id, objModule.column, tablesPending)
