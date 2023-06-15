@@ -31,10 +31,10 @@ const addFormStatusMovimentation = async (parFormularioID, id, usuarioID, unidad
 const formatFieldsToTable = async (table, fields) => {
     let dataHeader = {}
     for (const columnName in fields) {
-        const sql = `SELECT * FROM ${table} WHERE tabela = "${columnName}" `
+        const sql = `SELECT nomeColuna FROM ${table} WHERE tabela = "${columnName}" `
         const [result] = await db.promise().query(sql)
         if (result.length > 0) {
-            dataHeader[`${columnName}ID`] = fields[columnName]?.id > 0 ? fields[columnName].id : 0
+            dataHeader[result[0]['nomeColuna']] = fields[columnName]?.id > 0 ? fields[columnName].id : 0
         } else {
             dataHeader[columnName] = fields[columnName] ? fields[columnName] : null
         }

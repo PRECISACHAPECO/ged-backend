@@ -12,16 +12,15 @@ class FornecedorController {
 
         //* Fábrica 
         if (papelID == 1) {
-
             if (!unidadeID) { return res.json({ message: 'Erro ao receber unidadeID!' }) }
-
             const sql = `
             SELECT 
                 f.fornecedorID AS id, 
-                IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS dataAvaliacao,
-                f.cnpj, 
-                IF(f.nome <> '', f.nome, '--') AS fantasia, 
+                IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
+                IF(f.nome <> '', f.nome, '--') AS fornecedor, 
+                IF(f.cnpj <> '', f.cnpj, '--') AS cnpj, 
                 IF(f.cidade <> '', CONCAT(f.cidade, '/', f.estado), '--') AS cidade,
+                IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,
                 f.status
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON (f.unidadeID = u.unidadeID)
@@ -32,15 +31,15 @@ class FornecedorController {
         }
         //* Fornecedor 
         else if (papelID == 2 && cnpj) {
-
             const sql = `
             SELECT 
                 f.fornecedorID AS id, 
-                DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y") AS dataAvaliacao,
-                f.status, 
-                IF(u.nomeFantasia <> '', u.nomeFantasia, '') AS fabrica,
-                IF(u.cnpj <> '', u.cnpj, '') AS cnpjFabrica,
-                IF(u.cidade <> '', CONCAT(u.cidade, '/', u.uf), '') AS cidade
+                IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data, 
+                IF(u.nomeFantasia <> '', u.nomeFantasia, '--') AS fabrica,
+                IF(u.cnpj <> '', u.cnpj, '--') AS cnpj,
+                IF(u.cidade <> '', CONCAT(u.cidade, '/', u.uf), '--') AS cidade,
+                IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,
+                f.status
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON (f.unidadeID = u.unidadeID)
             WHERE f.cnpj = "${cnpj}"
@@ -782,6 +781,7 @@ class FornecedorController {
 
         res.status(201).json({ message: 'Nenhum dado encontrado!' })
     }
+
     async verifyFormPending(req, res) {
         const { id } = req.params;
         const { parFormularioID } = req.body;
