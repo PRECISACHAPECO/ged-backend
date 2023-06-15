@@ -1,7 +1,6 @@
 const db = require('../../../config/db');
-require('dotenv/config')
 const { hasPending, deleteItem } = require('../../../config/defaultConfig');
-const { addFormStatusMovimentation } = require('../../../defaults/functions');
+const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
 
 class RecebimentoMpController {
     async getList(req, res) {
@@ -19,7 +18,28 @@ class RecebimentoMpController {
     }
 
     async getNewData(req, res) {
+        const { unidadeID } = req.body;
 
+        //? Fields do header
+        const resultFields = await getFields(unidadeID)
+        //? Fields dos Produtos (colunas)
+        const resultFieldsProducts = await getFieldsProduct(unidadeID)
+        //? Blocos 
+        const resultBlocos = await getBlocks(0, unidadeID)
+
+        const data = {
+            fields: resultFields,
+            data: null,
+            fieldsProducts: resultFieldsProducts,
+            dataProducts: [{}], //? Inicia com 1 produto aberto
+            blocos: resultBlocos,
+            info: {
+                obs: null,
+                status: null,
+            }
+        }
+
+        res.status(200).json(data);
     }
 
     async getData(req, res) {
@@ -106,66 +126,8 @@ class RecebimentoMpController {
             }
         }
 
-        ///////////////////////////////////////////////////////////////////////////////////////////////////
-
-        // Blocos 
-        const sqlBlocos = `
-        SELECT * 
-        FROM par_recebimentomp_bloco
-        WHERE unidadeID = ? AND status = 1
-        ORDER BY ordem ASC`
-        const [resultBlocos] = await db.promise().query(sqlBlocos, [unidadeID])
-
-        // Itens
-        const sqlItem = `
-        SELECT prbi.*, i.*, a.nome AS alternativa,
-
-            (SELECT rr.respostaID
-            FROM recebimentomp_resposta AS rr 
-            WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID
-            LIMIT 1) AS respostaID,
-            
-            (SELECT rr.resposta
-            FROM recebimentomp_resposta AS rr 
-            WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID
-            LIMIT 1) AS resposta,
-
-            (SELECT rr.obs
-            FROM recebimentomp_resposta AS rr 
-            WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID
-            LIMIT 1) AS observacao
-
-        FROM par_recebimentomp_bloco_item AS prbi 
-            LEFT JOIN item AS i ON (prbi.itemID = i.itemID)
-            LEFT JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
-        WHERE prbi.parRecebimentompBlocoID = ?
-        ORDER BY prbi.ordem ASC`
-        for (const item of resultBlocos) {
-            const [resultItem] = await db.promise().query(sqlItem, [id, id, id, item.parRecebimentompBlocoID])
-
-            // Obter alternativas para cada item 
-            for (const item2 of resultItem) {
-
-                // Cria objeto da resposta (se for de selecionar)
-                if (item2?.respostaID > 0) {
-                    item2.resposta = {
-                        id: item2.respostaID,
-                        nome: item2.resposta
-                    }
-                }
-
-                const sqlAlternativa = `
-                SELECT *
-                FROM par_recebimentomp_bloco_item AS prbi 
-                    JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
-                    JOIN alternativa_item AS ai ON (a.alternativaID = ai.alternativaID)
-                WHERE prbi.parRecebimentompBlocoItemID = ?`
-                const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.parRecebimentompBlocoItemID])
-                item2.alternativas = resultAlternativa
-            }
-
-            item.itens = resultItem
-        }
+        //? Blocos 
+        const resultBlocos = await getBlocks(id, unidadeID)
 
         // Observação e status
         let resultOtherInformations = null
@@ -194,70 +156,82 @@ class RecebimentoMpController {
     }
 
     async insertData(req, res) {
-        const { data, unidadeID } = req.body
+        const data = req.body.forms
+        const { usuarioID, papelID, unidadeID } = req.body.auth
+        console.log("🚀 ~ usuarioID, papelID, unidadeID:", usuarioID, papelID, unidadeID)
 
-        // Header         
-        if (data.header) {
-            //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
-            let dataHeader = await formatFieldsToTable('par_recebimentomp', data.header)
-            dataHeader.unidadeID = unidadeID
+        // const sqlStatus = `SELECT status FROM recebimentomp WHERE recebimentompID = ?`
+        // const [resultStatus] = await db.promise().query(sqlStatus, [id])
 
-            const sqlInsertHeader = `INSERT INTO recebimentomp SET ?`
-            const [resultInsertHeader] = await db.promise().query(sqlInsertHeader, [dataHeader])
-            if (resultInsertHeader.length === 0) { return res.status(500).json('Error'); }
-            const id = resultInsertHeader.insertId
+        //? Header             
+        //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
+        let dataHeader = await formatFieldsToTable('par_recebimentomp', data.header)
+        dataHeader['unidadeID'] = unidadeID
+        dataHeader['obs'] = data.obs ?? ''
+        dataHeader['status'] = 10
+        dataHeader['dataCadastro'] = new Date()
+        //
+        const sqlHeader = `INSERT INTO recebimentomp SET ?`;
+        const [resultHeader] = await db.promise().query(sqlHeader, dataHeader);
+        if (resultHeader.length === 0) { return res.json('Error'); }
+        const id = resultHeader.insertId
 
-            if (!id) { return res.json('Error'); }
+        if (!id || id == 'undefined') { return res.json({ message: 'Erro ao gravar novo formulário!' }) }
 
-            // Produtos 
-            if (data.produtos) {
-                for (const produto of data.produtos) {
+        //? Produtos 
+        if (data.produtos) {
+            for (const produto of data.produtos) {
+                if (produto && produto.produto && produto.produto.id > 0) {
                     //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
                     let dataProduto = await formatFieldsToTable('par_recebimentomp_produto', produto)
 
                     dataProduto['recebimentompID'] = id
                     const sqlInsertProduto = `INSERT INTO recebimentomp_produto SET ?`
                     const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [dataProduto])
-                    if (resultInsertProduto.length === 0) { return res.status(500).json('Error'); }
+                    if (resultInsertProduto.length === 0) { return res.json('Error'); }
                 }
             }
+        }
 
-            // Blocos 
-            for (const bloco of data.blocos) {
+        //? Blocos 
+        for (const bloco of data.blocos) {
+            if (bloco && bloco.parRecebimentompBlocoID && bloco.parRecebimentompBlocoID > 0) {
                 // Itens 
                 for (const item of bloco.itens) {
-                    if (item.resposta || item.observacao) {
-                        // valida duplicidade
-                        const sqlVerify = `SELECT recebimentompID FROM recebimentomp_resposta WHERE recebimentompID = ? AND parRecebimentompBlocoID = ? AND itemID = ?`
-                        const [resultVerify] = await db.promise().query(sqlVerify, [id, bloco.parRecebimentompBlocoID, item.itemID])
-                        if (resultVerify.length === 0) {
-                            // insert na tabela fornecedor_resposta
-                            const sqlInsert = `INSERT INTO recebimentomp_resposta (recebimentompID, parRecebimentompBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
-                            const [resultInsert] = await db.promise().query(sqlInsert, [
-                                id,
-                                bloco.parRecebimentompBlocoID,
-                                item.itemID,
-                                (item.resposta?.nome ? item.resposta.nome : item.resposta ? item.resposta : ''),
-                                (item.resposta?.id > 0 ? item.resposta.id : 0),
-                                (item.observacao ?? '')
-                            ])
-                            if (resultInsert.length === 0) { return res.status(500).json('Error'); }
+                    if (item && item.itemID && item.itemID > 0) {
+                        if (item.resposta || item.observacao) {
+                            // Verifica se já existe registro em fornecedor_resposta, com o fornecedorID, parFornecedorBlocoID e itemID, se houver, faz update, senao faz insert 
+                            const sqlVerificaResposta = `SELECT * FROM recebimentomp_resposta WHERE recebimentompID = ? AND parRecebimentompBlocoID = ? AND itemID = ?`
+                            const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parRecebimentompBlocoID, item.itemID])
+
+                            const resposta = item.resposta?.id > 0 ? item.resposta.nome : item.resposta ? item.resposta : ''
+                            const respostaID = item.resposta?.id > 0 ? item.resposta.id : null
+                            const observacao = item.observacao != undefined ? item.observacao : ''
+
+                            if (resultVerificaResposta.length === 0) {
+                                // insert na tabela fornecedor_resposta
+                                const sqlInsert = `INSERT INTO recebimentomp_resposta (recebimentompID, parRecebimentompBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
+                                const [resultInsert] = await db.promise().query(sqlInsert, [
+                                    id,
+                                    bloco.parRecebimentompBlocoID,
+                                    item.itemID,
+                                    resposta,
+                                    respostaID,
+                                    observacao,
+                                ])
+                                if (resultInsert.length === 0) { return res.json('Error'); }
+                            }
                         }
                     }
                 }
             }
-
-            // Observação e Status (se houver)
-            const sqlUpdateObs = `UPDATE recebimentomp SET obs = ? ${data.status > 0 ? ', status = ? ' : ''} WHERE recebimentompID = ?`
-            const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [
-                data.obs,
-                ...(data.status > 0 ? [data.status] : []),
-                id
-            ])
-            if (resultUpdateObs.length === 0) { return res.status(500).json('Error'); }
-
-            res.status(200).json(id)
         }
+
+        //? Gera histórico de alteração de status (se alterou de status)        
+        const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, '0', '10')
+        if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+
+        res.status(200).json(id)
     }
 
     async updateData(req, res) {
@@ -518,29 +492,66 @@ const getFieldsProduct = async (unidadeID) => {
     return resultFieldsProducts
 }
 
-//* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
-const formatFieldsToTable = async (table, fields) => {
-    let dataHeader = {}
-    for (const columnName in fields) {
-        const sql = `SELECT * FROM ${table} WHERE tabela = "${columnName}" `
-        const [result] = await db.promise().query(sql)
-        if (result.length > 0) {
-            dataHeader[`${columnName}ID`] = fields[columnName]?.id > 0 ? fields[columnName].id : 0
-        } else {
-            dataHeader[columnName] = fields[columnName] ? fields[columnName] : null
+const getBlocks = async (id, unidadeID) => {
+    const sqlBlocos = `
+    SELECT * 
+    FROM par_recebimentomp_bloco
+    WHERE unidadeID = ? AND status = 1
+    ORDER BY ordem ASC`
+    const [resultBlocos] = await db.promise().query(sqlBlocos, [unidadeID])
+
+    // Itens
+    const sqlItem = `
+    SELECT prbi.*, i.*, a.nome AS alternativa,
+
+        (SELECT rr.respostaID
+        FROM recebimentomp_resposta AS rr 
+        WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID
+        LIMIT 1) AS respostaID,
+        
+        (SELECT rr.resposta
+        FROM recebimentomp_resposta AS rr 
+        WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID
+        LIMIT 1) AS resposta,
+
+        (SELECT rr.obs
+        FROM recebimentomp_resposta AS rr 
+        WHERE rr.recebimentompID = ? AND rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID
+        LIMIT 1) AS observacao
+
+    FROM par_recebimentomp_bloco_item AS prbi 
+        LEFT JOIN item AS i ON (prbi.itemID = i.itemID)
+        LEFT JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
+    WHERE prbi.parRecebimentompBlocoID = ?
+    ORDER BY prbi.ordem ASC`
+    for (const item of resultBlocos) {
+        const [resultItem] = await db.promise().query(sqlItem, [id, id, id, item.parRecebimentompBlocoID])
+
+        // Obter alternativas para cada item 
+        for (const item2 of resultItem) {
+
+            // Cria objeto da resposta (se for de selecionar)
+            if (item2?.respostaID > 0) {
+                item2.resposta = {
+                    id: item2.respostaID,
+                    nome: item2.resposta
+                }
+            }
+
+            const sqlAlternativa = `
+                SELECT *
+                FROM par_recebimentomp_bloco_item AS prbi 
+                    JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
+                    JOIN alternativa_item AS ai ON (a.alternativaID = ai.alternativaID)
+                WHERE prbi.parRecebimentompBlocoItemID = ?`
+            const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.parRecebimentompBlocoItemID])
+            item2.alternativas = resultAlternativa
         }
+
+        item.itens = resultItem
     }
-    return dataHeader;
-}
 
-const hasUnidadeID = async (table) => {
-    const sql = `
-    SELECT *
-    FROM information_schema.columns
-    WHERE table_schema = "${process.env.DB_DATABASE}" AND table_name = "${table}" AND column_name = "unidadeID" `
-    const [result] = await db.promise().query(sql)
-
-    return result.length === 0 ? false : true;
+    return resultBlocos
 }
 
 module.exports = RecebimentoMpController;

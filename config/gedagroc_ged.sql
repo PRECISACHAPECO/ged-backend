@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 26-Maio-2023 às 21:14
+-- Tempo de geração: 15-Jun-2023 às 14:25
 -- Versão do servidor: 10.4.22-MariaDB
 -- versão do PHP: 7.4.27
 
@@ -258,7 +258,8 @@ INSERT INTO `fabrica_fornecedor` (`fabricaFornecedorID`, `unidadeID`, `fornecedo
 (65, 1, '12.051.743/0001-70', NULL, 1),
 (66, 1, '61.736.974/0001-22', NULL, 1),
 (67, 1, '04.335.918/0001-42', NULL, 1),
-(68, 1, '14.353.674/0001-84', NULL, 1);
+(68, 1, '14.353.674/0001-84', NULL, 1),
+(69, 1, '99.336.627/0001-85', NULL, 1);
 
 -- --------------------------------------------------------
 
@@ -288,9 +289,10 @@ CREATE TABLE `fornecedor` (
   `ie` varchar(255) DEFAULT NULL,
   `responsavel` varchar(255) DEFAULT NULL COMMENT 'Nome do fornecedor\r\nresponsável pelo preenchimento',
   `principaisClientes` varchar(255) DEFAULT NULL,
-  `registroEstabelecimentoID` int(11) DEFAULT NULL,
+  `registroestabelecimentoID` int(11) DEFAULT NULL,
   `numeroRegistro` varchar(255) DEFAULT NULL COMMENT 'Nº registro do estabelecimento (se não for ISENTO)',
   `obs` text DEFAULT NULL COMMENT 'Obs do formulário',
+  `obsConclusao` text DEFAULT NULL,
   `unidadeID` int(11) NOT NULL,
   `status` int(11) NOT NULL DEFAULT 10 COMMENT '10->Pendente (fornecedor não preencheu ainda)\r\n20->Acessou o link\r\n30->Em preenchimento (já salvou)\r\n40->Fornecedor concluiu preenchimento\r\n50->Reprovado\r\n60->Aprovado Parcial\r\n70->Aprovado\r\n',
   `atual` int(11) NOT NULL COMMENT '1->Avaliação atual desse fornecedor (última), 0->Não é a avaliação atual desse fornecedor (antiga)'
@@ -300,28 +302,29 @@ CREATE TABLE `fornecedor` (
 -- Extraindo dados da tabela `fornecedor`
 --
 
-INSERT INTO `fornecedor` (`fornecedorID`, `fabricante`, `importador`, `dataAvaliacao`, `cnpj`, `razaoSocial`, `nome`, `email`, `telefone`, `brasil`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `pais`, `ie`, `responsavel`, `principaisClientes`, `registroEstabelecimentoID`, `numeroRegistro`, `obs`, `unidadeID`, `status`, `atual`) VALUES
-(1, 1, 1, '1899-11-30', '28.312.835/0001-04', 'Abc uppp 333', 'hhhh', 'contato@tozzo.com.br', '(45) 45454-5454', 0, 'aa', 'Rua Minas Gerais', 'aa33aa444', 'Sala 206', 'aa233', 'quilombo555', 'SC', 'Brasil', '545787824', 'aa', 'aa', 1, NULL, '', 1, 70, 1),
-(2, 0, 0, NULL, '28.312.835/0001-04', 'aa ffffaaa', 'sss', '', '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'brf', 3, '775', '', 1, 30, 1),
-(46, 0, 0, NULL, '98.603.582/0001-03', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(47, 0, 0, NULL, '08.443.488/0001-33', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(48, 0, 0, NULL, '57.008.980/0001-96', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(49, 0, 0, NULL, '30.005.941/0001-89', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(50, 0, 0, NULL, '20.761.362/0001-02', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(51, 0, 0, NULL, '30.112.796/0001-35', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(52, 0, 0, NULL, '78.325.124/0001-34', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(53, 0, 0, NULL, '78.466.650/0001-14', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(54, 0, 0, NULL, '53.458.075/0001-87', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(55, 0, 0, NULL, '89.181.507/0001-00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(56, 0, 0, NULL, '38.247.842/0001-15', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(57, 0, 0, NULL, '77.608.478/0001-23', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(58, 0, 0, NULL, '69.902.386/0001-23', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(59, 0, 0, NULL, '78.037.938/0001-73', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(60, 0, 0, NULL, '64.942.856/0001-69', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(61, 0, 0, NULL, '12.051.743/0001-70', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(62, 0, 0, NULL, '61.736.974/0001-22', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(63, 0, 0, NULL, '04.335.918/0001-42', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
-(64, 0, 0, NULL, '14.353.674/0001-84', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1);
+INSERT INTO `fornecedor` (`fornecedorID`, `fabricante`, `importador`, `dataAvaliacao`, `cnpj`, `razaoSocial`, `nome`, `email`, `telefone`, `brasil`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `pais`, `ie`, `responsavel`, `principaisClientes`, `registroestabelecimentoID`, `numeroRegistro`, `obs`, `obsConclusao`, `unidadeID`, `status`, `atual`) VALUES
+(1, 1, 1, '2023-02-15', '28.312.835/0001-04', 'Abc uppp 333', 'hhhh', 'contato@tozzo.com.br', '(45) 45454-5454', 0, 'aa', 'Rua Minas Gerais', 'aa33aa444', 'Sala 206', 'aa233', 'quilombo555', 'SC', 'Brasil', '545787824', 'aa', 'aa', 1, NULL, '', NULL, 1, 70, 1),
+(2, 0, 0, '2023-06-13', '28.312.835/0001-04', 'Almeida Prado Supermercado', 'Brasão Supermercado', 'ropioo@gmail.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'brf66699', 2, '12345', '', NULL, 1, 30, 1),
+(46, 0, 0, NULL, '98.603.582/0001-03', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(47, 0, 0, NULL, '08.443.488/0001-33', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(48, 0, 0, NULL, '57.008.980/0001-96', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(49, 0, 0, NULL, '30.005.941/0001-89', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(50, 0, 0, NULL, '20.761.362/0001-02', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(51, 0, 0, NULL, '30.112.796/0001-35', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(52, 0, 0, NULL, '78.325.124/0001-34', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(53, 0, 0, NULL, '78.466.650/0001-14', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(54, 0, 0, NULL, '53.458.075/0001-87', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(55, 0, 0, NULL, '89.181.507/0001-00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(56, 0, 0, NULL, '38.247.842/0001-15', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(57, 0, 0, NULL, '77.608.478/0001-23', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(58, 0, 0, NULL, '69.902.386/0001-23', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(59, 0, 0, NULL, '78.037.938/0001-73', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(60, 0, 0, NULL, '64.942.856/0001-69', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(61, 0, 0, NULL, '12.051.743/0001-70', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(62, 0, 0, NULL, '61.736.974/0001-22', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(63, 0, 0, NULL, '04.335.918/0001-42', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(64, 0, 0, NULL, '14.353.674/0001-84', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, 1),
+(65, 0, 0, NULL, '99.336.627/0001-85', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 20, 1);
 
 -- --------------------------------------------------------
 
@@ -334,14 +337,6 @@ CREATE TABLE `fornecedor_atividade` (
   `fornecedorID` int(11) NOT NULL,
   `atividadeID` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Extraindo dados da tabela `fornecedor_atividade`
---
-
-INSERT INTO `fornecedor_atividade` (`fornecedorAtividadeID`, `fornecedorID`, `atividadeID`) VALUES
-(7, 2, 5),
-(8, 2, 3);
 
 -- --------------------------------------------------------
 
@@ -360,8 +355,8 @@ CREATE TABLE `fornecedor_categoria` (
 --
 
 INSERT INTO `fornecedor_categoria` (`fornecedorCategoriaID`, `fornecedorID`, `categoriaID`) VALUES
-(13, 2, 2),
-(14, 2, 1);
+(19, 2, 1),
+(20, 2, 2);
 
 -- --------------------------------------------------------
 
@@ -385,17 +380,17 @@ CREATE TABLE `fornecedor_resposta` (
 --
 
 INSERT INTO `fornecedor_resposta` (`fornecedorRespostaID`, `fornecedorID`, `parFornecedorBlocoID`, `itemID`, `resposta`, `respostaID`, `pontuacao`, `obs`) VALUES
-(1, 1, 1, 2, '1992-01-27T19:57:16.531Z', 0, NULL, ''),
-(2, 1, 1, 4, 'Não Conforme', 4, NULL, 'NC'),
-(3, 1, 1, 12, 'New desc...', 0, NULL, ''),
-(4, 1, 1, 3, '', 0, NULL, 'só obs uppp'),
-(5, 1, 2, 4, 'Não Conforme', 4, NULL, ''),
-(6, 7, 3, 23, '', 0, NULL, 'aaa'),
-(7, 2, 1, 12, 'Sim', 1, NULL, ''),
-(8, 2, 2, 4, 'Não', 1, NULL, '555'),
-(9, 2, 2, 3, 'uhuhuh', 0, NULL, ''),
-(10, 2, 1, 1, 'Não', 1, NULL, '555'),
-(11, 2, 1, 3, 'Conforme', 4, NULL, '');
+(1, 2, 1, 1, 'Sim', 1, NULL, ''),
+(2, 2, 1, 3, 'Não Conforme', 4, NULL, ''),
+(3, 2, 1, 4, 'sasasa', 0, NULL, ''),
+(4, 2, 1, 12, 'Não', 1, NULL, ''),
+(5, 2, 1, 23, 'Sim', 2, NULL, ''),
+(6, 2, 1, 2, 'assasa', 0, NULL, ''),
+(7, 2, 9, 3, 'Não Conforme', 4, NULL, ''),
+(8, 2, 9, 4, 'sasasa', 0, NULL, ''),
+(9, 2, 9, 12, 'Não', 1, NULL, ''),
+(10, 2, 9, 23, 'Sim', 2, NULL, ''),
+(11, 2, 9, 2, 'assasa', 0, NULL, '');
 
 -- --------------------------------------------------------
 
@@ -415,6 +410,50 @@ CREATE TABLE `fornecedor_sistemaqualidade` (
 
 INSERT INTO `fornecedor_sistemaqualidade` (`fornecedorSistemaQualidadeID`, `fornecedorID`, `sistemaQualidadeID`) VALUES
 (7, 7, 2);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `grupoanexo`
+--
+
+CREATE TABLE `grupoanexo` (
+  `grupoanexoID` int(11) NOT NULL,
+  `nome` varchar(255) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `parFormularioID` int(11) NOT NULL COMMENT 'Formulário',
+  `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `grupoanexo`
+--
+
+INSERT INTO `grupoanexo` (`grupoanexoID`, `nome`, `descricao`, `parFormularioID`, `status`) VALUES
+(1, 'Documentos de compra de calcário', 'Documento necessários pra compra do calcári o pq sim...', 1, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `grupoanexo_item`
+--
+
+CREATE TABLE `grupoanexo_item` (
+  `grupoanexoitemID` int(11) NOT NULL,
+  `nome` varchar(255) NOT NULL,
+  `descricao` text DEFAULT NULL,
+  `obrigatorio` int(11) NOT NULL DEFAULT 0 COMMENT '1->Obrigatório, 0->Opcional',
+  `grupoanexoID` int(11) NOT NULL COMMENT 'Grupo do item',
+  `status` int(11) NOT NULL DEFAULT 1 COMMENT '1->Ativo, 0->Inativo'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Extraindo dados da tabela `grupoanexo_item`
+--
+
+INSERT INTO `grupoanexo_item` (`grupoanexoitemID`, `nome`, `descricao`, `obrigatorio`, `grupoanexoID`, `status`) VALUES
+(1, 'Comprovante extração', 'Comp...', 1, 1, 1),
+(2, 'Comprovante de qualidade do calcário', 'Comp..', 0, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -596,7 +635,55 @@ INSERT INTO `movimentacaoformulario` (`movimentacaoFormularioID`, `parFormulario
 (100, 1, 62, 1, 1, 1, '2023-05-24 16:58:58', 0, 10),
 (101, 1, 63, 1, 1, 1, '2023-05-24 16:59:21', 0, 10),
 (102, 1, 64, 1, 1, 1, '2023-05-25 09:19:39', 0, 10),
-(103, 1, 2, 33, 29, 2, '2023-05-25 10:26:53', 20, 30);
+(103, 1, 2, 33, 29, 2, '2023-05-25 10:26:53', 20, 30),
+(104, 1, 2, 33, 29, 2, '2023-05-30 16:08:30', 30, 40),
+(105, 1, 65, 1, 1, 1, '2023-06-02 11:43:31', 0, 10),
+(106, 1, 65, 0, 1, 2, '2023-06-02 11:45:35', 10, 20),
+(107, 1, 2, 1, 1, 1, '2023-06-07 08:08:10', 40, 30),
+(108, 1, 2, 33, 29, 2, '2023-06-07 09:38:52', 30, 40),
+(109, 1, 2, 1, 1, 1, '2023-06-07 09:39:51', 40, 10),
+(110, 1, 2, 33, 29, 2, '2023-06-07 09:40:24', 10, 30),
+(111, 1, 2, 33, 29, 2, '2023-06-12 10:22:52', 30, 40),
+(112, 1, 2, 1, 1, 1, '2023-06-12 10:35:58', 40, 30),
+(113, 2, 1, 1, 1, 1, '2023-06-12 11:25:53', 60, 30),
+(114, 2, 1, 1, 1, 1, '2023-06-12 14:51:09', 70, 50),
+(115, 2, 1, 1, 1, 1, '2023-06-12 14:51:40', 50, 60),
+(116, 2, 1, 1, 1, 1, '2023-06-12 15:03:50', 60, 30),
+(117, 2, 1, 1, 1, 1, '2023-06-12 15:32:38', 30, 70),
+(118, 2, 1, 1, 1, 1, '2023-06-12 15:34:59', 70, 30),
+(119, 2, 1, 1, 1, 1, '2023-06-12 15:38:26', 30, 60),
+(120, 2, 1, 1, 1, 1, '2023-06-12 15:38:37', 60, 30),
+(121, 1, 2, 33, 29, 2, '2023-06-12 15:39:34', 30, 40),
+(122, 1, 2, 1, 1, 1, '2023-06-12 15:50:12', 40, 70),
+(123, 1, 2, 1, 1, 1, '2023-06-12 15:51:22', 70, 30),
+(124, 1, 2, 33, 29, 2, '2023-06-12 15:54:02', 30, 40),
+(125, 1, 2, 1, 1, 1, '2023-06-12 15:55:10', 40, 50),
+(126, 1, 2, 1, 1, 1, '2023-06-12 15:55:43', 50, 30),
+(127, 1, 2, 33, 29, 2, '2023-06-12 15:56:16', 30, 40),
+(128, 1, 2, 1, 1, 1, '2023-06-12 16:17:51', 40, 60),
+(129, 1, 2, 1, 1, 1, '2023-06-12 16:24:17', 60, 30),
+(130, 1, 2, 33, 29, 2, '2023-06-12 16:26:44', 30, 40),
+(131, 2, 1, 1, 1, 1, '2023-06-12 16:40:09', 30, 70),
+(132, 2, 1, 1, 1, 1, '2023-06-12 16:41:19', 70, 30),
+(133, 2, 1, 1, 1, 1, '2023-06-12 16:41:39', 30, 50),
+(134, 2, 1, 1, 1, 1, '2023-06-12 16:45:31', 50, 30),
+(135, 2, 1, 1, 1, 1, '2023-06-13 08:33:57', 30, 60),
+(136, 2, 1, 1, 1, 1, '2023-06-13 08:49:30', 60, 30),
+(137, 2, 1, 1, 1, 1, '2023-06-13 11:50:23', 30, 60),
+(138, 2, 1, 1, 1, 1, '2023-06-13 11:51:30', 60, 30),
+(139, 2, 1, 1, 1, 1, '2023-06-13 11:52:21', 30, 60),
+(140, 2, 1, 1, 1, 1, '2023-06-13 13:51:31', 60, 30),
+(141, 2, 1, 1, 1, 1, '2023-06-13 13:52:17', 30, 60),
+(142, 2, 1, 1, 1, 1, '2023-06-13 13:53:05', 60, 30),
+(143, 2, 1, 1, 1, 1, '2023-06-13 14:26:23', 30, 50),
+(144, 2, 1, 1, 1, 1, '2023-06-13 14:26:36', 50, 30),
+(145, 2, 1, 1, 1, 1, '2023-06-13 14:37:12', 30, 50),
+(146, 1, 2, 1, 1, 1, '2023-06-13 14:38:01', 40, 30),
+(147, 1, 2, 33, 29, 2, '2023-06-13 14:44:49', 30, 40),
+(148, 1, 2, 1, 1, 1, '2023-06-13 14:48:33', 40, 30),
+(149, 2, 1, 1, 1, 1, '2023-06-13 15:38:55', 50, 30),
+(150, 2, 26, 1, 1, 1, '2023-06-15 09:16:10', 0, 10),
+(151, 2, 27, 1, 1, 1, '2023-06-15 09:19:58', 0, 10);
 
 -- --------------------------------------------------------
 
@@ -638,7 +725,7 @@ CREATE TABLE `par_formulario` (
 --
 
 INSERT INTO `par_formulario` (`parFormularioID`, `nome`, `tabela`, `obs`) VALUES
-(1, 'Fornecedor', 'par_fornecedor', ''),
+(1, 'Fornecedor dddd', 'par_fornecedor', ''),
 (2, 'Recebimento MP', 'par_recebimentomp', NULL),
 (3, 'Não Conformidade', 'par_naoconformidade', NULL);
 
@@ -784,7 +871,7 @@ CREATE TABLE `par_fornecedor_bloco_item` (
 INSERT INTO `par_fornecedor_bloco_item` (`parFornecedorBlocoItemID`, `parFornecedorBlocoID`, `ordem`, `itemID`, `alternativaID`, `obs`, `obrigatorio`, `pontuacao`, `status`) VALUES
 (1, 1, 1, 1, 1, 0, 1, 1, 1),
 (2, 2, 200, 3, 5, 1, 1, 0, 1),
-(3, 1, 6, 2, 6, 1, 0, 0, 1),
+(3, 1, 6, 2, 5, 1, 1, 0, 1),
 (5, 3, 1, 3, 1, 1, 0, 0, 1),
 (6, 1, 3, 4, 5, 1, 1, 0, 1),
 (7, 1, 2, 3, 4, 1, 1, 0, 1),
@@ -840,7 +927,7 @@ CREATE TABLE `par_fornecedor_unidade` (
 
 INSERT INTO `par_fornecedor_unidade` (`parFornecedorUnidadeID`, `parFornecedorID`, `unidadeID`, `obrigatorio`) VALUES
 (41, 19, 1, 1),
-(47, 1, 1, 1),
+(47, 1, 1, 0),
 (50, 15, 1, 1),
 (63, 2, 1, 0),
 (64, 3, 1, 0),
@@ -933,8 +1020,8 @@ CREATE TABLE `par_recebimentomp_bloco_item` (
 --
 
 INSERT INTO `par_recebimentomp_bloco_item` (`parRecebimentompBlocoItemID`, `parRecebimentompBlocoID`, `ordem`, `itemID`, `alternativaID`, `obs`, `obrigatorio`, `status`) VALUES
-(1, 1, 1, 13, 3, 1, 1, 1),
-(2, 1, 2, 14, 3, 1, 1, 1),
+(1, 1, 1, 13, 6, 1, 1, 1),
+(2, 1, 2, 14, 6, 1, 1, 1),
 (5, 1, 3, 15, 4, 1, 1, 1),
 (6, 1, 4, 18, 5, 1, 1, 1),
 (9, 2, 1, 17, 3, 1, 1, 1),
@@ -969,8 +1056,9 @@ CREATE TABLE `par_recebimentomp_produto` (
 INSERT INTO `par_recebimentomp_produto` (`parRecebimentompProdutoID`, `ordem`, `nomeCampo`, `nomeColuna`, `tabela`, `tipo`, `obs`) VALUES
 (1, 1, 'Produto', 'produtoID', 'produto', 'int', NULL),
 (2, 2, 'Apresentação', 'apresentacaoID', 'apresentacao', 'int', NULL),
-(3, 3, 'Quantidade', 'quantidade', NULL, 'string', NULL),
-(4, 4, 'Possui Laudo?', 'possuiLaudo', NULL, 'checkbox', '');
+(3, 4, 'Quantidade', 'quantidade', NULL, 'string', NULL),
+(4, 5, 'Possui Laudo?', 'possuiLaudo', NULL, 'checkbox', ''),
+(5, 3, 'Atividade', 'atividadeID', 'atividade', 'int', NULL);
 
 -- --------------------------------------------------------
 
@@ -991,11 +1079,13 @@ CREATE TABLE `par_recebimentomp_produto_unidade` (
 
 INSERT INTO `par_recebimentomp_produto_unidade` (`parRecebimentompProdutoUnidadeID`, `parRecebimentompProdutoID`, `unidadeID`, `obrigatorio`) VALUES
 (1, 1, 1, 1),
-(4, 2, 1, 0),
-(5, 3, 1, 0),
-(75, 0, 1, 1),
-(76, 0, 1, 0),
-(77, 0, 1, 0);
+(4, 2, 1, 1),
+(5, 3, 1, 1),
+(87, 5, 1, 1),
+(96, 0, 1, 1),
+(97, 0, 1, 1),
+(98, 0, 1, 1),
+(99, 0, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -1015,11 +1105,12 @@ CREATE TABLE `par_recebimentomp_unidade` (
 --
 
 INSERT INTO `par_recebimentomp_unidade` (`parRecebimentompUnidadeID`, `parRecebimentompID`, `unidadeID`, `obrigatorio`) VALUES
-(5, 3, 1, 1),
 (6, 4, 1, 1),
-(7, 1, 1, 0),
+(7, 1, 1, 1),
 (8, 2, 1, 1),
-(13, 5, 1, 1);
+(13, 5, 1, 1),
+(14, 6, 1, 1),
+(15, 3, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -1140,7 +1231,7 @@ INSERT INTO `profissao` (`profissaoID`, `nome`, `dataCadastro`, `status`) VALUES
 CREATE TABLE `recebimentomp` (
   `recebimentompID` int(11) NOT NULL,
   `pessoaID` int(11) DEFAULT NULL COMMENT 'Profissional',
-  `tipoOperacaoID` int(11) DEFAULT NULL COMMENT 'Recepção ou Expedição',
+  `tipooperacaoID` int(11) DEFAULT NULL COMMENT 'Recepção ou Expedição',
   `data` date DEFAULT NULL,
   `dataEdicao` date DEFAULT NULL,
   `dataRevisao` date DEFAULT NULL,
@@ -1151,8 +1242,9 @@ CREATE TABLE `recebimentomp` (
   `motorista` varchar(255) DEFAULT NULL,
   `tipoVeiculoID` int(11) DEFAULT NULL,
   `obs` text DEFAULT NULL,
+  `obsConclusao` text DEFAULT NULL,
   `unidadeID` int(11) NOT NULL,
-  `status` int(11) DEFAULT 10 COMMENT '10->Pendente (ainda não concluiu) \r\n20-> Concluiu preenchimento \r\n30->Reprovado \r\n40->Aprovado Parcial \r\n50->Aprovado	',
+  `status` int(11) DEFAULT 10 COMMENT '10->Pendente (ainda não concluiu) \r\n30->Reprovado \r\n40->Aprovado Parcial \r\n50->Aprovado	',
   `dataCadastro` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -1160,8 +1252,31 @@ CREATE TABLE `recebimentomp` (
 -- Extraindo dados da tabela `recebimentomp`
 --
 
-INSERT INTO `recebimentomp` (`recebimentompID`, `pessoaID`, `tipoOperacaoID`, `data`, `dataEdicao`, `dataRevisao`, `nf`, `fornecedorID`, `transportadorID`, `placa`, `motorista`, `tipoVeiculoID`, `obs`, `unidadeID`, `status`, `dataCadastro`) VALUES
-(1, 4, 1, '2023-04-17', '2023-04-17', '2023-04-17', '43434343', 1, 2, 'MKY-2000', 'Leomar Z', 2, '', 1, 50, '2023-04-17');
+INSERT INTO `recebimentomp` (`recebimentompID`, `pessoaID`, `tipooperacaoID`, `data`, `dataEdicao`, `dataRevisao`, `nf`, `fornecedorID`, `transportadorID`, `placa`, `motorista`, `tipoVeiculoID`, `obs`, `obsConclusao`, `unidadeID`, `status`, `dataCadastro`) VALUES
+(1, 1, 2, '2023-06-07', '2023-04-17', '2023-04-17', '54551111', 1, 1, 'MKY-2000', 'Leomar Z', 2, 'Obssss uppp', NULL, 1, 30, '2023-04-17'),
+(2, 2, 1, NULL, NULL, NULL, '66', 1, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, NULL),
+(3, 3, 2, NULL, NULL, NULL, '69', 1, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, NULL),
+(4, 1, 2, NULL, NULL, NULL, '33', 1, NULL, NULL, NULL, NULL, '', NULL, 1, 60, NULL),
+(7, 3, 2, NULL, NULL, NULL, '11', 1, NULL, NULL, NULL, NULL, NULL, NULL, 1, 10, NULL),
+(8, 2, 1, NULL, NULL, NULL, '238', 1, NULL, NULL, NULL, NULL, 'aassasa uppp', NULL, 1, 50, NULL),
+(9, 1, 2, NULL, NULL, NULL, '777', 1, NULL, NULL, NULL, NULL, 'fechou!', NULL, 1, 70, NULL),
+(10, 2, 1, NULL, NULL, NULL, '55', 1, NULL, NULL, NULL, NULL, 'dsdsdsd uppp', NULL, 1, 60, NULL),
+(11, 1, 2, NULL, NULL, NULL, '55', 1, NULL, NULL, NULL, NULL, 'sadsdsdsdsd', NULL, 1, 70, NULL),
+(13, 1, 1, '2023-06-12', NULL, NULL, '123', 0, 0, NULL, NULL, NULL, NULL, NULL, 1, 10, '2023-06-15'),
+(14, 1, 1, '2023-06-02', NULL, NULL, '9999999', 0, 0, NULL, NULL, NULL, NULL, NULL, 1, 10, '2023-06-15'),
+(15, 1, 1, '2023-06-02', NULL, NULL, '9999999', 0, 0, NULL, NULL, NULL, NULL, NULL, 1, 10, '2023-06-15'),
+(16, 1, 1, '2023-06-07', NULL, NULL, '5454', 0, 0, NULL, NULL, NULL, NULL, NULL, 1, 10, '2023-06-15'),
+(17, 1, 0, '2023-06-11', NULL, NULL, '3223', 0, 0, NULL, NULL, NULL, NULL, NULL, 1, 10, '2023-06-15'),
+(18, 1, 1, '2023-06-02', NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, 1, 10, '2023-06-15'),
+(19, 1, 0, '2023-06-08', NULL, NULL, '123321', 0, 0, NULL, NULL, NULL, NULL, NULL, 1, 10, '2023-06-15'),
+(20, 3, 0, '2023-06-07', NULL, NULL, '5555', 0, 0, NULL, NULL, NULL, NULL, NULL, 1, 10, '2023-06-15'),
+(21, 3, 0, '2023-06-06', NULL, NULL, '9996', 0, 0, NULL, NULL, NULL, NULL, NULL, 1, 10, '2023-06-15'),
+(22, 0, 1, '2023-06-07', NULL, NULL, '6666', 0, 0, NULL, NULL, NULL, NULL, NULL, 1, 10, '2023-06-15'),
+(23, 3, 0, '2023-06-07', NULL, NULL, NULL, 0, 2, NULL, NULL, NULL, NULL, NULL, 1, 10, '2023-06-15'),
+(24, 0, 0, '2023-06-14', NULL, NULL, '455454', 0, 0, NULL, NULL, NULL, NULL, NULL, 1, 10, '2023-06-15'),
+(25, 3, 0, '2023-06-14', NULL, NULL, '455445', 0, 0, NULL, NULL, NULL, 'new obssss', NULL, 1, 10, '2023-06-15'),
+(26, 3, 0, '2023-06-14', NULL, NULL, '23423', 0, 0, NULL, NULL, NULL, 'obssssssssss', NULL, 1, 10, '2023-06-15'),
+(27, 3, 0, '2023-06-12', NULL, NULL, '5454', 0, 0, NULL, NULL, NULL, 'obssssss', NULL, 1, 10, '2023-06-15');
 
 -- --------------------------------------------------------
 
@@ -1174,6 +1289,7 @@ CREATE TABLE `recebimentomp_produto` (
   `recebimentompID` int(11) NOT NULL,
   `produtoID` int(11) DEFAULT NULL,
   `apresentacaoID` int(11) DEFAULT NULL,
+  `atividadeID` int(11) DEFAULT NULL,
   `quantidade` int(11) DEFAULT NULL,
   `possuiLaudo` int(11) DEFAULT NULL COMMENT 'checkBox: 1->Marcado, 0->Não marcado'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -1182,11 +1298,26 @@ CREATE TABLE `recebimentomp_produto` (
 -- Extraindo dados da tabela `recebimentomp_produto`
 --
 
-INSERT INTO `recebimentomp_produto` (`recebimentompProdutoID`, `recebimentompID`, `produtoID`, `apresentacaoID`, `quantidade`, `possuiLaudo`) VALUES
-(1, 1, 1, 1, 50, 1),
-(2, 1, 2, 2, 10, 0),
-(4, 2, 1, 1, 3, 0),
-(7, 1, 3, 1, 500, NULL);
+INSERT INTO `recebimentomp_produto` (`recebimentompProdutoID`, `recebimentompID`, `produtoID`, `apresentacaoID`, `atividadeID`, `quantidade`, `possuiLaudo`) VALUES
+(1, 1, 1, 2, 1, 2288, 1),
+(4, 2, 1, 1, NULL, 3, 0),
+(8, 4, 3, 3, NULL, 55, NULL),
+(9, 4, 1, 3, NULL, 55, NULL),
+(10, 5, 3, 2, NULL, 5, NULL),
+(11, 6, 3, 2, NULL, 5, NULL),
+(12, 7, 1, 3, NULL, 22, NULL),
+(13, 8, 2, 2, NULL, 23, NULL),
+(14, 8, 3, 3, NULL, 88, NULL),
+(15, 9, 4, 1, NULL, 97, NULL),
+(16, 10, 1, 3, NULL, 44, NULL),
+(17, 10, 3, 3, NULL, 99, NULL),
+(18, 11, 3, 3, NULL, 66, NULL),
+(25, 1, 3, 3, 4, 650, NULL),
+(26, 15, 0, 0, 0, NULL, NULL),
+(27, 16, 0, 0, 0, NULL, NULL),
+(28, 17, 0, 0, 0, NULL, NULL),
+(29, 21, 0, 0, 0, NULL, NULL),
+(30, 22, 1, 2, 4, 55, NULL);
 
 -- --------------------------------------------------------
 
@@ -1200,7 +1331,7 @@ CREATE TABLE `recebimentomp_resposta` (
   `parRecebimentompBlocoID` int(11) NOT NULL COMMENT 'ID do bloco',
   `itemID` int(11) NOT NULL,
   `resposta` varchar(255) NOT NULL COMMENT 'Descrição da resposta',
-  `respostaID` int(11) NOT NULL COMMENT 'Se for resposta selecionável, guarda ID do alternativa_item',
+  `respostaID` int(11) DEFAULT NULL COMMENT 'Se for resposta selecionável, guarda ID do alternativa_item',
   `obs` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -1209,11 +1340,24 @@ CREATE TABLE `recebimentomp_resposta` (
 --
 
 INSERT INTO `recebimentomp_resposta` (`recebimentompRespostaID`, `recebimentompID`, `parRecebimentompBlocoID`, `itemID`, `resposta`, `respostaID`, `obs`) VALUES
-(1, 1, 1, 13, 'Conforme', 4, 'aa'),
-(2, 1, 1, 14, 'Não Conforme', 4, 'abc'),
-(3, 1, 1, 15, 'NA', 4, ''),
-(4, 1, 1, 16, 'NA', 4, ''),
-(5, 1, 2, 17, 'Conforme', 4, 'obsss');
+(1, 1, 1, 13, '2023-06-02', NULL, ''),
+(2, 1, 1, 14, '2023-06-10', NULL, ''),
+(3, 23, 1, 13, '2023-06-13', NULL, ''),
+(4, 23, 1, 14, '2023-06-09', NULL, 'Opa data'),
+(5, 23, 1, 15, 'Não Conforme', 4, ''),
+(6, 24, 1, 13, '2023-06-14', NULL, ''),
+(7, 24, 1, 14, '2023-06-05', NULL, ''),
+(8, 24, 1, 15, 'Não Conforme', 4, ''),
+(9, 25, 1, 13, '2023-06-07', NULL, ''),
+(10, 25, 1, 14, '2023-06-13', NULL, ''),
+(11, 25, 1, 15, 'Não Conforme', 4, ''),
+(12, 26, 1, 13, '2023-06-14', NULL, ''),
+(13, 26, 1, 14, '2023-06-05', NULL, ''),
+(14, 26, 1, 15, 'Não Conforme', 4, ''),
+(15, 26, 1, 18, 'Pqsim', NULL, ''),
+(16, 27, 1, 13, '2023-06-07', NULL, ''),
+(17, 27, 1, 14, '2023-06-10', NULL, ''),
+(18, 27, 1, 15, 'Não Conforme', 4, '');
 
 -- --------------------------------------------------------
 
@@ -1400,7 +1544,8 @@ INSERT INTO `unidade` (`unidadeID`, `nomeFantasia`, `razaoSocial`, `cnpj`, `tele
 (26, 'Ltda New', '565666', '33.485.347/0001-20', '', NULL, 'jonatankalmeidakk5@gmail.com', NULL, '', '', '11', '', '', '', '', '2023-05-10', 1),
 (27, 'Ltda New', '565666', '45.014.434/0001-89', '', NULL, 'jonatankalmeidakk5@gmail.com', NULL, '', '', '11', '', '', '', '', '2023-05-11', 1),
 (28, 'Tozzo Alimentos', 'Tozzo Alimentos', '94.195.676/0001-21', '', NULL, 'roberto.delavy@gmail.com', NULL, '89812-600', 'Rua Euclides Prade', '465E', '', 'Santa Maria', 'Chapecó', 'SC', '2023-05-17', 1),
-(29, 'Brasão Supermercado', 'Almeida Prado Supermercado', '28.312.835/0001-04', '(49) 99494-5454', NULL, 'ropioo@gmail.com', NULL, '97250-000', 'Rua Getulio Vargas', '465', 'Apto 500', 'Centro', 'Nova Palma', 'RS', '2023-05-18', 1);
+(29, 'Brasão Supermercado', 'Almeida Prado Supermercado', '28.312.835/0001-04', '(49) 99494-5454', NULL, 'ropioo@gmail.com', NULL, '97250-000', 'Rua Getulio Vargas', '465', 'Apto 500', 'Centro', 'Nova Palma', 'RS', '2023-05-18', 1),
+(30, 'Base Sul', 'Base Sul', '99.336.627/0001-85', '', NULL, 'roberto.delavy@gmail.com', NULL, '89812-600', 'Rua Euclides Prade', '', '', 'Santa Maria', 'Chapecó', 'SC', '2023-06-02', 1);
 
 -- --------------------------------------------------------
 
@@ -1440,7 +1585,10 @@ INSERT INTO `usuario` (`usuarioID`, `nome`, `cpf`, `cnpj`, `dataNascimento`, `rg
 (30, 'Ltda New', NULL, '33.485.347/0001-20', NULL, NULL, 'jonatankalmeidakk5@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1),
 (31, 'Ltda New', NULL, '45.014.434/0001-89', NULL, NULL, 'jonatankalmeidakk5@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1),
 (32, 'Tozzo Alimentos', NULL, '94.195.676/0001-21', NULL, NULL, 'roberto.delavy@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1),
-(33, 'Brasão Supermercado', NULL, '28.312.835/0001-04', NULL, NULL, 'ropioo@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1);
+(33, 'Brasão Supermercado', NULL, '28.312.835/0001-04', NULL, NULL, 'ropioo@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1),
+(34, 'Juliane', '422.916.500-50', NULL, '1980-05-10', '', '089.092.569-07', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1),
+(35, 'Base Sul', NULL, '99.336.627/0001-85', NULL, NULL, 'roberto.delavy@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1),
+(36, 'Bruna Silva', '328.679.583-69', NULL, '1980-05-10', '', 'teste@gmail.com', '81dc9bdb52d04dc20036dbd8313ed055', 0, 'admin', 1);
 
 -- --------------------------------------------------------
 
@@ -1478,7 +1626,10 @@ INSERT INTO `usuario_unidade` (`usuarioUnidadeID`, `usuarioID`, `unidadeID`, `pa
 (23, 31, 27, 2, NULL, NULL, 1),
 (24, 1, 2, 1, 1, NULL, 1),
 (25, 32, 28, 2, NULL, NULL, 1),
-(26, 33, 29, 2, NULL, NULL, 1);
+(26, 33, 29, 2, NULL, NULL, 1),
+(27, 34, 1, 1, NULL, '', 1),
+(28, 35, 30, 2, NULL, NULL, 1),
+(29, 36, 1, 1, NULL, '', 1);
 
 -- --------------------------------------------------------
 
@@ -1581,6 +1732,18 @@ ALTER TABLE `fornecedor_resposta`
 --
 ALTER TABLE `fornecedor_sistemaqualidade`
   ADD PRIMARY KEY (`fornecedorSistemaQualidadeID`);
+
+--
+-- Índices para tabela `grupoanexo`
+--
+ALTER TABLE `grupoanexo`
+  ADD PRIMARY KEY (`grupoanexoID`);
+
+--
+-- Índices para tabela `grupoanexo_item`
+--
+ALTER TABLE `grupoanexo_item`
+  ADD PRIMARY KEY (`grupoanexoitemID`);
 
 --
 -- Índices para tabela `item`
@@ -1842,25 +2005,25 @@ ALTER TABLE `divisor`
 -- AUTO_INCREMENT de tabela `fabrica_fornecedor`
 --
 ALTER TABLE `fabrica_fornecedor`
-  MODIFY `fabricaFornecedorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
+  MODIFY `fabricaFornecedorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
 
 --
 -- AUTO_INCREMENT de tabela `fornecedor`
 --
 ALTER TABLE `fornecedor`
-  MODIFY `fornecedorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
+  MODIFY `fornecedorID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
 
 --
 -- AUTO_INCREMENT de tabela `fornecedor_atividade`
 --
 ALTER TABLE `fornecedor_atividade`
-  MODIFY `fornecedorAtividadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `fornecedorAtividadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT de tabela `fornecedor_categoria`
 --
 ALTER TABLE `fornecedor_categoria`
-  MODIFY `fornecedorCategoriaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `fornecedorCategoriaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT de tabela `fornecedor_resposta`
@@ -1872,7 +2035,19 @@ ALTER TABLE `fornecedor_resposta`
 -- AUTO_INCREMENT de tabela `fornecedor_sistemaqualidade`
 --
 ALTER TABLE `fornecedor_sistemaqualidade`
-  MODIFY `fornecedorSistemaQualidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `fornecedorSistemaQualidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT de tabela `grupoanexo`
+--
+ALTER TABLE `grupoanexo`
+  MODIFY `grupoanexoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT de tabela `grupoanexo_item`
+--
+ALTER TABLE `grupoanexo_item`
+  MODIFY `grupoanexoitemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de tabela `item`
@@ -1890,7 +2065,7 @@ ALTER TABLE `menu`
 -- AUTO_INCREMENT de tabela `movimentacaoformulario`
 --
 ALTER TABLE `movimentacaoformulario`
-  MODIFY `movimentacaoFormularioID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=104;
+  MODIFY `movimentacaoFormularioID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=152;
 
 --
 -- AUTO_INCREMENT de tabela `papel`
@@ -1932,7 +2107,7 @@ ALTER TABLE `par_fornecedor_bloco_categoria`
 -- AUTO_INCREMENT de tabela `par_fornecedor_bloco_item`
 --
 ALTER TABLE `par_fornecedor_bloco_item`
-  MODIFY `parFornecedorBlocoItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `parFornecedorBlocoItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT de tabela `par_fornecedor_bloco_item_pontuacao`
@@ -1968,19 +2143,19 @@ ALTER TABLE `par_recebimentomp_bloco_item`
 -- AUTO_INCREMENT de tabela `par_recebimentomp_produto`
 --
 ALTER TABLE `par_recebimentomp_produto`
-  MODIFY `parRecebimentompProdutoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `parRecebimentompProdutoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de tabela `par_recebimentomp_produto_unidade`
 --
 ALTER TABLE `par_recebimentomp_produto_unidade`
-  MODIFY `parRecebimentompProdutoUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
+  MODIFY `parRecebimentompProdutoUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=100;
 
 --
 -- AUTO_INCREMENT de tabela `par_recebimentomp_unidade`
 --
 ALTER TABLE `par_recebimentomp_unidade`
-  MODIFY `parRecebimentompUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `parRecebimentompUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de tabela `permissao`
@@ -2010,19 +2185,19 @@ ALTER TABLE `profissao`
 -- AUTO_INCREMENT de tabela `recebimentomp`
 --
 ALTER TABLE `recebimentomp`
-  MODIFY `recebimentompID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `recebimentompID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT de tabela `recebimentomp_produto`
 --
 ALTER TABLE `recebimentomp_produto`
-  MODIFY `recebimentompProdutoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `recebimentompProdutoID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT de tabela `recebimentomp_resposta`
 --
 ALTER TABLE `recebimentomp_resposta`
-  MODIFY `recebimentompRespostaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `recebimentompRespostaID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT de tabela `registroestabelecimento`
@@ -2064,19 +2239,19 @@ ALTER TABLE `transportador`
 -- AUTO_INCREMENT de tabela `unidade`
 --
 ALTER TABLE `unidade`
-  MODIFY `unidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `unidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT de tabela `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `usuarioID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+  MODIFY `usuarioID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT de tabela `usuario_unidade`
 --
 ALTER TABLE `usuario_unidade`
-  MODIFY `usuarioUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `usuarioUnidadeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT de tabela `usuario_unidade_cargo`
