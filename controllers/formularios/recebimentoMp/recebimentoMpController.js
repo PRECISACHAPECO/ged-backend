@@ -158,10 +158,6 @@ class RecebimentoMpController {
     async insertData(req, res) {
         const data = req.body.forms
         const { usuarioID, papelID, unidadeID } = req.body.auth
-        console.log("🚀 ~ usuarioID, papelID, unidadeID:", usuarioID, papelID, unidadeID)
-
-        // const sqlStatus = `SELECT status FROM recebimentomp WHERE recebimentompID = ?`
-        // const [resultStatus] = await db.promise().query(sqlStatus, [id])
 
         //? Header             
         //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
