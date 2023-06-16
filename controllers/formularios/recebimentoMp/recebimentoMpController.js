@@ -5,13 +5,20 @@ const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = requir
 class RecebimentoMpController {
     async getList(req, res) {
         const { unidadeID } = req.params;
-
         const sql = `
-        SELECT rm.recebimentompID AS id, IF(MONTH(rm.data) > 0, DATE_FORMAT(rm.data, "%d/%m/%Y"), '') AS data, t.nome AS transportador, top.nome AS tipoOperacao, rm.status 
+        SELECT 
+            rm.recebimentompID AS id, 
+            IF(MONTH(rm.data) > 0, DATE_FORMAT(rm.data, "%d/%m/%Y"), '--') AS data, 
+            f.nome AS fornecedor, 
+            f.cnpj,
+            (SELECT COUNT(*)
+            FROM recebimentomp_produto AS rp 
+            WHERE rp.recebimentompID = rm.recebimentompID) AS totalProdutos,
+            rm.status 
         FROM recebimentomp AS rm
-            LEFT JOIN transportador AS t ON (rm.transportadorID = t.transportadorID)
-            LEFT JOIN tipooperacao AS top ON (rm.tipoOperacaoID = top.tipoOperacaoID)
-        WHERE rm.unidadeID = ?`
+            LEFT JOIN fornecedor AS f ON (rm.fornecedorID = f.fornecedorID)
+        WHERE rm.unidadeID = ?
+        ORDER BY rm.recebimentompID DESC, rm.status ASC`
         const [result] = await db.promise().query(sql, [unidadeID])
 
         res.status(200).json(result)
@@ -246,6 +253,7 @@ class RecebimentoMpController {
         if (data.header) {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
             let dataHeader = await formatFieldsToTable('par_recebimentomp', data.header)
+            console.log("🚀 ~ dataHeader:", dataHeader)
             const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentompID = ${id}`;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
@@ -372,8 +380,8 @@ class RecebimentoMpController {
         res.status(200).json(true)
     }
 
-    //? Atualiza status
     async changeFormStatus(req, res) {
+        //? Atualiza status
         const { id } = req.params
         const status = req.body.status
         const { usuarioID, papelID, unidadeID } = req.body.auth
@@ -419,7 +427,6 @@ class RecebimentoMpController {
                 res.status(500).json(err);
             });
     }
-
 }
 
 //* Obtém colunas
@@ -461,6 +468,7 @@ const getFields = async (unidadeID) => {
     return resultFields
 }
 
+//* Obtém colunas dos produtos
 const getFieldsProduct = async (unidadeID) => {
     const sqlFieldsProducts = `
     SELECT * 
@@ -489,6 +497,7 @@ const getFieldsProduct = async (unidadeID) => {
     return resultFieldsProducts
 }
 
+//* Obtém estrutura dos blocos e itens
 const getBlocks = async (id, unidadeID) => {
     const sqlBlocos = `
     SELECT * 
