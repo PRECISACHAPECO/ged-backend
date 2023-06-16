@@ -57,6 +57,7 @@ class RecebimentoMpController {
 
         //? Fields do header
         const resultFields = await getFields(unidadeID)
+        console.log("🚀 ~ resultFields:", resultFields)
 
         // Varrer result, pegando nomeColuna e inserir em um array se row.tabela == null
         let columns = []
@@ -86,10 +87,14 @@ class RecebimentoMpController {
                     }
                 }
             }
+            console.log("🚀 ~ columns:", columns)
+            // return
 
-            sqlData = `SELECT ${columns.join(', ')} FROM recebimentomp WHERE recebimentompID = ${id}`;
-            let [temp2] = await db.promise().query(sqlData)
-            resultData = { ...resultData, ...temp2[0] }
+            if (columns.length > 0) {
+                sqlData = `SELECT ${columns.join(', ')} FROM recebimentomp WHERE recebimentompID = ${id}`;
+                let [temp2] = await db.promise().query(sqlData)
+                resultData = { ...resultData, ...temp2[0] }
+            }
         }
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -149,7 +154,7 @@ class RecebimentoMpController {
 
         const data = {
             fields: resultFields,
-            data: resultData,
+            data: resultData ?? null,
             fieldsProducts: resultFieldsProducts,
             dataProducts: dataProducts.length > 0 ? dataProducts : [{}], //? Inicia com 1 produto aberto
             blocos: resultBlocos,
@@ -160,7 +165,6 @@ class RecebimentoMpController {
         }
 
         res.status(200).json(data);
-        console.log("🚀 ~ data:", data)
     }
 
     async insertData(req, res) {
