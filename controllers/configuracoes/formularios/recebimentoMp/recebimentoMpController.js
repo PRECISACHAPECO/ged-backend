@@ -3,106 +3,109 @@ const { hasPending, deleteItem } = require('../../../../config/defaultConfig');
 
 class RecebimentoMpController {
     async getData(req, res) {
-        const { unidadeID } = req.body;
+        try {
+            const { unidadeID } = req.body;
 
-        if (!unidadeID || unidadeID == 'undefined') { return res.json({ message: 'Sem unidadeID recebida!' }) }
+            if (!unidadeID || unidadeID == 'undefined') { return res.json({ message: 'Sem unidadeID recebida!' }) }
 
-        //? Header 
-        const sqlHeader = `
-        SELECT pr.*, 
-            (SELECT IF(COUNT(*) > 0, 1, 0)
-            FROM par_recebimentomp_unidade AS pru 
-            WHERE pr.parRecebimentompID = pru.parRecebimentompID AND pru.unidadeID = ?
-            LIMIT 1) AS mostra,
+            //? Header 
+            const sqlHeader = `
+            SELECT pr.*, 
+                (SELECT IF(COUNT(*) > 0, 1, 0)
+                FROM par_recebimentomp_unidade AS pru 
+                WHERE pr.parRecebimentompID = pru.parRecebimentompID AND pru.unidadeID = ?
+                LIMIT 1) AS mostra,
+    
+                COALESCE((SELECT pru.obrigatorio
+                FROM par_recebimentomp_unidade AS pru 
+                WHERE pr.parRecebimentompID = pru.parRecebimentompID AND pru.unidadeID = ?
+                LIMIT 1), 0) AS obrigatorio            
+                
+            FROM par_recebimentomp AS pr
+            ORDER BY pr.ordem ASC`;
+            const resultHeader = await db.promise().query(sqlHeader, [unidadeID, unidadeID]);
+            const header = resultHeader[0]
 
-            COALESCE((SELECT pru.obrigatorio
-            FROM par_recebimentomp_unidade AS pru 
-            WHERE pr.parRecebimentompID = pru.parRecebimentompID AND pru.unidadeID = ?
-            LIMIT 1), 0) AS obrigatorio            
-            
-        FROM par_recebimentomp AS pr
-        ORDER BY pr.ordem ASC`;
-        const resultHeader = await db.promise().query(sqlHeader, [unidadeID, unidadeID]);
-        const header = resultHeader[0]
+            //? Produtos
+            const sqlProducts = `
+            SELECT pr.*, 
+                (SELECT IF(COUNT(*) > 0, 1, 0)
+                FROM par_recebimentomp_produto_unidade AS pru 
+                WHERE pr.parRecebimentoMpProdutoID = pru.parRecebimentoMpProdutoID AND pru.unidadeID = ?
+                LIMIT 1) AS mostra,
+    
+                COALESCE((SELECT pru.obrigatorio
+                FROM par_recebimentomp_produto_unidade AS pru 
+                WHERE pr.parRecebimentoMpProdutoID = pru.parRecebimentoMpProdutoID AND pru.unidadeID = ?
+                LIMIT 1), 0) AS obrigatorio            
+                
+            FROM par_recebimentomp_produto AS pr
+            ORDER BY pr.ordem ASC`;
+            const resultProducts = await db.promise().query(sqlProducts, [unidadeID, unidadeID]);
+            const products = resultProducts[0]
 
-        //? Produtos
-        const sqlProducts = `
-        SELECT pr.*, 
-            (SELECT IF(COUNT(*) > 0, 1, 0)
-            FROM par_recebimentomp_produto_unidade AS pru 
-            WHERE pr.parRecebimentoMpProdutoID = pru.parRecebimentoMpProdutoID AND pru.unidadeID = ?
-            LIMIT 1) AS mostra,
+            //? Blocos 
+            const blocks = [];
+            const sqlBloco = `SELECT * FROM par_recebimentomp_bloco WHERE unidadeID = ? ORDER BY ordem ASC`;
+            const [resultBloco] = await db.promise().query(sqlBloco, [unidadeID]);
 
-            COALESCE((SELECT pru.obrigatorio
-            FROM par_recebimentomp_produto_unidade AS pru 
-            WHERE pr.parRecebimentoMpProdutoID = pru.parRecebimentoMpProdutoID AND pru.unidadeID = ?
-            LIMIT 1), 0) AS obrigatorio            
-            
-        FROM par_recebimentomp_produto AS pr
-        ORDER BY pr.ordem ASC`;
-        const resultProducts = await db.promise().query(sqlProducts, [unidadeID, unidadeID]);
-        const products = resultProducts[0]
+            const sqlItem = `
+            SELECT i.*, prbi.*, a.nome AS alternativa 
+            FROM par_recebimentomp_bloco_item AS prbi 
+                LEFT JOIN item AS i ON (prbi.itemID = i.itemID)
+                LEFT JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
+            WHERE prbi.parRecebimentompBlocoID = ?
+            ORDER BY prbi.ordem ASC`
 
-        //? Blocos 
-        const blocks = [];
-        const sqlBloco = `SELECT * FROM par_recebimentomp_bloco WHERE unidadeID = ? ORDER BY ordem ASC`;
-        const [resultBloco] = await db.promise().query(sqlBloco, [unidadeID]);
-
-        const sqlItem = `
-        SELECT i.*, prbi.*, a.nome AS alternativa 
-        FROM par_recebimentomp_bloco_item AS prbi 
-            LEFT JOIN item AS i ON (prbi.itemID = i.itemID)
-            LEFT JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
-        WHERE prbi.parRecebimentompBlocoID = ?
-        ORDER BY prbi.ordem ASC`
-
-        // Varre bloco
-        for (const item of resultBloco) {
-            const [resultItem] = await db.promise().query(sqlItem, [item.parRecebimentompBlocoID]);
-            for (const item of resultItem) {
-                if (item) {
-                    item['item'] = {
-                        id: item.itemID,
-                        nome: item.nome
-                    }
-                    item['alternativa'] = {
-                        id: item.alternativaID,
-                        nome: item.alternativa
+            for (const item of resultBloco) {
+                const [resultItem] = await db.promise().query(sqlItem, [item.parRecebimentompBlocoID]);
+                for (const item of resultItem) {
+                    if (item) {
+                        item['item'] = {
+                            id: item.itemID,
+                            nome: item.nome
+                        }
+                        item['alternativa'] = {
+                            id: item.alternativaID,
+                            nome: item.alternativa
+                        }
                     }
                 }
+
+                const objData = {
+                    dados: item,
+                    itens: resultItem
+                };
+
+                blocks.push(objData);
             }
 
-            const objData = {
-                dados: item,
-                itens: resultItem
+            //? Opções pra seleção
+            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 2 ORDER BY nome ASC`;
+            const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
+            const [resultItem] = await db.promise().query(sqlOptionsItem);
+            const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
+            const objOptions = {
+                itens: resultItem,
+                alternativas: resultAlternativa
             };
 
-            blocks.push(objData);
+            //? Orientações
+            const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 2`
+            const [resultOrientacoes] = await db.promise().query(sqlOrientacoes);
+
+            const result = {
+                header: header,
+                products: products,
+                blocks: blocks,
+                orientacoes: resultOrientacoes[0],
+                options: objOptions
+            }
+
+            return res.json(result)
+        } catch (error) {
+            return res.json({ message: 'Erro ao receber dados!' })
         }
-
-        //? Opções pra seleção
-        const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 2 ORDER BY nome ASC`;
-        const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
-        const [resultItem] = await db.promise().query(sqlOptionsItem);
-        const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
-        const objOptions = {
-            itens: resultItem,
-            alternativas: resultAlternativa
-        };
-
-        //? Orientações
-        const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 2`
-        const [resultOrientacoes] = await db.promise().query(sqlOrientacoes);
-
-        const result = {
-            header: header,
-            products: products,
-            blocks: blocks,
-            orientacoes: resultOrientacoes[0],
-            options: objOptions
-        }
-
-        return res.json(result)
     }
 
     async updateData(req, res) {
@@ -223,8 +226,6 @@ class RecebimentoMpController {
                         }
 
                     })
-                } else if (block) { // Novo bloco
-                    console.log('Novo bloco: ', block)
                 }
             })
 
