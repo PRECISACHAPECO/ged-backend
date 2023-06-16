@@ -160,6 +160,7 @@ class RecebimentoMpController {
         }
 
         res.status(200).json(data);
+        console.log("🚀 ~ data:", data)
     }
 
     async insertData(req, res) {
