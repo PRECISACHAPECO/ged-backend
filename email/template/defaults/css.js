@@ -1,6 +1,5 @@
 const css = () => {
     // cor padrão do sistema
-    // background-color: #5A5FE0;
     let css = `
     <head>
         <style>
@@ -12,6 +11,9 @@ const css = () => {
                 box-sizing: border-box;
                 font-family: 'Inter', sans-serif;
             }
+            .title{
+                text-color: #27272A;
+            }
             .box{
                 box-sizing: border-box;
                 width: min(800px, 100%);
@@ -20,7 +22,7 @@ const css = () => {
                 background-color: #fff;
             }
             .cabecalho {
-                background-color: #282A42;
+                background-color: #35553b;
                 padding: 25px;
                 z-index: -1;
             }
