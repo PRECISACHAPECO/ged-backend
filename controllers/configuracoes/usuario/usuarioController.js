@@ -1,4 +1,5 @@
 const db = require('../../../config/db');
+require('dotenv/config')
 const { hasPending, deleteItem, getMenuPermissions, criptoMd5 } = require('../../../config/defaultConfig');
 
 class UsuarioController {
@@ -35,7 +36,11 @@ class UsuarioController {
             return res.status(404).json({ message: 'Usuário não encontrado!' })
         }
 
-        getData = result[0]
+        // getData = result[0]
+        getData = {
+            ...result[0],
+            imagem: result[0].imagem ? `${process.env.BASE_URL_UPLOADS}profile/${result[0].imagem}` : null,
+        }
         getData['units'] = []
 
         // Se for admin, busca os dados da unidade, papel e cargo
@@ -163,6 +168,17 @@ class UsuarioController {
             id: usuarioID,
             message: 'Dados inseridos com sucesso!'
         })
+    }
+
+    async updatePhotoProfile(req, res) {
+        const photoProfile = req.file.filename;
+        const { id } = req.params
+        const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuario.usuarioID = ?`
+        const [resultUpdatePhotoProfile] = await db.promise().query(sqlUpdatePhotoProfile, [photoProfile, id])
+        const photoProfileUrl = `${process.env.BASE_URL_UPLOADS}profile/${photoProfile}`
+
+        console.log("🚀 ~ photoProfileUrl:", photoProfileUrl)
+        res.status(200).json(photoProfileUrl)
     }
 
     async updateData(req, res) {
