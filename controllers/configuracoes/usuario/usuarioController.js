@@ -207,6 +207,39 @@ class UsuarioController {
         }
     }
 
+    async handleDeleteImage(req, res) {
+        const { id } = req.params;
+
+        const sqlSelectPreviousPhoto = `SELECT imagem FROM usuario WHERE usuarioID = ?`;
+        const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuarioID = ?`;
+
+        try {
+            //! Obter o nome da foto de perfil anterior
+            const [rows] = await db.promise().query(sqlSelectPreviousPhoto, [id]);
+            const previousPhotoProfile = rows[0]?.imagem;
+
+            //! Atualizar a foto de perfil no banco de dados
+            await db.promise().query(sqlUpdatePhotoProfile, [null, id]);
+
+            //! Excluir a foto de perfil anterior
+            if (previousPhotoProfile) {
+                const previousPhotoPath = path.resolve('uploads/profile', previousPhotoProfile);
+                fs.unlink(previousPhotoPath, (error) => {
+                    if (error) {
+                        console.error('Erro ao excluir a imagem anterior:', error);
+                    } else {
+                        console.log('Imagem anterior excluída com sucesso!');
+                    }
+                });
+            }
+
+            res.status(200).json({ message: 'Imagem excluída com sucesso!' });
+        } catch (error) {
+            console.error('Erro ao excluir a imagem:', error);
+            res.status(500).json({ error: 'Erro ao excluir a imagem' });
+        }
+    }
+
     async updateData(req, res) {
         const { id } = req.params
         const data = req.body

@@ -1,4 +1,5 @@
 const db = require('../../config/db');
+require('dotenv/config')
 const { getMenu, criptoMd5 } = require('../../config/defaultConfig');
 const sendMailConfig = require('../../config/email');
 const NewPassword = require('../../email/template/EsqueciSenha/NewPassword');
@@ -45,7 +46,11 @@ class AuthController {
             if (result.length > 1) {
                 const response = {
                     accessToken,
-                    userData: { ...result[0], senha: undefined },
+                    userData: {
+                        ...result[0],
+                        senha: undefined,
+                        imagem: result[0].imagem ? `${process.env.BASE_URL_UPLOADS}profile/${result[0].imagem}` : null,
+                    },
                     unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.nomeFantasia, papelID: unidade.papelID, papel: unidade.papel }))
                 }
                 res.status(202).json(response);
