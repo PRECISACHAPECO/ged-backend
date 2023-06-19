@@ -1,5 +1,7 @@
 const db = require('../../../config/db');
 require('dotenv/config')
+const path = require('path');
+const fs = require('fs');
 const { hasPending, deleteItem, getMenuPermissions, criptoMd5 } = require('../../../config/defaultConfig');
 
 class UsuarioController {
@@ -172,13 +174,37 @@ class UsuarioController {
 
     async updatePhotoProfile(req, res) {
         const photoProfile = req.file.filename;
-        const { id } = req.params
-        const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuario.usuarioID = ?`
-        const [resultUpdatePhotoProfile] = await db.promise().query(sqlUpdatePhotoProfile, [photoProfile, id])
-        const photoProfileUrl = `${process.env.BASE_URL_UPLOADS}profile/${photoProfile}`
+        const { id } = req.params;
+        const sqlSelectPreviousPhoto = `SELECT imagem FROM usuario WHERE usuarioID = ?`;
+        const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuarioID = ?`;
 
-        console.log("🚀 ~ photoProfileUrl:", photoProfileUrl)
-        res.status(200).json(photoProfileUrl)
+        try {
+            //! Obter o nome da foto de perfil anterior
+            const [rows] = await db.promise().query(sqlSelectPreviousPhoto, [id]);
+            const previousPhotoProfile = rows[0]?.imagem;
+
+            //! Atualizar a foto de perfil no banco de dados
+            await db.promise().query(sqlUpdatePhotoProfile, [photoProfile, id]);
+
+            //! Excluir a foto de perfil anterior
+            if (previousPhotoProfile) {
+                const previousPhotoPath = path.resolve('uploads/profile', previousPhotoProfile);
+                fs.unlink(previousPhotoPath, (error) => {
+                    if (error) {
+                        console.error('Erro ao excluir a imagem anterior:', error);
+                    } else {
+                        console.log('Imagem anterior excluída com sucesso!');
+                    }
+                });
+            }
+
+            const photoProfileUrl = `${process.env.BASE_URL_UPLOADS}profile/${photoProfile}`;
+            console.log("🚀 ~ photoProfileUrl:", photoProfileUrl);
+            res.status(200).json(photoProfileUrl);
+        } catch (error) {
+            console.error('Erro ao atualizar a foto de perfil:', error);
+            res.status(500).json({ error: 'Erro ao atualizar a foto de perfil' });
+        }
     }
 
     async updateData(req, res) {
