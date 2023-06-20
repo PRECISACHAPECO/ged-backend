@@ -155,6 +155,39 @@ class FornecedorController {
         const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id])
         if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
 
+        // Grupo anexos
+        let grupoAnexo = [];
+        const sqlFabricaFornecedorId = `
+        SELECT *
+            FROM fabrica_fornecedor AS ff
+        WHERE ff.unidadeID = 1 AND ff.fornecedorCnpj = ?`;
+
+        const [resultFabricaFornecedorId] = await db.promise().query(sqlFabricaFornecedorId, [resultData.cnpj]);
+        const sqlGrupoItens = `
+        SELECT *
+        FROM fabrica_fornecedor_grupoanexo AS ffg
+            LEFT JOIN grupoanexo AS ga ON (ffg.grupoAnexoID = ga.grupoanexoID)
+            LEFT JOIN grupoanexo_item AS gai ON (ga.grupoanexoID = gai.grupoanexoID)
+        WHERE ffg.fabricaFornecedorID = ? AND ga.status = 1 AND gai.status = 1`;
+
+        const [resultGrupoItens] = await db.promise().query(sqlGrupoItens, [resultFabricaFornecedorId[0].fabricaFornecedorID]);
+        const sqlGrupoAnexo = `SELECT * FROM grupoanexo WHERE parFormularioID = ? AND status = 1`;
+        const [resultGrupoAnexo] = await db.promise().query(sqlGrupoAnexo, [resultGrupoItens[0].parFormularioID]);
+
+        const grupos = {};
+        for (const item of resultGrupoAnexo) {
+            const grupoID = item.grupoanexoID;
+            const sqlItens = `SELECT * FROM grupoanexo_item WHERE grupoanexoID = ? AND status = 1`;
+            const [resultItens] = await db.promise().query(sqlItens, [grupoID]);
+            grupos[grupoID] = {
+                grupoID,
+                nome: item.nome,
+                descricao: item.descricao,
+                itens: resultItens
+            }
+        }
+        grupoAnexo = Object.values(grupos);
+
         const sqlBlocos = `
         SELECT * 
         FROM par_fornecedor_bloco
@@ -207,6 +240,7 @@ class FornecedorController {
             atividades: resultAtividade,
             sistemasQualidade: resultSistemaQualidade,
             blocos: resultBlocos,
+            grupoAnexo: grupoAnexo,
             info: {
                 obs: resultOtherInformations[0].obs,
                 status: resultOtherInformations[0].status,
@@ -396,7 +430,6 @@ class FornecedorController {
             if (bloco && bloco.parFornecedorBlocoID && bloco.parFornecedorBlocoID > 0) {
                 for (const item of bloco.itens) {
                     if (item && item.itemID && item.itemID > 0) {
-                        console.log("🚀 ~ item.itemID:", item.itemID)
 
                         if (item?.resposta || item?.observacao) {
                             // Verifica se já existe registro em fornecedor_resposta, com o fornecedorID, parFornecedorBlocoID e itemID, se houver, faz update, senao faz insert 
@@ -459,7 +492,6 @@ class FornecedorController {
         //* Status
         //? É um fornecedor e é um status anterior, seta status pra "Em preenchimento" (30)
         const newStatus = papelID == 2 && data.status != 40 ? 30 : data.status
-        console.log("🚀 ~ newStatus:", newStatus)
 
         const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ?`
         const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])

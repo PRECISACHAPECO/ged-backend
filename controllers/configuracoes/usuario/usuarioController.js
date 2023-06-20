@@ -3,6 +3,8 @@ require('dotenv/config')
 const path = require('path');
 const fs = require('fs');
 const { hasPending, deleteItem, getMenuPermissions, criptoMd5 } = require('../../../config/defaultConfig');
+const multer = require('multer');
+const { upload } = require('../../../config/multerConfig');
 
 class UsuarioController {
     async getList(req, res) {
@@ -173,39 +175,56 @@ class UsuarioController {
     }
 
     async updatePhotoProfile(req, res) {
-        const photoProfile = req.file.filename;
-        const { id } = req.params;
-        const sqlSelectPreviousPhoto = `SELECT imagem FROM usuario WHERE usuarioID = ?`;
-        const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuarioID = ?`;
-
         try {
+            const photoProfile = req.file;
+            const { id } = req.params;
+            const sqlSelectPreviousPhoto = `SELECT imagem FROM usuario WHERE usuarioID = ?`;
+            const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuarioID = ?`;
+
+            // Verificar se um arquivo foi enviado
+            if (!photoProfile) {
+                res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+                return;
+            }
+
             //! Obter o nome da foto de perfil anterior
             const [rows] = await db.promise().query(sqlSelectPreviousPhoto, [id]);
             const previousPhotoProfile = rows[0]?.imagem;
 
             //! Atualizar a foto de perfil no banco de dados
-            await db.promise().query(sqlUpdatePhotoProfile, [photoProfile, id]);
+            await db.promise().query(sqlUpdatePhotoProfile, [photoProfile.filename, id]);
 
             //! Excluir a foto de perfil anterior
             if (previousPhotoProfile) {
                 const previousPhotoPath = path.resolve('uploads/profile', previousPhotoProfile);
                 fs.unlink(previousPhotoPath, (error) => {
                     if (error) {
-                        console.error('Erro ao excluir a imagem anterior:', error);
+                        return console.error('Erro ao excluir a imagem anterior:', error);
                     } else {
-                        console.log('Imagem anterior excluída com sucesso!');
+                        return console.log('Imagem anterior excluída com sucesso!');
                     }
                 });
             }
 
-            const photoProfileUrl = `${process.env.BASE_URL_UPLOADS}profile/${photoProfile}`;
+            const photoProfileUrl = `${process.env.BASE_URL_UPLOADS}profile/${photoProfile.filename}`;
             console.log("🚀 ~ photoProfileUrl:", photoProfileUrl);
             res.status(200).json(photoProfileUrl);
         } catch (error) {
-            console.error('Erro ao atualizar a foto de perfil:', error);
-            res.status(500).json({ error: 'Erro ao atualizar a foto de perfil' });
+            if (error instanceof multer.MulterError) {
+                // Erro do Multer (arquivo incompatível ou muito grande)
+                console.log("entrou akikfkjjfgfggfgffg")
+                if (error.code === 'LIMIT_FILE_SIZE') {
+                    res.status(400).json({ error: 'O tamanho do arquivo excede o limite permitido.' });
+                } else {
+                    res.status(400).json({ error: 'O arquivo enviado é incompatível.' });
+                }
+            } else {
+                // Outro erro interno do servidor
+                res.status(500).json({ error: 'Erro interno do servidor.' });
+            }
         }
     }
+
 
     async handleDeleteImage(req, res) {
         const { id } = req.params;
