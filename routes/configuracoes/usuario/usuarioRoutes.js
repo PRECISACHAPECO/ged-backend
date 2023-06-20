@@ -5,7 +5,7 @@ const UsuarioController = require('../../../controllers/configuracoes/usuario/us
 const usuarioController = new UsuarioController();
 
 //! Upload de imagem
-const { upload } = require('../../../config/multerConfig');
+const { upload } = require('../../../config/multerConfigPhoto');
 
 const route = '/usuario';
 

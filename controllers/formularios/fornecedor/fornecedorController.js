@@ -1,4 +1,6 @@
 const db = require('../../../config/db');
+const path = require('path');
+const fs = require('fs');
 const { hasPending, deleteItem, criptoMd5, onlyNumbers } = require('../../../config/defaultConfig');
 const instructionsNewFornecedor = require('../../../email/template/formularios/fornecedor/instructionsNewFornecedor');
 const conclusionFormFornecedor = require('../../../email/template/formularios/fornecedor/conclusionFormFornecedor');
@@ -6,6 +8,28 @@ const sendMailConfig = require('../../../config/email');
 const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
 
 class FornecedorController {
+
+    //* Salva os anexos do formulário na pasta uploads/anexo e insere os dados na tabela anexo
+    async saveAnexo(req, res) {
+        try {
+            const { id } = req.params;
+            const { titulo, grupoAnexoItemID, usuarioID, recebimentoMpID, naoConformidadeID } = req.body;
+            const sqlInsert = `INSERT INTO anexo (titulo, arquivo, grupoAnexoItemID, usuarioID, fornecedorID, dataHora) VALUES (?, ?, ?, ?, ?, ?)`;
+            for (let i = 0; i < titulo.length; i++) {
+                const arquivo = req.files[i].filename;
+                const grupoAnexo = grupoAnexoItemID[i];
+                const usuario = usuarioID[i];
+                await db.promise().query(sqlInsert, [titulo[i], arquivo, grupoAnexo, usuario, id, new Date()]);
+                console.log(`Inserção realizada com sucesso para o arquivo ${arquivo}`);
+            }
+
+            res.status(200).json({ message: 'Anexos salvos com sucesso' });
+        } catch (error) {
+            console.error('Erro ao inserir anexos:', error);
+            res.status(500).json({ error: 'Erro ao inserir anexos' });
+        }
+    }
+
 
     async getList(req, res) {
         const { unidadeID, papelID, cnpj } = req.body;

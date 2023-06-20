@@ -5,9 +5,11 @@ const FornecedorController = require('../../../controllers/formularios/fornecedo
 const fornecedorController = new FornecedorController();
 
 const route = '/formularios/fornecedor';
+const { upload } = require('../../../config/multerConfigPDF');
 
 // Padrões
 fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
+fornecedorRoutes.post(`${route}/saveAnexo/:id`, upload.array('pdfFiles'), fornecedorController.saveAnexo);
 
 fornecedorRoutes.get(`${route}/:id`, fornecedorController.getData);
 fornecedorRoutes.put(`${route}/:id`, fornecedorController.updateData);
