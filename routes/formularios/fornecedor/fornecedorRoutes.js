@@ -5,7 +5,7 @@ const FornecedorController = require('../../../controllers/formularios/fornecedo
 const fornecedorController = new FornecedorController();
 
 const route = '/formularios/fornecedor';
-const { upload } = require('../../../config/multerConfigPDF');
+const { upload } = require('../../../config/uploads/multerConfigPDF');
 
 // Padrões
 fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);

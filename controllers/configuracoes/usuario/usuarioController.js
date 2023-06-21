@@ -4,7 +4,6 @@ const path = require('path');
 const fs = require('fs');
 const { hasPending, deleteItem, getMenuPermissions, criptoMd5 } = require('../../../config/defaultConfig');
 const multer = require('multer');
-const { upload } = require('../../../config/multerConfigPhoto');
 
 class UsuarioController {
     async getList(req, res) {
