@@ -12,35 +12,14 @@ class FornecedorController {
 
     //* Salva os anexos do formulário na pasta uploads/anexo e insere os dados na tabela anexo
     async saveAnexo(req, res) {
-        try {
-            const { id } = req.params;
-            const { titulo, grupoAnexoItemID, usuarioID, recebimentoMpID, naoConformidadeID, unidadeID, tamanho } = req.body;
+        const { id } = req.params;
+        let files = req.files;
+        const { titulo, grupoAnexoItemID, usuarioID, recebimentoMpID, naoConformidadeID, unidadeID, tamanho, arrAnexoRemoved } = req.body;
+        // console.log("🚀 ~ arrAnexoRemoved:", arrAnexoRemoved)
 
-            const sqlSelect = `SELECT * FROM anexo WHERE fornecedorID = ? AND titulo = ? AND grupoAnexoItemID = ?`;
-            const sqlUpdate = `UPDATE anexo SET arquivo = ?, tamanho = ?, tipo = ?, unidadeID = ?, usuarioID = ?, dataHora = ? WHERE anexoID = ?`;
 
-            for (let i = 0; i < req.files.length; i++) {
-                const arquivo = req.files[i].filename;
-                const grupoAnexo = grupoAnexoItemID[i];
-                const usuario = usuarioID[i];
-                const [result] = await db.promise().query(sqlSelect, [id, titulo[i], grupoAnexo]);
-                if (result.length > 0) {
-                    const anexoID = result[0].anexoID;
-                    await db.promise().query(sqlUpdate, [arquivo, tamanho[i], 'pdf', unidadeID[i], usuario, new Date(), anexoID]);
-                    console.log(`Atualização realizada com sucesso para o arquivo ${arquivo}`);
-                } else {
-                    const sqlInsert = `INSERT INTO anexo (fornecedorID, titulo, grupoAnexoItemID, arquivo, tamanho, tipo, unidadeID, usuarioID, dataHora) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-                    await db.promise().query(sqlInsert, [id, titulo[i], grupoAnexo, arquivo, tamanho[i], 'pdf', unidadeID[i], usuario, new Date()]);
-                    console.log(`Inserção realizada com sucesso para o arquivo ${arquivo}`);
-                }
-            }
-            res.status(200).json({ message: 'Anexos inseridos com sucesso!' });
-        } catch (error) {
-            console.error('Erro ao inserir anexos:', error);
-            res.status(500).json({ error: 'Erro ao inserir anexos' });
-        }
+
     }
-
 
 
     async getList(req, res) {
@@ -220,7 +199,6 @@ class FornecedorController {
                 const sqlAnexo = `SELECT * FROM anexo WHERE fornecedorID = ? AND grupoAnexoItemID = ?`
                 const [resultAnexo] = await db.promise().query(sqlAnexo, [id, rowItem.grupoanexoitemID]);
                 if (resultAnexo.length > 0) {
-                    console.log("🚀 ~ resultAnexo:", resultAnexo[0])
                     rowItem.anexo = {
                         path: `${process.env.BASE_URL_UPLOADS}anexos/${resultAnexo[0].arquivo}`,
                         nome: resultAnexo[0]?.nome,
@@ -231,8 +209,6 @@ class FornecedorController {
                 }
             }
 
-
-            console.log("🚀 ~ resultItens:", resultItens)
             grupos[grupoID] = {
                 grupoID,
                 nome: item.nome,
