@@ -1,5 +1,6 @@
 const db = require('../../../config/db');
 const path = require('path');
+require('dotenv/config')
 const fs = require('fs');
 const { hasPending, deleteItem, criptoMd5, onlyNumbers } = require('../../../config/defaultConfig');
 const instructionsNewFornecedor = require('../../../email/template/formularios/fornecedor/instructionsNewFornecedor');
@@ -13,22 +14,33 @@ class FornecedorController {
     async saveAnexo(req, res) {
         try {
             const { id } = req.params;
-            const { titulo, grupoAnexoItemID, usuarioID, recebimentoMpID, naoConformidadeID } = req.body;
-            const sqlInsert = `INSERT INTO anexo (titulo, arquivo, grupoAnexoItemID, usuarioID, fornecedorID, dataHora) VALUES (?, ?, ?, ?, ?, ?)`;
-            for (let i = 0; i < titulo.length; i++) {
+            const { titulo, grupoAnexoItemID, usuarioID, recebimentoMpID, naoConformidadeID, unidadeID, tamanho } = req.body;
+
+            const sqlSelect = `SELECT * FROM anexo WHERE fornecedorID = ? AND titulo = ? AND grupoAnexoItemID = ?`;
+            const sqlUpdate = `UPDATE anexo SET arquivo = ?, tamanho = ?, tipo = ?, unidadeID = ?, usuarioID = ?, dataHora = ? WHERE anexoID = ?`;
+
+            for (let i = 0; i < req.files.length; i++) {
                 const arquivo = req.files[i].filename;
                 const grupoAnexo = grupoAnexoItemID[i];
                 const usuario = usuarioID[i];
-                await db.promise().query(sqlInsert, [titulo[i], arquivo, grupoAnexo, usuario, id, new Date()]);
-                console.log(`Inserção realizada com sucesso para o arquivo ${arquivo}`);
+                const [result] = await db.promise().query(sqlSelect, [id, titulo[i], grupoAnexo]);
+                if (result.length > 0) {
+                    const anexoID = result[0].anexoID;
+                    await db.promise().query(sqlUpdate, [arquivo, tamanho[i], 'pdf', unidadeID[i], usuario, new Date(), anexoID]);
+                    console.log(`Atualização realizada com sucesso para o arquivo ${arquivo}`);
+                } else {
+                    const sqlInsert = `INSERT INTO anexo (fornecedorID, titulo, grupoAnexoItemID, arquivo, tamanho, tipo, unidadeID, usuarioID, dataHora) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                    await db.promise().query(sqlInsert, [id, titulo[i], grupoAnexo, arquivo, tamanho[i], 'pdf', unidadeID[i], usuario, new Date()]);
+                    console.log(`Inserção realizada com sucesso para o arquivo ${arquivo}`);
+                }
             }
-
-            res.status(200).json({ message: 'Anexos salvos com sucesso' });
+            res.status(200).json({ message: 'Anexos inseridos com sucesso!' });
         } catch (error) {
             console.error('Erro ao inserir anexos:', error);
             res.status(500).json({ error: 'Erro ao inserir anexos' });
         }
     }
+
 
 
     async getList(req, res) {
@@ -203,6 +215,24 @@ class FornecedorController {
             const grupoID = item.grupoanexoID;
             const sqlItens = `SELECT * FROM grupoanexo_item WHERE grupoanexoID = ? AND status = 1`;
             const [resultItens] = await db.promise().query(sqlItens, [grupoID]);
+
+            for (const rowItem of resultItens) {
+                const sqlAnexo = `SELECT * FROM anexo WHERE fornecedorID = ? AND grupoAnexoItemID = ?`
+                const [resultAnexo] = await db.promise().query(sqlAnexo, [id, rowItem.grupoanexoitemID]);
+                if (resultAnexo.length > 0) {
+                    console.log("🚀 ~ resultAnexo:", resultAnexo[0])
+                    rowItem.anexo = {
+                        path: `${process.env.BASE_URL_UPLOADS}anexos/${resultAnexo[0].arquivo}`,
+                        nome: resultAnexo[0]?.nome,
+                        tipo: resultAnexo[0]?.tipo,
+                        size: resultAnexo[0]?.tamanho,
+                        time: resultAnexo[0]?.dataHora,
+                    }
+                }
+            }
+
+
+            console.log("🚀 ~ resultItens:", resultItens)
             grupos[grupoID] = {
                 grupoID,
                 nome: item.nome,
