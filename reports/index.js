@@ -1,9 +1,9 @@
 const express = require('express');
 const routerReports = express.Router();
-const urlBase = '/api';
+const urlBase = '/api/relatorio';
 
-const { fornecedor } = require('./formularios/fornecedor/fornecedor');
-routerReports.post(`${urlBase}/relatorio/fornecedor/`, fornecedor);
+const dadosForncedorGenerate = require('./formularios/fornecedor/dadosForncedorGenerate');
+routerReports.post(`${urlBase}/fornecedor/dadosFornecedor`, dadosForncedorGenerate);
 
 
 
