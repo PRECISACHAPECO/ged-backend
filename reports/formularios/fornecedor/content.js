@@ -9,7 +9,7 @@ const content = (result) => {
     html += `
         <body>
             <main>
-                <h1 class="title" style="padding-bottom: 40px;">Dados do fornecedor</h1>
+                <h1 class="title" style="padding-bottom: 400px;">Dados do fornecedor</h1>
                 <div class="divider"></div>
                 <table style="width: 100%;">
                     <tr>`;
@@ -39,8 +39,9 @@ const content = (result) => {
                 <div class="divider"></div>`;
     //! Laço das atividades e sistemas de qualidade
     html += `
-                <div style="padding-top: 4px;">
-                    <p class="titleValues">Atividades: <span class="values">${result.atividades}</span></p>
+                <div style="padding-top: 8px;">
+                    <p class="titleValues">Categorias: <span class="values">${result.categoria}</span></p>
+                    <p class="titleValues"  style="padding-top: 6px;">Atividades: <span class="values">${result.atividades}</span></p>
                     <p class="titleValues" style="padding-top: 6px;">Sistema de qualidade: <span class="values">${result.sistemaQualidade ?? '--'}</span></p>
                 </div>`;
 

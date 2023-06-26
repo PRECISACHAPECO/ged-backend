@@ -1,6 +1,8 @@
 const pdf = require('html-pdf');
 const db = require('../../../config/db');
+const { arraysIguais } = require('../../configs/config');
 const content = require('./content');
+
 
 const Fornecedor = async (req, res) => {
     const { fornecedorID } = req.body.data;
@@ -35,31 +37,40 @@ const Fornecedor = async (req, res) => {
 
     const [atividades] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as atividade FROM atividade a  LEFT JOIN fornecedor_atividade b on (a.atividadeID = b.atividadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
     const [sistemaQualidade] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as sistemaQualidade FROM sistemaqualidade a  LEFT JOIN fornecedor_sistemaqualidade b on (a.sistemaQualidadeID = b.sistemaQualidadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
+    const [categoria] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as categoria FROM categoria a  LEFT JOIN fornecedor_categoria b on (a.categoriaID = b.categoriaID) WHERE b.fornecedorID = ?`, [fornecedorID]);
 
-    const sqlBlock = `SELECT * FROM par_fornecedor_bloco a WHERE a.unidadeID = ? `
-    const [blocos] = await db.promise().query(sqlBlock, [unidadeID]);
+    const sqlAllBlocks = `SELECT * FROM par_fornecedor_bloco a WHERE a.unidadeID = ? `
+    const [resulAllBlocks] = await db.promise().query(sqlAllBlocks, [unidadeID]);
 
     const sqlCategorie = `SELECT * FROM fornecedor_categoria WHERE fornecedorID = ?`
     const [resultCategories] = await db.promise().query(sqlCategorie, [fornecedorID]);
+
     const arrCategories = [];
     for (let i = 0; i < resultCategories.length; i++) {
         arrCategories.push(resultCategories[i].categoriaID);
     }
-    console.log("🚀 ~ arrCategories:", arrCategories)
 
+    let arrayBlocosAtivos = [];
 
-    blocos.map(async (block) => {
-        const sqlBlocksCategories = `SELECT * FROM par_fornecedor_bloco_categoria WHERE parFornecedorBlocoID = ? AND unidadeID = ?`
+    await Promise.all(resulAllBlocks.map(async (block) => {
+        const arrCategoriesBlock = [];
+        const sqlBlocksCategories = `SELECT * FROM par_fornecedor_bloco_categoria WHERE parFornecedorBlocoID = ? AND unidadeID = ?`;
         const [resultBlocksCategories] = await db.promise().query(sqlBlocksCategories, [block.parFornecedorBlocoID, unidadeID]);
 
         // varrer resultBlocksCategories e pegar categoriaID e inserir em arrCategoriesBlock
-        const arrCategoriesBlock = [];
         for (let i = 0; i < resultBlocksCategories.length; i++) {
             arrCategoriesBlock.push(resultBlocksCategories[i].categoriaID);
         }
-        console.log("🚀 ~ arrCategoriesBlock block:", block.parFornecedorBlocoID, arrCategoriesBlock)
-    });
 
+        //! Compara se os arrays das categorias e categorias do bloco são iguais
+        const resultCompare = arraysIguais(arrCategories, arrCategoriesBlock);
+        if (resultCompare) {
+            arrayBlocosAtivos.push(block.parFornecedorBlocoID);
+        }
+    }));
+
+    const sqlBlocks = `SELECT * FROM par_fornecedor_bloco a WHERE a.unidadeID = ? AND a.parFornecedorBlocoID IN (${arrayBlocosAtivos}) `
+    const [blocos] = await db.promise().query(sqlBlocks, [unidadeID]);
 
     const resultBlocos = []
     for (let i = 0; i < blocos.length; i++) {
@@ -97,23 +108,63 @@ const Fornecedor = async (req, res) => {
         fields: resultData,
         atividades: atividades[0].atividade,
         sistemaQualidade: sistemaQualidade[0].sistemaQualidade,
+        categoria: categoria[0].categoria,
         blocos: resultBlocos,
         fornecedorID: fornecedorID
     }
 
     let html = content(result);
 
-    pdf.create(html).toStream((err, stream) => {
+    const options = {
+        format: 'A4',
+        orientation: 'portrait',
+        paginationOffset: 1, // O número da primeira página,
+        footer: {
+            height: '15mm',
+            contents: {
+                default: '<div style="text-align: center; font-size: 10px;">{{page}}</div>', // fallback value
+            },
+        },
+    };
+
+    pdf.create(html, options).toStream((err, stream) => {
         if (err) {
             console.error(err);
             res.status(500).send('Erro ao gerar o PDF');
         } else {
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', 'attachment; filename=relatorio.pdf');
+            const chunks = [];
+            stream.on('data', (chunk) => chunks.push(chunk));
+            stream.on('end', () => {
+                const pdfBuffer = Buffer.concat(chunks);
 
-            stream.pipe(res);
+                // Verificar se há conteúdo cortado entre duas páginas
+                const isContentSplit = checkIfContentIsSplit(pdfBuffer);
+
+                if (isContentSplit) {
+                    // Adicionar quebra de página antes do conteúdo
+                    const updatedHtml = `<div style="page-break-before: always;"></div>${html}`;
+                    pdf.create(updatedHtml, options).toStream((err, updatedStream) => {
+                        if (err) {
+                            console.error(err);
+                            res.status(500).send('Erro ao gerar o PDF');
+                        } else {
+                            res.setHeader('Content-Type', 'application/pdf');
+                            res.setHeader('Content-Disposition', 'attachment; filename=relatorio.pdf');
+
+                            updatedStream.pipe(res);
+                        }
+                    });
+                } else {
+                    res.setHeader('Content-Type', 'application/pdf');
+                    res.setHeader('Content-Disposition', 'attachment; filename=relatorio.pdf');
+
+                    stream.pipe(res);
+                }
+            });
         }
     });
+
+
 }
 
 

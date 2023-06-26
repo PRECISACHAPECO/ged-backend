@@ -1,5 +1,5 @@
 const cssDefault = () => {
-    let cssDefault = `
+  let cssDefault = `
       <head>
         <style>
           * {
@@ -9,27 +9,30 @@ const cssDefault = () => {
             list-style: none;
             text-decoration: none;
           }
+          
           body {
-            margin: 40px 30px 10px 30px;
-            font-family: roboto, sans-serif;
+            font-family: 'Roboto', sans-serif;
+            color: #333333;
+            margin: 40px;
           }
           .title {
-            color: #27272A;
-            font-size: 26px;
+            font-size: 28px;
             font-weight: bold;
             text-align: center;
+            margin-bottom: 20px;
           }
           .divider {
             border-top: 1px solid #e5e7eb;
           }
           .titleValues {
-            font-size: 10px;
+            font-size: 12px;
             font-weight: bold;
-            color: #27272A;
+            color: #777777;
+            margin-bottom: 8px;
           }
           .values {
-            font-size: 12px;
-            color: #4B4B4B;
+            font-size: 14px;
+            color: #222222;
           }
           .table {
             margin-top: 20px;
@@ -37,21 +40,22 @@ const cssDefault = () => {
             margin-bottom: 20px;
             border-collapse: collapse;
             border-spacing: 0;
-            font-size: 14px; /* Aumente o tamanho da fonte para 14px */
+            font-size: 14px;
           }
           .table th,
           .table td {
             border: 1px solid #e5e7eb;
-            padding: 8px;
+            padding: 12px;
             text-align: left;
           }
           .table th {
             background-color: #f1f1f1;
+            font-weight: bold;
           }
         </style>
       </head>
     `;
-    return cssDefault;
+  return cssDefault;
 };
 
 module.exports = cssDefault;
