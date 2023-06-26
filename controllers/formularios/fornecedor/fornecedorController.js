@@ -205,7 +205,7 @@ class FornecedorController {
 
         const [resultGrupoItens] = await db.promise().query(sqlGrupoItens, [resultFabricaFornecedorId[0].fabricaFornecedorID]);
         const sqlGrupoAnexo = `SELECT * FROM grupoanexo WHERE parFormularioID = ? AND status = 1`;
-        const [resultGrupoAnexo] = await db.promise().query(sqlGrupoAnexo, [resultGrupoItens[0].parFormularioID]);
+        const [resultGrupoAnexo] = await db.promise().query(sqlGrupoAnexo, [resultGrupoItens[0]?.parFormularioID]);
 
         const grupos = {};
         for (const item of resultGrupoAnexo) {

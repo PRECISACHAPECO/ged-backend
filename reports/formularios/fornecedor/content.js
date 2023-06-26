@@ -1,7 +1,7 @@
 const cssDefault = require('../../defaults/cssDefault');
 
-const dadosFornecedorContent = (result) => {
-    console.log("🚀 ~ result:", result);
+const content = (result) => {
+    // console.log("🚀 ~ result:", result);
     let html = `
     <html>`;
     //! CSS
@@ -83,4 +83,4 @@ const dadosFornecedorContent = (result) => {
     return html;
 };
 
-module.exports = dadosFornecedorContent;
+module.exports = content;

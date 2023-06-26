@@ -1,8 +1,8 @@
 const pdf = require('html-pdf');
 const db = require('../../../config/db');
-const dadosFornecedorContent = require('./dadosFornecedorContent');
+const content = require('./content');
 
-const dadosForncedorGenerate = async (req, res) => {
+const Fornecedor = async (req, res) => {
     const { fornecedorID } = req.body.data;
 
     //? Obtém unidadeID da fábrica (quem define o padrão do formulário)
@@ -36,7 +36,31 @@ const dadosForncedorGenerate = async (req, res) => {
     const [atividades] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as atividade FROM atividade a  LEFT JOIN fornecedor_atividade b on (a.atividadeID = b.atividadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
     const [sistemaQualidade] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as sistemaQualidade FROM sistemaqualidade a  LEFT JOIN fornecedor_sistemaqualidade b on (a.sistemaQualidadeID = b.sistemaQualidadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
 
-    const [blocos] = await db.promise().query(`SELECT * FROM par_fornecedor_bloco a WHERE a.unidadeID = ? `, [unidadeID]);
+    const sqlBlock = `SELECT * FROM par_fornecedor_bloco a WHERE a.unidadeID = ? `
+    const [blocos] = await db.promise().query(sqlBlock, [unidadeID]);
+
+    const sqlCategorie = `SELECT * FROM fornecedor_categoria WHERE fornecedorID = ?`
+    const [resultCategories] = await db.promise().query(sqlCategorie, [fornecedorID]);
+    const arrCategories = [];
+    for (let i = 0; i < resultCategories.length; i++) {
+        arrCategories.push(resultCategories[i].categoriaID);
+    }
+    console.log("🚀 ~ arrCategories:", arrCategories)
+
+
+    blocos.map(async (block) => {
+        const sqlBlocksCategories = `SELECT * FROM par_fornecedor_bloco_categoria WHERE parFornecedorBlocoID = ? AND unidadeID = ?`
+        const [resultBlocksCategories] = await db.promise().query(sqlBlocksCategories, [block.parFornecedorBlocoID, unidadeID]);
+
+        // varrer resultBlocksCategories e pegar categoriaID e inserir em arrCategoriesBlock
+        const arrCategoriesBlock = [];
+        for (let i = 0; i < resultBlocksCategories.length; i++) {
+            arrCategoriesBlock.push(resultBlocksCategories[i].categoriaID);
+        }
+        console.log("🚀 ~ arrCategoriesBlock block:", block.parFornecedorBlocoID, arrCategoriesBlock)
+    });
+
+
     const resultBlocos = []
     for (let i = 0; i < blocos.length; i++) {
         const [resultTemp] = await db.promise().query(`
@@ -77,7 +101,7 @@ const dadosForncedorGenerate = async (req, res) => {
         fornecedorID: fornecedorID
     }
 
-    let html = dadosFornecedorContent(result);
+    let html = content(result);
 
     pdf.create(html).toStream((err, stream) => {
         if (err) {
@@ -93,4 +117,4 @@ const dadosForncedorGenerate = async (req, res) => {
 }
 
 
-module.exports = dadosForncedorGenerate;
+module.exports = Fornecedor;
