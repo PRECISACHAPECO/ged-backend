@@ -6,11 +6,13 @@ const cssDefault = () => {
             box-sizing: border-box;
             list-style: none;
             text-decoration: none;
+            font-size: 66%;
           }
           
           body {
             font-family: 'Roboto', sans-serif;
             color: #333333;
+            font-size: 66%;
           }
           .title {
             font-size: 28px;
