@@ -4,12 +4,12 @@ const content = (result) => {
     // console.log("🚀 ~ result:", result);
     let html = `
     <html>`;
-
+    //! CSS
+    html += cssDefault();
     html += `
     <body>
         <main>
             <h1 class="title">Dados do fornecedor</h1>
-            <h1 style="color: red; font-size: 10px">Dados do fornecedor</h1>
             
 
             <div class="divider"></div>
@@ -77,7 +77,7 @@ const content = (result) => {
 
     //! Assinatura Rodapé
     html += `
-        <div style = "padding-top: 40px;" >
+        <div div div style = "padding-top: 40px;" >
             <h1 class="title" style="font-size: 16px; width: 50%; margin: 0 auto; border-top: 1px solid black">Assinatura do profissional</h1>
             </ >
             </main >
