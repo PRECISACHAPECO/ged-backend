@@ -4,12 +4,12 @@ const content = (result) => {
     // console.log("🚀 ~ result:", result);
     let html = `
     <html>`;
-    //! CSS
-    html += cssDefault();
+
     html += `
     <body>
         <main>
             <h1 class="title">Dados do fornecedor</h1>
+            <h1 style="color: red; font-size: 10px">Dados do fornecedor</h1>
             
 
             <div class="divider"></div>
