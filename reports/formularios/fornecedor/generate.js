@@ -120,7 +120,7 @@ const Fornecedor = async (req, res) => {
         orientation: 'portrait',
         paginationOffset: 1, // O número da primeira página,
         footer: {
-            height: '15mm',
+            height: '17mm',
             contents: {
                 default: '<div style="text-align: center; font-size: 10px;">{{page}}</div>', // fallback value
             },
@@ -132,35 +132,10 @@ const Fornecedor = async (req, res) => {
             console.error(err);
             res.status(500).send('Erro ao gerar o PDF');
         } else {
-            const chunks = [];
-            stream.on('data', (chunk) => chunks.push(chunk));
-            stream.on('end', () => {
-                const pdfBuffer = Buffer.concat(chunks);
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'attachment; filename=relatorio.pdf');
 
-                // Verificar se há conteúdo cortado entre duas páginas
-                const isContentSplit = checkIfContentIsSplit(pdfBuffer);
-
-                if (isContentSplit) {
-                    // Adicionar quebra de página antes do conteúdo
-                    const updatedHtml = `<div style="page-break-before: always;"></div>${html}`;
-                    pdf.create(updatedHtml, options).toStream((err, updatedStream) => {
-                        if (err) {
-                            console.error(err);
-                            res.status(500).send('Erro ao gerar o PDF');
-                        } else {
-                            res.setHeader('Content-Type', 'application/pdf');
-                            res.setHeader('Content-Disposition', 'attachment; filename=relatorio.pdf');
-
-                            updatedStream.pipe(res);
-                        }
-                    });
-                } else {
-                    res.setHeader('Content-Type', 'application/pdf');
-                    res.setHeader('Content-Disposition', 'attachment; filename=relatorio.pdf');
-
-                    stream.pipe(res);
-                }
-            });
+            stream.pipe(res);
         }
     });
 
