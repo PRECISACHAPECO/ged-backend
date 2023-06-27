@@ -2,9 +2,11 @@ const cssDefault = () => {
   let cssDefault = `
       <head>
         <style>
+        @page {
+          size: A4;
+          margin: 50px;
+      }
           * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
             list-style: none;
             text-decoration: none;
@@ -13,7 +15,6 @@ const cssDefault = () => {
           body {
             font-family: 'Roboto', sans-serif;
             color: #333333;
-            margin: 40px;
           }
           .title {
             font-size: 28px;
@@ -52,6 +53,10 @@ const cssDefault = () => {
             background-color: #f1f1f1;
             font-weight: bold;
           }
+          .page {
+            page-break-after: always;
+            height: 900px; /* Altura máxima da página */
+        }
         </style>
       </head>
     `;

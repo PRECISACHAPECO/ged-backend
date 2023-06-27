@@ -115,19 +115,7 @@ const Fornecedor = async (req, res) => {
 
     let html = content(result);
 
-    const options = {
-        format: 'A4',
-        orientation: 'portrait',
-        paginationOffset: 1, // O número da primeira página,
-        footer: {
-            height: '17mm',
-            contents: {
-                default: '<div style="text-align: center; font-size: 10px;">{{page}}</div>', // fallback value
-            },
-        },
-    };
-
-    pdf.create(html, options).toStream((err, stream) => {
+    pdf.create(html).toStream((err, stream) => {
         if (err) {
             console.error(err);
             res.status(500).send('Erro ao gerar o PDF');
