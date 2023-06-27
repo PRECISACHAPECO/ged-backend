@@ -119,9 +119,9 @@ const Fornecedor = async (req, res) => {
         format: 'A4',
         orientation: "portrait",
         border: {
-            "top": "0.5in",
-            "right": "0.5in",
-            "left": "0.5in"
+            "top": "0.2in",
+            "right": "0.2in",
+            "left": "0.2in"
         },
         "header": {
             "height": "5mm",
