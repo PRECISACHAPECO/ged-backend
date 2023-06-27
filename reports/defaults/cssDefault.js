@@ -2,10 +2,6 @@ const cssDefault = () => {
   let cssDefault = `
       <head>
         <style>
-        @page {
-          size: A4;
-          margin: 50px;
-      }
           * {
             box-sizing: border-box;
             list-style: none;
@@ -53,10 +49,6 @@ const cssDefault = () => {
             background-color: #f1f1f1;
             font-weight: bold;
           }
-          .page {
-            page-break-after: always;
-            height: 900px; /* Altura máxima da página */
-        }
         </style>
       </head>
     `;

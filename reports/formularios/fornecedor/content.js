@@ -9,7 +9,7 @@ const content = (result) => {
     html += `
         <body>
             <main>
-                <h1 class="title" style="padding-bottom: 400px;">Dados do fornecedor</h1>
+                <h1 class="title">Dados do fornecedor</h1>
                 <div class="divider"></div>
                 <table style="width: 100%;">
                     <tr>`;

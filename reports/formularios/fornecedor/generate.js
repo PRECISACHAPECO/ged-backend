@@ -115,7 +115,30 @@ const Fornecedor = async (req, res) => {
 
     let html = content(result);
 
-    pdf.create(html).toStream((err, stream) => {
+    const options = {
+        format: 'A4',
+        orientation: "portrait",
+        border: {
+            "top": "0.5in",
+            "right": "0.5in",
+            "left": "0.5in"
+        },
+        "header": {
+            "height": "5mm",
+        },
+        "footer": {
+            "height": "15mm",
+            "contents": {
+                default: '<div style="text-align: center;">' +
+                    '<hr>' +
+                    '<span style="color: #444;">{{page}}</span>/<span>{{pages}}</span>' +
+                    '</div>',
+            }
+        },
+    };
+
+
+    pdf.create(html, options).toStream((err, stream) => {
         if (err) {
             console.error(err);
             res.status(500).send('Erro ao gerar o PDF');
