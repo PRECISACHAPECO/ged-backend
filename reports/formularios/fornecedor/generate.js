@@ -116,15 +116,13 @@ const Fornecedor = async (req, res) => {
     let html = content(result);
 
     const options = {
-        format: 'A4',
-        orientation: "portrait",
-        border: {
-            "top": "0.2in",
-            "right": "0.2in",
-            "left": "0.2in"
-        },
-        "header": {
-            "height": "5mm",
+        "height": "10.5in",        // allowed units: mm, cm, in, px
+        "width": "8in",
+        "border": {
+            "top": "0.2cm",            // default is 0, units: mm, cm, in, px
+            "right": "1cm",
+            "bottom": "0.4cm",
+            "left": "1.cm"
         },
         "footer": {
             "height": "15mm",
