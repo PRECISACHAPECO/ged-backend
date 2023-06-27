@@ -61,6 +61,11 @@ const content = (result) => {
         <body>
             <main>
                 <h1 class="title">Dados do fornecedor</h1>
+                <h1 style="font-size: 28px;
+                font-weight: bold;
+                text-align: center;
+                margin-bottom: 20px;">Dados do fornecedor</h1>
+
                 <h1 style="font-size: 10px;">Dados do fornecedor</h1>
 
                 <div class="divider"></div>
