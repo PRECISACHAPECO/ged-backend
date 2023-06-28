@@ -57,6 +57,16 @@ class FornecedorController {
             WHERE pfbi.parFornecedorBlocoID = ?
             ORDER BY pfbi.ordem ASC`
 
+            //? Options
+            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 1 AND status = 1 ORDER BY nome ASC`;
+            const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
+            const [resultItem] = await db.promise().query(sqlOptionsItem);
+            const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
+            const objOptionsBlock = {
+                itens: resultItem,
+                alternativas: resultAlternativa
+            };
+
             for (const item of resultBlock) {
                 const [resultCategoria] = await db.promise().query(sqlCategoria, [item.parFornecedorBlocoID, unidadeID]);
                 const [resultAtividade] = await db.promise().query(sqlAtividade, [item.parFornecedorBlocoID, unidadeID]);
@@ -79,17 +89,18 @@ class FornecedorController {
                     dados: item,
                     atividades: resultAtividade ? resultAtividade : [],
                     categorias: resultCategoria ? resultCategoria : [],
-                    itens: resultItem
+                    itens: resultItem,
+                    optionsBlock: objOptionsBlock
                 };
 
                 blocks.push(objData);
             }
 
             //? Options
-            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 1 ORDER BY nome ASC`;
-            const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
-            const [resultItem] = await db.promise().query(sqlOptionsItem);
-            const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
+            // const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 1 AND status = 1 ORDER BY nome ASC`;
+            // const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
+            // const [resultItem] = await db.promise().query(sqlOptionsItem);
+            // const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
             const objOptions = {
                 itens: resultItem,
                 alternativas: resultAlternativa

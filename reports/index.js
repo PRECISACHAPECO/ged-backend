@@ -11,7 +11,9 @@ const puppeteer = require('puppeteer');
 routerReports.post(`${urlBase}/fornecedor/dadosFornecedor/teste`, async (req, res) => {
     const chromiumPath = '/home/gedagroc/.local/bin:/home/gedagroc/bin:/usr/local/cpanel/3rdparty/lib/path-bin:/usr/share/Modules/bin:/usr/local/cpanel/3rdparty/lib/path-bin:/usr/local/jdk/bin:/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/X11R6/bin:/usr/local/bin:/usr/X11R6/bin:/root/bin:/opt/bin:/opt/cpanel/composer/bin';
     // Inicialize o Puppeteer
-    const browser = await puppeteer.launch({ executablePath: chromiumPath });
+    // const browser = await puppeteer.launch({ executablePath: chromiumPath });
+    const browser = await puppeteer.launch();
+
 
     // Crie uma nova página
     const page = await browser.newPage();
