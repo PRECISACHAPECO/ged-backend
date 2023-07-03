@@ -25,12 +25,12 @@ routerReports.post(`/api/teste2`, async (req, res) => {
         </style>
       </head>
       <body>
-        <h1 style="font-size: 24px; color: red">Total de registros ${resultUnidade.length}</h1>
+        <h1 style="font-size: 18px; color: red">Total de registros ${resultUnidade.length}</h1>
         `;
 
   resultUnidade.forEach((item, index) => {
     relatorioHTML += `
-            <p style="font-size: 12px; color: green">${item.nome}</p>
+            <p style="font-size: 8px; color: green">${item.nome}</p>
           `
   })
 
