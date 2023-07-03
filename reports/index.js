@@ -12,7 +12,7 @@ const fs = require('fs');
 const pdf = require('html-pdf');
 const db = require('../config/db')
 
-routerReports.post(`/teste2`, async (req, res) => {
+routerReports.post(`/api/teste2`, async (req, res) => {
   const sql = 'SELECT * FROM item'
   const [resultUnidade] = await db.promise().query(sql)
 
