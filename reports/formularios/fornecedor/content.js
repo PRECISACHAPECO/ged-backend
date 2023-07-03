@@ -9,7 +9,7 @@ const content = (result) => {
     html += `
     <body>
         <main>
-            <h1 class="title" style="padding-top: 250px;">Dados do fornecedor</h1>
+            <h1 class="title" style="padding-top: 320px;">Dados do fornecedor</h1>
             
 
             <div class="divider"></div>
@@ -50,7 +50,7 @@ const content = (result) => {
     //! Laço dos blocos
     result.blocos.forEach((bloco) => {
         html += `
-          <table class="table" style="page-break-inside: avoid;">
+          <table class="table" >
             <thead>
               <tr>
                 <th>${bloco.nome}</th>
