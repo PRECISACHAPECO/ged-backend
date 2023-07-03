@@ -119,7 +119,7 @@ const Fornecedor = async (req, res) => {
         "height": "266.7mm",
         "width": "203.2mm",
         "format": "Letter",
-        "zoomFactor": "1",
+        "zoomFactor": "0.", // Definindo o zoom em 70%
         "orientation": "portrait",
         "border": {
             "top": "9mm",
