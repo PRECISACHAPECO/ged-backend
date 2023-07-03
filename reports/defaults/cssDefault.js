@@ -8,7 +8,12 @@ const cssDefault = () => {
             list-style: none;
             text-decoration: none;
           }
-          
+          @media print {
+            body {
+              margin: 0;
+              padding: 0;
+            }
+          }
           body {
             font-family: 'Roboto', sans-serif;
             color: #333333;
