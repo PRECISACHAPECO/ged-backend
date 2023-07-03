@@ -116,12 +116,14 @@ const Fornecedor = async (req, res) => {
     let html = content(result);
 
     const options = {
-        "height": "10.5in",
-        "width": "8in",
+        "height": "266.7mm",
+        "width": "203.2mm",
+        "format": "Letter",
+        "zoomFactor": "1",
+        "orientation": "portrait",
         "border": {
             "top": "9mm",
             "right": "9mm",
-            // "bottom": "9mm",
             "left": "9mm"
         },
         "footer": {
