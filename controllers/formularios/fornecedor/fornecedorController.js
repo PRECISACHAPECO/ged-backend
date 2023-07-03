@@ -13,29 +13,28 @@ class FornecedorController {
     //* Salva os anexos do formulário na pasta uploads/anexo e insere os dados na tabela anexo
     async saveAnexo(req, res) {
         const { id } = req.params;
-        let files = req.files;
+        let file = req.files;
         const { titulo, grupoAnexoItemID, usuarioID, recebimentoMpID, naoConformidadeID, unidadeID, tamanho, arrAnexoRemoved } = req.body;
         console.log("🚀 ~ grupoAnexoItemID:", grupoAnexoItemID)
 
-        console.log("🚀 ~ files:", files)
+        console.log("🚀 ~ files:", file)
 
         const sqlInsert = `INSERT INTO anexo(titulo, arquivo, tamanho, tipo, grupoAnexoItemID, usuarioID, unidadeID, fornecedorID, dataHora) VALUES (?,?,?,?,?,?,?,?,NOW())`;
 
 
 
         //! TODO funciona na primeira vez que grava, mas quando edita, não funciona
-        // const [resultInsert] = await db.promise().query(sqlInsert, [titulo, file.filename, file.size, file.mimetype, grupoAnexoItemID[index], usuarioID[index], unidadeID[index], id])
-        // if (grupoAnexoItemID.length > 1) {
-        //     for (const index in grupoAnexoItemID) {
-        //         const [resultInsert] = await db.promise().query(sqlInsert, [titulo[index], files[index].filename, files[index].size, files[index].mimetype, grupoAnexoItemID[index], usuarioID[index], unidadeID[index], id])
-        //         console.log("🚀 ~ resultInsert:", resultInsert)
-        //     }
-        //     console.log("Vários arquivos")
-        // } else {
-        //     const [resultInsert] = await db.promise().query(sqlInsert, [titulo, files[0].filename, files[0].size, files[0].mimetype, grupoAnexoItemID, usuarioID, unidadeID, id])
-        //     console.log("🚀 ~ resultInsert:", resultInsert)
-        //     console.log("Apenas um arquivo")
-        // }
+        if (grupoAnexoItemID.length > 1) {
+            for (const index in grupoAnexoItemID) {
+                const [resultInsert] = await db.promise().query(sqlInsert, [titulo[index], file[index].filename, file[index].size, file[index].mimetype, grupoAnexoItemID[index], usuarioID[index], unidadeID[index], id])
+                console.log("🚀 ~ resultInsert:", resultInsert)
+            }
+            console.log("Vários arquivos")
+        } else {
+            const [resultInsert] = await db.promise().query(sqlInsert, [titulo, file[0].filename, file[0].size, file[0].mimetype, grupoAnexoItemID, usuarioID, unidadeID, id])
+            console.log("🚀 ~ resultInsert:", resultInsert)
+            console.log("Apenas um arquivo")
+        }
 
     }
 
@@ -218,7 +217,7 @@ class FornecedorController {
                 const [resultAnexo] = await db.promise().query(sqlAnexo, [id, rowItem.grupoanexoitemID]);
                 if (resultAnexo.length > 0) {
                     rowItem.anexo = {
-                        path: `${process.env.BASE_URL_UPLOADS} anexos / ${resultAnexo[0].arquivo} `,
+                        path: `${process.env.BASE_URL_UPLOADS} anexos/${resultAnexo[0].arquivo} `,
                         nome: resultAnexo[0]?.nome,
                         tipo: resultAnexo[0]?.tipo,
                         size: resultAnexo[0]?.tamanho,
