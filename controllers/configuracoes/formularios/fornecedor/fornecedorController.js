@@ -97,10 +97,6 @@ class FornecedorController {
             }
 
             //? Options
-            // const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 1 AND status = 1 ORDER BY nome ASC`;
-            // const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
-            // const [resultItem] = await db.promise().query(sqlOptionsItem);
-            // const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
             const objOptions = {
                 itens: resultItem,
                 alternativas: resultAlternativa
