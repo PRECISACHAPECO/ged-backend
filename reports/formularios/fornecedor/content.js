@@ -9,7 +9,7 @@ const content = (result) => {
     html += `
     <body>
         <main>
-            <h1 class="title" style="padding-top: 550px;">Dados do fornecedor</h1>
+            <h1 class="title" style="padding-top: 320px;">Dados do fornecedor</h1>
             
 
             <div class="divider"></div>
@@ -50,30 +50,32 @@ const content = (result) => {
     //! Laço dos blocos
     result.blocos.forEach((bloco) => {
         html += `
-      <table class="table">
-        <thead>
-          <tr>
-            <th>${bloco.nome}</th>
-            <th>Resposta</th>
-            <th>Observações</th>
-          </tr>
-        </thead>
-        <tbody>`;
-        //! Itens dos blocos
+          <table class="table" >
+            <thead>
+              <tr>
+                <th>${bloco.nome}</th>
+                <th>Resposta</th>
+                <th>Observações</th>
+              </tr>
+            </thead>
+            <tbody>`;
+
         bloco.itens.forEach((item) => {
             html += `
-        <tr>
-          <td>
-            <span>${item.ordem} - </span>${item.nome}
-          </td>
-          <td>${item.resposta ? item.resposta : ''}</td>
-          <td>${item.obsResposta ? item.obsResposta : ''}</td>
-        </tr>`;
+            <tr>
+              <td>
+                <span>${item.ordem} - </span>${item.nome}
+              </td>
+              <td>${item.resposta ? item.resposta : ''}</td>
+              <td>${item.obsResposta ? item.obsResposta : ''}</td>
+            </tr>`;
         });
+
         html += `
-        </tbody>
-    </table>`;
+            </tbody>
+          </table>`;
     });
+
 
     //! Assinatura Rodapé
     html += `

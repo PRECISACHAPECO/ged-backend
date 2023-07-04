@@ -116,24 +116,26 @@ const Fornecedor = async (req, res) => {
     let html = content(result);
 
     const options = {
-        "height": "10.5in",        // allowed units: mm, cm, in, px
-        "width": "8in",
+        "height": "266.7mm",
+        "width": "203.2mm",
+        "format": "Letter",
+        "zoomFactor": "0.", // Definindo o zoom em 70%
+        "orientation": "portrait",
         "border": {
-            "top": "0.2cm",            // default is 0, units: mm, cm, in, px
-            "right": "1cm",
-            "bottom": "0.4cm",
-            "left": "1.cm"
+            "top": "9mm",
+            "right": "9mm",
+            "left": "9mm"
         },
         "footer": {
-            "height": "15mm",
+            "height": "9mm",
             "contents": {
-                default: '<div style="text-align: center;">' +
-                    '<hr>' +
-                    '<span style="color: #444;">{{page}}</span>/<span>{{pages}}</span>' +
+                default: '<div style="text-align: center; border-top: 1px solid #e5e7eb;">' +
+                    '<span style="color: #444; font-size:12px; " >{{page}}/{{pages}}</span>' +
                     '</div>',
             }
         },
     };
+
 
 
     pdf.create(html, options).toStream((err, stream) => {

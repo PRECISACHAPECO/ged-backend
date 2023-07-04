@@ -8,7 +8,6 @@ const cssDefault = () => {
             list-style: none;
             text-decoration: none;
           }
-          
           body {
             font-family: 'Roboto', sans-serif;
             color: #333333;
@@ -39,6 +38,7 @@ const cssDefault = () => {
             border-collapse: collapse;
             border-spacing: 0;
             font-size: 14px;
+            page-break-inside: avoid;
           }
           .table th,
           .table td {
@@ -49,6 +49,9 @@ const cssDefault = () => {
           .table th {
             background-color: #f1f1f1;
             font-weight: bold;
+          }
+          .table tr {
+            page-break-inside: avoid;
           }
         </style>
       </head>
