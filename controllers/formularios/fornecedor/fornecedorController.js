@@ -16,15 +16,8 @@ class FornecedorController {
         let files = req.files;
         const { titulo, grupoanexoitemID, usuarioID, unidadeID, arrAnexoRemoved } = req.body;
 
-
-        console.log("🚀 ~ grupoanexoitemID:", grupoanexoitemID)
-        console.log("🚀 ~ usuarioID:", usuarioID)
-        console.log("🚀 ~ unidadeID:", unidadeID)
-
-        // Deleta
+        //? Deleta
         for (const [index, grupoanexoitemID] of Object.entries(arrAnexoRemoved)) {
-            console.log(`deletar unidadeID: ${unidadeID}`)
-
             //? Faz select do anexo pra obter caminho
             const sqlSelect = `SELECT arquivo FROM anexo WHERE grupoAnexoItemID = ? AND fornecedorID = ? AND unidadeID = ?`
             const [resultSelect] = await db.promise().query(sqlSelect, [grupoanexoitemID[index], id, unidadeID])
@@ -39,7 +32,7 @@ class FornecedorController {
             const [resultDelete] = await db.promise().query(sqlDelete, [grupoanexoitemID[index], id, unidadeID])
         }
 
-        // foreach com key e value 
+        //? Insere novos anexos
         for (const [index, file] of Object.entries(files)) {
             const sqlInsert = `
             INSERT INTO anexo(titulo, arquivo, tamanho, tipo, grupoAnexoItemID, usuarioID, unidadeID, fornecedorID, dataHora) VALUES(?,?,?,?,?,?,?,?, NOW())`;
@@ -57,26 +50,6 @@ class FornecedorController {
 
         res.status(200).json({ message: 'Anexos salvos com sucesso!' })
         return
-
-        console.log("🚀 ~ grupoAnexoItemID:", grupoAnexoItemID)
-
-        console.log("🚀 ~ files:", file)
-
-
-
-
-        //! TODO funciona na primeira vez que grava, mas quando edita, não funciona
-        if (grupoAnexoItemID.length > 1) {
-            for (const index in grupoAnexoItemID) {
-                console.log("🚀 ~ resultInsert:", resultInsert)
-            }
-            console.log("Vários arquivos")
-        } else {
-            const [resultInsert] = await db.promise().query(sqlInsert, [titulo, file[0].filename, file[0].size, file[0].mimetype, grupoAnexoItemID, usuarioID, unidadeID, id])
-            console.log("🚀 ~ resultInsert:", resultInsert)
-            console.log("Apenas um arquivo")
-        }
-
     }
 
     async getList(req, res) {
