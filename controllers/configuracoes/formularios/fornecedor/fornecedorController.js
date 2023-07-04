@@ -269,7 +269,7 @@ class FornecedorController {
                                 (item.status ? 1 : 0),
                                 item.parFornecedorBlocoItemID
                             ])
-                        } else if (item && !item.parFornecedorBlocoItemID) { //? Insert                            
+                        } else if (item && item.new /*&& !item.parFornecedorBlocoItemID*/) { //? Insert                            
                             console.log('insert new item: ', item.item.id)
                             // Valida duplicidade do item 
                             const sqlItem = `
