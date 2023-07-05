@@ -12,44 +12,58 @@ class FornecedorController {
 
     //* Salva os anexos do formulário na pasta uploads/anexo e insere os dados na tabela anexo
     async saveAnexo(req, res) {
-        const { id } = req.params;
-        let files = req.files;
-        const { titulo, grupoanexoitemID, usuarioID, unidadeID, arrAnexoRemoved } = req.body;
+        try {
+            const { id } = req.params;
+            let files = req.files;
+            const { titulo, grupoanexoitemID, usuarioID, unidadeID, arrAnexoRemoved } = req.body;
 
-        //? Deleta
-        for (const [index, grupoanexoitemID] of Object.entries(arrAnexoRemoved)) {
-            //? Faz select do anexo pra obter caminho
-            const sqlSelect = `SELECT arquivo FROM anexo WHERE grupoAnexoItemID = ? AND fornecedorID = ? AND unidadeID = ?`
-            const [resultSelect] = await db.promise().query(sqlSelect, [grupoanexoitemID[index], id, unidadeID])
+            //? Deleta
+            if (arrAnexoRemoved && arrAnexoRemoved.length > 0) {
+                for (const [index, removedGrupoanexoitemID] of Object.entries(arrAnexoRemoved)) {
+                    if (removedGrupoanexoitemID) {
+                        //? Faz select do anexo pra obter caminho
+                        const sqlSelect = `SELECT arquivo FROM anexo WHERE grupoAnexoItemID = ? AND fornecedorID = ? AND unidadeID = ?`
+                        const [resultSelect] = await db.promise().query(sqlSelect, [removedGrupoanexoitemID, id, unidadeID])
 
-            //! Apaga arquivo do diretório uploads/anexos/
-            fs.unlink(path.resolve('uploads/anexos/', resultSelect[0].arquivo), (err) => {
-                if (err) { console.log(err) }
-            })
+                        if (resultSelect.length > 0) {
+                            //! Apaga arquivo do diretório uploads/anexos/
+                            fs.unlink(path.resolve('uploads/anexos/', resultSelect[0].arquivo), (err) => {
+                                if (err) { console.log(err) }
+                            })
 
-            //! Deleta do banco
-            const sqlDelete = `DELETE FROM anexo WHERE grupoAnexoItemID = ? AND fornecedorID = ? AND unidadeID = ? `
-            const [resultDelete] = await db.promise().query(sqlDelete, [grupoanexoitemID[index], id, unidadeID])
+                            //! Deleta do banco
+                            const sqlDelete = `DELETE FROM anexo WHERE grupoAnexoItemID = ? AND fornecedorID = ? AND unidadeID = ? `
+                            const [resultDelete] = await db.promise().query(sqlDelete, [removedGrupoanexoitemID, id, unidadeID])
+                        }
+                    }
+                }
+            }
+
+            //? Insere novos anexos
+            if (files && files.length > 0) {
+                for (const [index, file] of Object.entries(files)) {
+                    if (grupoanexoitemID[index]) {
+                        const sqlInsert = `
+                        INSERT INTO anexo(titulo, arquivo, tamanho, tipo, grupoAnexoItemID, usuarioID, unidadeID, fornecedorID, dataHora) VALUES(?,?,?,?,?,?,?,?,?)`;
+                        const [resultInsert] = await db.promise().query(sqlInsert, [
+                            titulo[index],
+                            file.filename,
+                            file.size,
+                            file.mimetype,
+                            grupoanexoitemID[index],
+                            usuarioID,
+                            unidadeID,
+                            id,
+                            new Date()
+                        ])
+                    }
+                }
+            }
+
+            res.status(200).json({ message: 'Anexos salvos com sucesso!' })
+        } catch (error) {
+            console.log(error)
         }
-
-        //? Insere novos anexos
-        for (const [index, file] of Object.entries(files)) {
-            const sqlInsert = `
-            INSERT INTO anexo(titulo, arquivo, tamanho, tipo, grupoAnexoItemID, usuarioID, unidadeID, fornecedorID, dataHora) VALUES(?,?,?,?,?,?,?,?, NOW())`;
-            const [resultInsert] = await db.promise().query(sqlInsert, [
-                titulo[index],
-                file.filename,
-                file.size,
-                file.mimetype,
-                grupoanexoitemID[index],
-                usuarioID,
-                unidadeID,
-                id
-            ])
-        }
-
-        res.status(200).json({ message: 'Anexos salvos com sucesso!' })
-        return
     }
 
     async getList(req, res) {
@@ -231,7 +245,7 @@ class FornecedorController {
                     if (resultAnexo.length > 0) {
                         item.anexo = {
                             exist: true,
-                            path: `${process.env.BASE_URL_UPLOADS} anexos / ${resultAnexo[0].arquivo} `,
+                            path: `${process.env.BASE_URL_UPLOADS}anexos/${resultAnexo[0].arquivo} `,
                             nome: resultAnexo[0]?.titulo,
                             tipo: resultAnexo[0]?.tipo,
                             size: resultAnexo[0]?.tamanho,
