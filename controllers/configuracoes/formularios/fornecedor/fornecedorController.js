@@ -74,6 +74,7 @@ class FornecedorController {
 
                 for (const item of resultItem) {
                     if (item) {
+                        item['new'] = false
                         item['item'] = {
                             id: item.itemID,
                             nome: item.nome
@@ -164,6 +165,7 @@ class FornecedorController {
             })
 
             //? Blocos 
+            console.log('-------------------')
             blocks && blocks.forEach(async (block, index) => {
                 if (block) {
                     if (block.parFornecedorBlocoID && parseInt(block.parFornecedorBlocoID) > 0) {
@@ -251,7 +253,7 @@ class FornecedorController {
                     //? Itens 
                     block.itens && block.itens.forEach(async (item, indexItem) => {
                         if (item && item.parFornecedorBlocoItemID && item.parFornecedorBlocoItemID > 0) { //? Update                                
-                            console.log('update item: ', item.item.id)
+                            console.log('update item: ', item.item.id, item.item.nome)
                             const sqlUpdate = `
                             UPDATE par_fornecedor_bloco_item
                             SET ordem = ?, ${item.item.id ? 'itemID = ?, ' : ''} ${item.alternativa.id ? 'alternativaID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
@@ -265,8 +267,8 @@ class FornecedorController {
                                 (item.status ? 1 : 0),
                                 item.parFornecedorBlocoItemID
                             ])
-                        } else if (item && item.new /*&& !item.parFornecedorBlocoItemID*/) { //? Insert                            
-                            console.log('insert new item: ', item.item.id)
+                        } else if (item && item.new && !item.parFornecedorBlocoItemID) { //? Insert                            
+                            console.log('insert new item: ', item.item.id, item.item.nome)
                             // Valida duplicidade do item 
                             const sqlItem = `
                             SELECT COUNT(*) AS count
