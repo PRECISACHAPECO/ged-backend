@@ -18,32 +18,38 @@ class GrupoAnexosController {
     }
 
     async getData(req, res) {
-        const id = req.params.id
         try {
+            const { id } = req.params
+
             const sqlData = `
             SELECT a.grupoanexoID AS id, a.nome, a.descricao, a.status
             FROM grupoanexo AS a 
             WHERE a.grupoanexoID = ?`
             const [resultData] = await db.promise().query(sqlData, [id]);
 
-            if (!resultData || resultData.length === 0) {
-                return res.status(404).json({ error: "Nenhum dado encontrado." });
+            if (!resultData || resultData.length === 0) return res.status(404).json({ error: "Nenhum dado encontrado." })
+
+            const sqlFormulario = `
+            SELECT pf.parFormularioID AS id, pf.nome
+            FROM grupoanexo_parformulario AS gp 
+                JOIN par_formulario AS pf ON (gp.parFormularioID = pf.parFormularioID)
+            WHERE gp.grupoAnexoID = ?`
+            const [resultFormulario] = await db.promise().query(sqlFormulario, [id]);
+
+            const sqlOptionsFormulario = `SELECT parFormularioID AS id, nome FROM par_formulario`
+            const [resultOptionsFormulario] = await db.promise().query(sqlOptionsFormulario);
+
+            const sqlItens = `SELECT grupoanexoitemID AS id, nome, descricao, obrigatorio, status FROM grupoanexo_item WHERE grupoanexoID = ?`
+            const [resultItens] = await db.promise().query(sqlItens, [id]);
+
+            const result = {
+                fields: resultData[0],
+                formulario: {
+                    fields: resultFormulario,
+                    options: resultOptionsFormulario
+                },
+                items: resultItens
             }
-
-            const [resultOptionsFormulario] = await db.promise().query("SELECT *, par_formulario.parFormularioID AS id FROM par_formulario");
-
-            const requisitosSql = `SELECT * FROM grupoanexo_item WHERE grupoanexoID = ?`
-            const [resultRequisitos] = await db.promise().query(requisitosSql, [id]);
-
-            const objForm = {
-                id: resultData[0].parFormularioID,
-                nome: resultData[0].formulario,
-                options: resultOptionsFormulario
-            }
-
-            const result = resultData[0]
-            result.formulario = objForm
-            result.requisitos = resultRequisitos
 
             res.status(200).json(result);
         } catch (error) {
@@ -94,59 +100,50 @@ class GrupoAnexosController {
 
     }
 
-    //! Atualiza os dados no banco de dados
     async updateData(req, res) {
-        const { id } = req.params
-        const newData = req.body.newData
-        console.log("🚀 ~ newData:", newData)
-
-        const sqlExistItem = `SELECT * FROM grupoanexo WHERE grupoanexoID = ?`;
-        const [resultSqlExistItem] = await db.promise().query(sqlExistItem, [id]);
         try {
-            if (resultSqlExistItem) {
-                //? Verifica se grupoanexo existe no banco
-                //? Faz update no grupoanexo
-                const sqlUpdateGrupoAnexo = `UPDATE grupoanexo SET nome = ? ,descricao = ?  ,status = ? WHERE grupoanexoID = ?`;
-                const [resultSqlUpdateGrupoAnexo] = await db.promise().query(sqlUpdateGrupoAnexo, [newData.nome, newData.descricao, newData.status, id]);
-                //? Faz update no item do grupo de anexos
-                const sqlUpdateItem = `UPDATE grupoanexo_item SET nome = ? ,descricao = ? ,grupoanexoID = ? ,status = ?, obrigatorio = ? WHERE grupoanexoitemID = ?`
-                //? Insere novo tem no grupo de anexos
-                const sqlInsertItem = `INSERT INTO grupoanexo_item (nome, descricao, grupoanexoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?);`
-                //? Remove item do grupo de anexos
-                const sqlDeleteItem = `DELETE FROM grupoanexo_item WHERE grupoanexoitemID = ?`
+            const { id } = req.params
+            const values = req.body
+            console.log("🚀 ~ values:", values)
 
-                //? Verifica se um novo item ou um item já existente
-                newData.requisitos.map(async (item) => {
-                    if (item.grupoanexoitemID > 0) {
-                        const [resultsqlUpdateItem] = await db.promise().query(sqlUpdateItem, [
-                            item.nome,
-                            item.descricao,
-                            id,
-                            item.statusRequisito ? 1 : 0,
-                            item.obrigatorio ? 1 : 0,
-                            item.grupoanexoitemID
-                        ]);
-                    } else {
-                        const [resultsqlInsertItem] = await db.promise().query(sqlInsertItem, [
-                            item.nome,
-                            item.descricao,
-                            id,
-                            item.statusRequisito ? 1 : 0,
-                            item.obrigatorio ? 1 : 0
-                        ]);
-                    }
-                });
-                //! Verifica se existem itens para ser removidos
-                if (newData.removedItems.length == 0) return res.status(200).json({ message: 'Dados atualizados com sucesso!' })
-                newData.removedItems.map(async (item) => {
-                    const [resultsqlDeleteItem] = await db.promise().query(sqlDeleteItem, item)
+            if (!id || id == undefined) return res.status(400).json({ message: "ID não informado" })
+
+            //? Atualiza grupo_anexo 
+            const sqlUpdate = `UPDATE grupoanexo SET nome = ?, descricao = ?, status = ? WHERE grupoanexoID = ?`;
+            const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.descricao, (values.fields.status ? '1' : '0'), id]);
+
+            //? Atualizado formulários (+1)
+            // Remove atuais 
+            const sqlDeleteFormularios = `DELETE FROM grupoanexo_parformulario WHERE grupoAnexoID = ?`
+            const [resultDeleteFormularios] = await db.promise().query(sqlDeleteFormularios, [id]);
+            // Insere novos 
+            if (values.formulario.fields.length > 0) {
+                const sqlInsertFormularios = `INSERT INTO grupoanexo_parformulario (grupoAnexoID, parFormularioID) VALUES (?, ?)`
+                values.formulario.fields.map(async (item) => {
+                    const [resultInsertFormularios] = await db.promise().query(sqlInsertFormularios, [id, item.id]);
                 })
-
-                return res.status(200).json({ message: 'Dados atualizados com sucesso!' })
-            } else {
-                return res.status(401).json({ message: "Item não encontrado" });
             }
 
+            //? Itens do grupo de anexos
+            // Apaga array de itens 
+            if (values.removedItems.length > 0) {
+                const sqlDeleteItens = `DELETE FROM grupoanexo_item WHERE grupoanexoitemID IN (${values.removedItems.join(',')})`
+                const [resultDeleteItens] = await db.promise().query(sqlDeleteItens)
+            }
+            // Varre array de itens
+            if (values.items.length > 0) {
+                values.items.map(async (item) => {
+                    if (item && item.id > 0) { //? Já existe, atualiza
+                        const sqlUpdateItem = `UPDATE grupoanexo_item SET nome = ?, descricao = ?, status = ?, obrigatorio = ? WHERE grupoanexoitemID = ?`
+                        const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [item.nome, item.descricao, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0'), item.id])
+                    } else if (item && !item.id) {                   //? Novo, insere
+                        const sqlInsertItem = `INSERT INTO grupoanexo_item (nome, descricao, grupoanexoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?)`
+                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [item.nome, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')])
+                    }
+                })
+            }
+
+            return res.status(200).json({ message: 'Dados atualizados com sucesso!' })
         } catch (error) {
             console.log(error)
         }
