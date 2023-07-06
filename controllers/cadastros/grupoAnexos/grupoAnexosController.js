@@ -55,14 +55,13 @@ class GrupoAnexosController {
     async getDataNew(req, res) {
 
         try {
-            const objForm = {
-                id: null,
-                nome: null,
-                options: null
+            let result = {}
+            const sqlGetFormularios = 'SELECT parFormularioID AS id, nome FROM par_formulario'
+            const [resultGetFormularios] = await db.promise().query(sqlGetFormularios)
+            console.log("🚀 ~ resultGetFormularios:", resultGetFormularios)
+            result = {
+                formulariosOptions: resultGetFormularios
             }
-            const result = {}
-            result.formulario = []
-            result.requisitos = []
             res.status(200).json(result);
         } catch (error) {
             console.error("Erro ao buscar dados no banco de dados: ", error);
@@ -72,25 +71,26 @@ class GrupoAnexosController {
 
     async insertData(req, res) {
         const newData = req.body.newData
+        console.log("🚀 ~ newData:", newData)
         const unidadeID = newData.unidade
+        // console.log("🚀 ~ unidadeID:", unidadeID)
 
-        try {
-            //? Insere os dados do grupo
-            const sqlInsertData = `INSERT INTO grupoanexo (nome, descricao, unidadeID, status) VALUES (?, ?, ?, ?)`
-            const [resultSqlExistsItem] = await db.promise().query(sqlInsertData, [newData.nome, newData.descricao, unidadeID, newData.status == true ? 1 : 0]);
-            const idGroup = resultSqlExistsItem.insertId
 
-            // //? Insere os dados dos itens do grupo
-            if (newData.requisitos.length > 0) {
-                const sqlInsertItem = `INSERT INTO grupoanexo_item (nome, descricao, grupoanexoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?);`
-                newData.requisitos.map(async (item) => {
-                    const [resultInsertItem] = await db.promise().query(sqlInsertItem, [item.nome, item.descricao, idGroup, item.statusRequisito == true ? 1 : 0, item.obrigatorio == true ? 1 : 0]);
-                })
-            }
-            res.status(200).json({ message: "Dados gravados com sucesso" })
-        } catch (error) {
-            res.status(500).json({ error: "Ocorreu um erro ao buscar os dados no banco de dados." });
-        }
+        // const sqlInsertData = `INSERT INTO grupoanexo (nome, descricao, parFormularioID, unidadeID, status) VALUES (?, ?, ?, ?, ?)`
+        // const [resultSqlExistsItem] = await db.promise().query(sqlInsertData, [newData.nome, newData.descricao, unidadeID, newData.status == true ? 1 : 0]);
+        // console.log("🚀 ~ sqlInsertData:", sqlInsertData)
+        // console.log("🚀 ~ resultSqlExistsItem:", resultSqlExistsItem)
+        // const idGroup = resultSqlExistsItem.insertId
+
+        // //? Insere os dados dos itens do grupo
+        // if (newData.requisitos.length > 0) {
+        //     const sqlInsertItem = `INSERT INTO grupoanexo_item (nome, descricao, grupoanexoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?);`
+        //     newData.requisitos.map(async (item) => {
+        //         const [resultInsertItem] = await db.promise().query(sqlInsertItem, [item.nome, item.descricao, idGroup, item.statusRequisito == true ? 1 : 0, item.obrigatorio == true ? 1 : 0]);
+        //     })
+        // }
+        // res.status(200).json({ message: "Dados gravados com sucesso" })
+
 
     }
 
