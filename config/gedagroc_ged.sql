@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 07-Jul-2023 às 22:35
+-- Tempo de geração: 07-Jul-2023 às 22:40
 -- Versão do servidor: 10.4.22-MariaDB
 -- versão do PHP: 7.4.27
 
@@ -1602,7 +1602,7 @@ CREATE TABLE `recebimentomp` (
   `recebimentompID` int(11) NOT NULL,
   `pessoaID` int(11) DEFAULT NULL COMMENT 'Profissional',
   `tipoOperacaoID` int(11) DEFAULT NULL COMMENT 'Recepção ou Expedição',
-  `data` date DEFAULT current_timestamp(),
+  `data` date DEFAULT NULL,
   `dataEdicao` date DEFAULT NULL,
   `dataRevisao` date DEFAULT NULL,
   `nf` varchar(255) DEFAULT NULL,

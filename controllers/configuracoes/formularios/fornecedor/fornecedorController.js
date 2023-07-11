@@ -6,7 +6,6 @@ class FornecedorController {
     async getData(req, res) {
         const { unidadeID } = req.body;
         try {
-
             if (!unidadeID || unidadeID == 'undefined') { return res.json({ message: 'Sem unidadeID recebida!' }) }
 
             //? Header
@@ -30,22 +29,6 @@ class FornecedorController {
             const sqlBlock = `SELECT * FROM par_fornecedor_bloco WHERE unidadeID = ? ORDER BY ordem ASC`;
             const [resultBlock] = await db.promise().query(sqlBlock, [unidadeID]);
 
-            const sqlCategoria = `
-            SELECT c.*, 
-                (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM par_fornecedor_bloco_categoria AS pfbc
-                WHERE pfbc.categoriaID = c.categoriaID AND pfbc.parFornecedorBlocoID = ? AND pfbc.unidadeID = ?) AS checked
-            FROM categoria AS c
-            ORDER BY c.nome ASC`;
-
-            const sqlAtividade = `
-            SELECT a.*, 
-                (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM par_fornecedor_bloco_atividade AS pfba 
-                WHERE pfba.atividadeID = a.atividadeID AND pfba.parFornecedorBlocoID = ? AND pfba.unidadeID = ?) AS checked
-            FROM atividade AS a 
-            ORDER BY a.nome ASC`;
-
             const sqlItem = `
             SELECT i.*, pfbi.*, a.nome AS alternativa, 
                 (SELECT IF(COUNT(*) > 0, 1, 0)
@@ -58,8 +41,12 @@ class FornecedorController {
             ORDER BY pfbi.ordem ASC`
 
             //? Options
+            const sqlAllCategories = `SELECT c.categoriaID AS id, c.nome FROM categoria AS c ORDER BY c.nome ASC`;
+            const sqlAllActivities = `SELECT a.atividadeID AS id, a.nome FROM atividade AS a ORDER BY a.nome ASC`;
             const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 1 AND status = 1 ORDER BY nome ASC`;
             const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
+            const [resultAllCategories] = await db.promise().query(sqlAllCategories);
+            const [resultAllActivities] = await db.promise().query(sqlAllActivities);
             const [resultItem] = await db.promise().query(sqlOptionsItem);
             const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
             const objOptionsBlock = {
@@ -68,8 +55,22 @@ class FornecedorController {
             };
 
             for (const item of resultBlock) {
-                const [resultCategoria] = await db.promise().query(sqlCategoria, [item.parFornecedorBlocoID, unidadeID]);
-                const [resultAtividade] = await db.promise().query(sqlAtividade, [item.parFornecedorBlocoID, unidadeID]);
+                const sqlBlockCategories = `
+                SELECT pfbc.categoriaID AS id, c.nome
+                FROM par_fornecedor_bloco_categoria AS pfbc
+                    JOIN categoria AS c ON (pfbc.categoriaID = c.categoriaID)
+                WHERE pfbc.parFornecedorBlocoID = ? AND pfbc.unidadeID = ?
+                ORDER BY c.nome ASC`;
+
+                const sqlBlockActivities = `
+                SELECT pfba.atividadeID AS id, a.nome
+                FROM par_fornecedor_bloco_atividade AS pfba 
+                    JOIN atividade AS a ON (pfba.atividadeID = a.atividadeID)
+                WHERE pfba.parFornecedorBlocoID = ? AND pfba.unidadeID = ?
+                ORDER BY a.nome ASC`;
+
+                const [resultCategoria] = await db.promise().query(sqlBlockCategories, [item.parFornecedorBlocoID, unidadeID]);
+                const [resultAtividade] = await db.promise().query(sqlBlockActivities, [item.parFornecedorBlocoID, unidadeID]);
                 const [resultItem] = await db.promise().query(sqlItem, [item.parFornecedorBlocoID]);
 
                 for (const item of resultItem) {
@@ -88,8 +89,8 @@ class FornecedorController {
 
                 const objData = {
                     dados: item,
-                    atividades: resultAtividade ? resultAtividade : [],
                     categorias: resultCategoria ? resultCategoria : [],
+                    atividades: resultAtividade ? resultAtividade : [],
                     itens: resultItem,
                     optionsBlock: objOptionsBlock
                 };
@@ -99,6 +100,8 @@ class FornecedorController {
 
             //? Options
             const objOptions = {
+                categorias: resultAllCategories,
+                atividades: resultAllActivities,
                 itens: resultItem,
                 alternativas: resultAlternativa
             };
@@ -165,21 +168,20 @@ class FornecedorController {
             })
 
             //? Blocos 
-            console.log('-------------------')
             blocks && blocks.forEach(async (block, index) => {
                 if (block) {
-                    if (block.parFornecedorBlocoID && parseInt(block.parFornecedorBlocoID) > 0) {
+                    if (block.dados.parFornecedorBlocoID && parseInt(block.dados.parFornecedorBlocoID) > 0) {
                         //? Bloco já existe, Update
                         const sqlUpdateBlock = `
                         UPDATE par_fornecedor_bloco
                         SET ordem = ?, nome = ?, obs = ?, status = ?
                         WHERE parFornecedorBlocoID = ?`
                         const [resultUpdateBlock] = await db.promise().query(sqlUpdateBlock, [
-                            block.sequencia,
-                            block.nome,
-                            (block.obs ? 1 : 0),
-                            (block.status ? 1 : 0),
-                            block.parFornecedorBlocoID
+                            block.dados.sequencia,
+                            block.dados.nome,
+                            (block.dados.obs ? 1 : 0),
+                            (block.dados.status ? 1 : 0),
+                            block.dados.parFornecedorBlocoID
                         ])
                         if (resultUpdateBlock.length === 0) { return res.json(err); }
                     } else {
@@ -188,65 +190,41 @@ class FornecedorController {
                         INSERT INTO par_fornecedor_bloco(ordem, nome, obs, unidadeID, status) 
                         VALUES (?, ?, ?, ?, ?)`
                         const [resultNewBlock] = await db.promise().query(sqlNewBlock, [
-                            block.sequencia,
-                            block.nome,
-                            (block.obs ? 1 : 0),
+                            block.dados.sequencia,
+                            block.dados.nome,
+                            (block.dados.obs ? 1 : 0),
                             unidadeID,
-                            (block.status ? 1 : 0)
+                            (block.dados.status ? 1 : 0)
                         ])
                         if (resultNewBlock.length === 0) { return res.json(err); }
                         block.parFornecedorBlocoID = resultNewBlock.insertId //? parFornecedorBlocoID que acabou de ser gerado
                     }
 
                     //? Categoria (Fabricante / Importador)
+                    // Remove atuais
+                    const sqlDeleteCategoria = `DELETE FROM par_fornecedor_bloco_categoria WHERE parFornecedorBlocoID = ? AND unidadeID = ?`
+                    const [resultDeleteCategoria] = await db.promise().query(sqlDeleteCategoria, [block.dados.parFornecedorBlocoID, unidadeID])
+                    // Insere novamente
                     block.categorias && block.categorias.forEach(async (categoria, indexCategoria) => {
                         if (categoria) {
-                            if (categoria.checked) {
-                                // Verifica se já existe registro em "par_fornecedor_bloco_categoria" para o fornecedor e unidade
-                                const sqlCategoria = `
-                                SELECT COUNT(*) AS count
-                                FROM par_fornecedor_bloco_categoria AS pfbc
-                                WHERE pfbc.parFornecedorBlocoID = ? AND pfbc.categoriaID = ? AND pfbc.unidadeID = ?`
-                                // Verifica numero de linhas do sql
-                                const [resultCategoria] = await db.promise().query(sqlCategoria, [block.parFornecedorBlocoID, categoria.categoriaID, unidadeID])
-                                if (resultCategoria[0].count == 0) { // Insert 
-                                    const sqlInsertCategoria = `
-                                    INSERT INTO par_fornecedor_bloco_categoria (parFornecedorBlocoID, categoriaID, unidadeID)
-                                    VALUES (?, ?, ?)`
-                                    const [resultInsertCategoria] = await db.promise().query(sqlInsertCategoria, [block.parFornecedorBlocoID, categoria.categoriaID, unidadeID]);
-                                }
-                            }
-                        } else { // Deleta
-                            const sqlDeleteCategoria = `
-                            DELETE FROM par_fornecedor_bloco_categoria
-                            WHERE parFornecedorBlocoID = ? AND categoriaID = ? AND unidadeID = ?`
-                            const [resultDeleteCategoria] = await db.promise().query(sqlDeleteCategoria, [block.parFornecedorBlocoID, categoria.categoriaID, unidadeID])
+                            const sqlInsertCategoria = `
+                            INSERT INTO par_fornecedor_bloco_categoria (parFornecedorBlocoID, categoriaID, unidadeID)
+                            VALUES (?, ?, ?)`
+                            const [resultInsertCategoria] = await db.promise().query(sqlInsertCategoria, [block.dados.parFornecedorBlocoID, categoria.id, unidadeID]);
                         }
                     })
 
                     //? Atividades
+                    // Remove as atuais
+                    const sqlDeleteAtividade = `DELETE FROM par_fornecedor_bloco_atividade WHERE parFornecedorBlocoID = ? AND unidadeID = ?`
+                    const [resultDeleteAtividade] = await db.promise().query(sqlDeleteAtividade, [block.dados.parFornecedorBlocoID, unidadeID])
+                    // Insere novamente
                     block.atividades && block.atividades.forEach(async (atividade, indexAtividade) => {
                         if (atividade) {
-                            if (atividade.checked) {
-                                // Verifica se já existe registro em "par_fornecedor_bloco_atividade" para o fornecedor e unidade
-                                const sqlAtividade = `
-                                SELECT COUNT(*) AS count
-                                FROM par_fornecedor_bloco_atividade AS pfba
-                                WHERE pfba.parFornecedorBlocoID = ? AND pfba.atividadeID = ? AND pfba.unidadeID = ?`
-                                // Verifica numero de linhas do sql
-                                const [resultAtividade] = await db.promise().query(sqlAtividade, [block.parFornecedorBlocoID, atividade.atividadeID, unidadeID])
-                                if (resultAtividade[0].count == 0) { // Insert 
-                                    const sqlInsertAtividade = `
-                                    INSERT INTO par_fornecedor_bloco_atividade (parFornecedorBlocoID, atividadeID, unidadeID)
-                                    VALUES (?, ?, ?)`
-                                    const [resultInsertAtividade] = await db.promise().query(sqlInsertAtividade, [block.parFornecedorBlocoID, atividade.atividadeID, unidadeID]);
-                                }
-                            } else { // Deleta
-                                const sqlDeleteAtividade = `
-                                DELETE FROM par_fornecedor_bloco_atividade
-                                WHERE parFornecedorBlocoID = ? AND atividadeID = ? AND unidadeID = ?`
-                                const [resultDeleteAtividade] = await db.promise().query(sqlDeleteAtividade, [block.parFornecedorBlocoID, atividade.atividadeID, unidadeID])
-                            }
+                            const sqlInsertAtividade = `
+                            INSERT INTO par_fornecedor_bloco_atividade (parFornecedorBlocoID, atividadeID, unidadeID)
+                            VALUES (?, ?, ?)`
+                            const [resultInsertAtividade] = await db.promise().query(sqlInsertAtividade, [block.dados.parFornecedorBlocoID, atividade.id, unidadeID]);
                         }
                     })
 
@@ -274,13 +252,13 @@ class FornecedorController {
                             SELECT COUNT(*) AS count
                             FROM par_fornecedor_bloco_item AS pfbi
                             WHERE pfbi.parFornecedorBlocoID = ? AND pfbi.itemID = ? AND pfbi.alternativaID = ?`
-                            const [resultItem] = await db.promise().query(sqlItem, [block.parFornecedorBlocoID, item.item.id, item.alternativa.id])
+                            const [resultItem] = await db.promise().query(sqlItem, [block.dados.parFornecedorBlocoID, item.item.id, item.alternativa.id])
                             if (resultItem[0].count === 0) {  // Pode inserir
                                 const sqlInsert = `
                                 INSERT INTO par_fornecedor_bloco_item (parFornecedorBlocoID, ordem, itemID, alternativaID, obs, obrigatorio, status)
                                 VALUES (?, ?, ?, ?, ?, ?, ?)`
                                 const [resultInsert] = await db.promise().query(sqlInsert, [
-                                    block.parFornecedorBlocoID,
+                                    block.dados.parFornecedorBlocoID,
                                     item.sequencia,
                                     item.item.id,
                                     item.alternativa.id,
