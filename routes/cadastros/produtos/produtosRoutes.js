@@ -6,11 +6,12 @@ const produtosController = new ProdutosController();
 
 const route = '/produtos';
 
-produtosRoutes.post(`${route}/`, produtosController.getList);
-produtosRoutes.get(`${route}/:id`, produtosController.getData);
+produtosRoutes.post(`${route}`, produtosController.getList);
+produtosRoutes.post(`${route}/getData/:id`, produtosController.getData);
 
-produtosRoutes.put(`${route}/:id`, produtosController.updateData);
+produtosRoutes.post(`${route}/updateData/:id`, produtosController.updateData);
+produtosRoutes.post(`${route}/new/insertData`, produtosController.insertData);
 produtosRoutes.delete(`${route}/:id`, produtosController.deleteData);
-produtosRoutes.post(`${route}/novo`, produtosController.insertData);
+
 
 module.exports = produtosRoutes;

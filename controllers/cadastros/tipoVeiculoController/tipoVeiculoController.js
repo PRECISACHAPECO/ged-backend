@@ -1,77 +1,60 @@
 const db = require('../../../config/db');
-const { hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class TipoVeiculoController {
-    getList(req, res) {
-        db.query("SELECT tipoVeiculoID AS id, nome, status FROM tipoveiculo", (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                res.status(200).json(result);
-            }
-        })
+    async getList(req, res) {
+        try {
+            const getList = 'SELECT tipoVeiculoID AS id, nome, status FROM tipoveiculo'
+            const [resultGetList] = await db.promise().query(getList);
+            res.status(200).json(resultGetList);
+        } catch (error) {
+            console.log(error)
+        }
     }
 
-    getData(req, res) {
-        const { id } = req.params
-        db.query("SELECT * FROM tipoveiculo WHERE tipoVeiculoID = ?", [id], (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                res.status(200).json(result[0]);
+    async getData(req, res) {
+        try {
+            const { id } = req.params
+            const sqlGet = `SELECT * FROM tipoveiculo WHERE tipoVeiculoID = ?`
+            const [resultSqlGet] = await db.promise().query(sqlGet, id)
+            const result = {
+                fields: resultSqlGet[0]
             }
-        })
+            return res.status(200).json(result)
+        } catch (error) {
+            console.log(error)
+        }
     }
 
-    insertData(req, res) {
-        const { nome } = req.body;
-        db.query("SELECT * FROM tipoveiculo", (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                const rows = result.find(row => row.nome === nome);
-                if (rows) {
-                    res.status(409).json(err);
-                } else {
-                    db.query("INSERT INTO tipoveiculo (nome) VALUES (?)", [nome], (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(201).json(result);
-                        }
-                    });
-                }
-            }
-        });
+    async insertData(req, res) {
+        const values = req.body
+        try {
+            const sqlInsert = 'INSERT INTO tipoveiculo (nome, status) VALUES (?, ?)'
+            const [resultSqlInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.status])
+            const id = resultSqlInsert.insertId
+            return res.status(200).json(id)
+
+        } catch (error) {
+            console.log(error)
+        }
     }
 
-    updateData(req, res) {
-        const { id } = req.params
-        const { nome, status } = req.body
-        db.query("SELECT * FROM tipoveiculo", (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                // Verifica se já existe um registro com o mesmo nome e id diferente
-                const rows = result.find(row => row.nome == nome && row.tipoVeiculoID != id);
-                if (rows) {
-                    res.status(409).json({ message: "Dados já cadastrados!" });
-                } else {
-                    // Passou na validação, atualiza os dados
-                    db.query("UPDATE tipoveiculo SET nome = ?, status = ? WHERE tipoVeiculoID = ?", [nome, status, id], (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(200).json(result);
-                        }
-                    });
-                }
+    async updateData(req, res) {
+        try {
+            const { id } = req.params
+            const values = req.body
+
+            if (await hasConflict(values.fields.nome, id, 'tipoveiculo', 'tipoVeiculoID')) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
             }
-        })
+
+            const sqlUpdate = `UPDATE tipoveiculo SET nome = ?, status = ? WHERE tipoVeiculoID = ?`
+            const [resultSqlUpdat] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.status, id])
+
+            return res.status(200).json({ message: 'Dados atualizados com sucesso' })
+        } catch (error) {
+            console.log(error)
+        }
     }
 
     deleteData(req, res) {
@@ -100,5 +83,7 @@ class TipoVeiculoController {
             });
     }
 }
+
+
 
 module.exports = TipoVeiculoController;

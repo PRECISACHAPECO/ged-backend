@@ -113,6 +113,19 @@ const hasPending = async (id, column, tables) => {
     });
 };
 
+
+const hasConflict = async (value, id, table, column) => {
+    if (table && column && id) {
+        const sql = `SELECT ${column} AS id, nome FROM ${table}`
+        const [result] = await db.promise().query(sql)
+
+        const rows = result.find(row => row.nome == value && row.id != id);
+        console.log("🚀 ~ sql:", rows)
+        return rows ? true : false
+    }
+    return false
+}
+
 const deleteItem = async (id, table, column, res) => {
     for (const item of table) {
         console.log("🚀 ~ item:", id, item, column)
@@ -132,4 +145,4 @@ const onlyNumbers = (string) => {
     return string.replace(/[^0-9]/g, '');
 }
 
-module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers };
+module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict };

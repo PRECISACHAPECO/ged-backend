@@ -7,9 +7,11 @@ const apresentacaoController = new ApresentacaoController();
 const route = '/apresentacao';
 
 apresentacaoRoutes.get(`${route}`, apresentacaoController.getList);
-apresentacaoRoutes.get(`${route}/:id`, apresentacaoController.getData);
-apresentacaoRoutes.put(`${route}/:id`, apresentacaoController.updateData);
+apresentacaoRoutes.post(`${route}/getData/:id`, apresentacaoController.getData);
+
+apresentacaoRoutes.post(`${route}/updateData/:id`, apresentacaoController.updateData);
+apresentacaoRoutes.post(`${route}/new/insertData`, apresentacaoController.insertData);
 apresentacaoRoutes.delete(`${route}/:id`, apresentacaoController.deleteData);
-apresentacaoRoutes.post(`${route}/novo`, apresentacaoController.insertData);
+
 
 module.exports = apresentacaoRoutes;
