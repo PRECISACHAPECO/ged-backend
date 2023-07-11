@@ -44,13 +44,26 @@ class RecebimentoMpController {
             const resultProducts = await db.promise().query(sqlProducts, [unidadeID, unidadeID]);
             const products = resultProducts[0]
 
+            //? Opções pra seleção
+            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 2 ORDER BY nome ASC`;
+            const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
+            const [resultItem] = await db.promise().query(sqlOptionsItem);
+            const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
+            const objOptions = {
+                itens: resultItem,
+                alternativas: resultAlternativa
+            };
+
             //? Blocos 
             const blocks = [];
             const sqlBloco = `SELECT * FROM par_recebimentomp_bloco WHERE unidadeID = ? ORDER BY ordem ASC`;
             const [resultBloco] = await db.promise().query(sqlBloco, [unidadeID]);
 
             const sqlItem = `
-            SELECT i.*, prbi.*, a.nome AS alternativa 
+            SELECT i.*, prbi.*, a.nome AS alternativa,
+                (SELECT IF(COUNT(*) > 0, 1, 0)
+                FROM recebimentomp_resposta AS rr 
+                WHERE rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID) AS hasPending
             FROM par_recebimentomp_bloco_item AS prbi 
                 LEFT JOIN item AS i ON (prbi.itemID = i.itemID)
                 LEFT JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
@@ -58,8 +71,8 @@ class RecebimentoMpController {
             ORDER BY prbi.ordem ASC`
 
             for (const item of resultBloco) {
-                const [resultItem] = await db.promise().query(sqlItem, [item.parRecebimentompBlocoID]);
-                for (const item of resultItem) {
+                const [resultBlockItems] = await db.promise().query(sqlItem, [item.parRecebimentompBlocoID]);
+                for (const item of resultBlockItems) {
                     if (item) {
                         item['item'] = {
                             id: item.itemID,
@@ -74,21 +87,16 @@ class RecebimentoMpController {
 
                 const objData = {
                     dados: item,
-                    itens: resultItem
+                    itens: resultBlockItems,
+                    optionsBlock: {
+                        itens: resultItem
+                    }
                 };
 
                 blocks.push(objData);
             }
 
-            //? Opções pra seleção
-            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 2 ORDER BY nome ASC`;
-            const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
-            const [resultItem] = await db.promise().query(sqlOptionsItem);
-            const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
-            const objOptions = {
-                itens: resultItem,
-                alternativas: resultAlternativa
-            };
+
 
             //? Orientações
             const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 2`
@@ -110,7 +118,7 @@ class RecebimentoMpController {
 
     async updateData(req, res) {
         try {
-            const { unidadeID, header, products, blocks, orientacoes } = req.body
+            const { unidadeID, header, products, blocks, orientacoes, arrRemovedItems } = req.body
 
             //? Header
             header && header.forEach(async (item) => {
@@ -171,25 +179,39 @@ class RecebimentoMpController {
                 }
             })
 
+            //? Itens removidos dos blocos 
+            arrRemovedItems && arrRemovedItems.forEach(async (item) => {
+                if (item) {
+                    const sqlDelete = `DELETE FROM par_recebimentomp_bloco_item WHERE parRecebimentompBlocoItemID = ?`
+                    const [resultDelete] = await db.promise().query(sqlDelete, [item.parRecebimentompBlocoItemID])
+                }
+            })
+
             //? Blocos 
             blocks && blocks.forEach(async (block, index) => {
                 if (block) {
-                    if (block.parRecebimentompBlocoID && block.parRecebimentompBlocoID > 0) { // Update
+                    if (block.dados.parRecebimentompBlocoID && block.dados.parRecebimentompBlocoID > 0) { // Update
                         const sqlUpdateBlock = `
                         UPDATE par_recebimentomp_bloco
                         SET ordem = ?, nome = ?, obs = ?, status = ?
                         WHERE parRecebimentompBlocoID = ?`
-                        const [resultUpdateBlock] = await db.promise().query(sqlUpdateBlock, [block.sequencia, block.nome, (block.obs ? 1 : 0), (block.status ? 1 : 0), block.parRecebimentompBlocoID])
+                        const [resultUpdateBlock] = await db.promise().query(sqlUpdateBlock, [
+                            block.dados.ordem,
+                            block.dados.nome,
+                            (block.dados.obs ? 1 : 0),
+                            (block.dados.status ? 1 : 0),
+                            block.dados.parRecebimentompBlocoID
+                        ])
                     } else {                                                                 // Insert
                         const sqlInsertBlock = `INSERT INTO par_recebimentomp_bloco (ordem, nome, obs, unidadeID, status) VALUES (?, ?, ?, ?, ?)`
                         const [resultInsertBlock] = await db.promise().query(sqlInsertBlock, [
-                            block.sequencia,
-                            block.nome,
-                            (block.obs ? 1 : 0),
+                            block.dados.ordem,
+                            block.dados.nome,
+                            (block.dados.obs ? 1 : 0),
                             unidadeID,
-                            (block.status ? 1 : 0)
+                            (block.dados.status ? 1 : 0)
                         ])
-                        block.parRecebimentompBlocoID = resultInsertBlock.insertId
+                        block.dados.parRecebimentompBlocoID = resultInsertBlock.insertId
                     }
 
                     //? Itens 
@@ -201,22 +223,22 @@ class RecebimentoMpController {
                             SET ordem = ?, ${item.item.id ? 'itemID = ?, ' : ''} ${item.alternativaID ? 'alternativaID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
                             WHERE parRecebimentompBlocoItemID = ?`
                             const [resultUpdate] = await db.promise().query(sqlUpdate, [
-                                item.sequencia,
+                                item.ordem,
                                 ...(item.item.id ? [item.item.id] : []),
-                                ...(item.alternativaID ? [item.alternativaID] : []),
+                                ...(item.alternativa.id ? [item.alternativa.id] : []),
                                 (item.obs ? 1 : 0),
                                 (item.obrigatorio ? 1 : 0),
                                 (item.status ? 1 : 0),
                                 item.parRecebimentompBlocoItemID
                             ])
-                        } else if (item && block.parRecebimentompBlocoID && item.sequencia && item.item.id && item.alternativa.id) {
+                        } else if (item && block.dados.parRecebimentompBlocoID && item.ordem && item.item.id && item.alternativa.id) {
                             // Insert
                             const sqlInsert = `
                             INSERT INTO par_recebimentomp_bloco_item (parRecebimentompBlocoID, ordem, itemID, alternativaID, obs, obrigatorio, status)
                             VALUES (?, ?, ?, ?, ?, ?, ?)`
                             const [resultInsert] = await db.promise().query(sqlInsert, [
-                                block.parRecebimentompBlocoID,
-                                item.sequencia,
+                                block.dados.parRecebimentompBlocoID,
+                                item.ordem,
                                 item.item.id,
                                 item.alternativa.id,
                                 (item.obs ? 1 : 0),
@@ -234,7 +256,7 @@ class RecebimentoMpController {
             UPDATE par_formulario
             SET obs = ? 
             WHERE parFormularioID = 2`
-            const [resultOrientacoes] = await db.promise().query(sqlOrientacoes, [orientacoes])
+            const [resultOrientacoes] = await db.promise().query(sqlOrientacoes, [orientacoes?.obs])
 
             res.status(200).json({ message: "Dados atualizados com sucesso." });
 

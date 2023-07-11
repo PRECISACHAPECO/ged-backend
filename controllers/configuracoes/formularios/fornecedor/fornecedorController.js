@@ -177,7 +177,7 @@ class FornecedorController {
                         SET ordem = ?, nome = ?, obs = ?, status = ?
                         WHERE parFornecedorBlocoID = ?`
                         const [resultUpdateBlock] = await db.promise().query(sqlUpdateBlock, [
-                            block.dados.sequencia,
+                            block.dados.ordem,
                             block.dados.nome,
                             (block.dados.obs ? 1 : 0),
                             (block.dados.status ? 1 : 0),
@@ -190,7 +190,7 @@ class FornecedorController {
                         INSERT INTO par_fornecedor_bloco(ordem, nome, obs, unidadeID, status) 
                         VALUES (?, ?, ?, ?, ?)`
                         const [resultNewBlock] = await db.promise().query(sqlNewBlock, [
-                            block.dados.sequencia,
+                            block.dados.ordem,
                             block.dados.nome,
                             (block.dados.obs ? 1 : 0),
                             unidadeID,
@@ -237,7 +237,7 @@ class FornecedorController {
                             SET ordem = ?, ${item.item.id ? 'itemID = ?, ' : ''} ${item.alternativa.id ? 'alternativaID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
                             WHERE parFornecedorBlocoItemID = ?`
                             const [resultUpdate] = await db.promise().query(sqlUpdate, [
-                                item.sequencia,
+                                item.ordem,
                                 ...(item.item.id ? [item.item.id] : []),
                                 ...(item.alternativa.id ? [item.alternativa.id] : []),
                                 (item.obs ? 1 : 0),
@@ -259,7 +259,7 @@ class FornecedorController {
                                 VALUES (?, ?, ?, ?, ?, ?, ?)`
                                 const [resultInsert] = await db.promise().query(sqlInsert, [
                                     block.dados.parFornecedorBlocoID,
-                                    item.sequencia,
+                                    item.ordem,
                                     item.item.id,
                                     item.alternativa.id,
                                     (item.obs ? 1 : 0),
@@ -277,7 +277,7 @@ class FornecedorController {
             UPDATE par_formulario
             SET obs = ? 
             WHERE parFormularioID = 1`
-            const [resultOrientacoes] = await db.promise().query(sqlOrientacoes, [orientacoes])
+            const [resultOrientacoes] = await db.promise().query(sqlOrientacoes, [orientacoes?.obs])
 
             res.status(200).json({ message: "Dados atualizados com sucesso." });
 
