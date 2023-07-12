@@ -30,5 +30,6 @@ fornecedorRoutes.post(`${route}/updateFormStatus/:id`, fornecedorController.upda
 fornecedorRoutes.post(`${route}/getMovementHistory/:id`, fornecedorController.getMovementHistory);
 fornecedorRoutes.post(`${route}/verifyFormPending/:id`, fornecedorController.verifyFormPending);
 fornecedorRoutes.post(`${route}/changeFormStatus/:id`, fornecedorController.changeFormStatus);
+fornecedorRoutes.post(`${route}/getGruposAnexo`, fornecedorController.getGruposAnexo);
 
 module.exports = fornecedorRoutes;

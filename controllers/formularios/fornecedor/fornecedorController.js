@@ -601,6 +601,20 @@ class FornecedorController {
         res.status(200).json({ message: 'Ok' })
     }
 
+    //? Obtém os grupos de anexo do fornecedor
+    async getGruposAnexo(req, res) {
+        const { unidadeID } = req.body
+
+        const sql = `
+        SELECT g.grupoanexoID AS id, g.nome, g.descricao
+        FROM grupoanexo AS g
+            JOIN grupoanexo_parformulario AS gp ON (g.grupoanexoID = gp.grupoAnexoID)
+        WHERE g.unidadeID = ? AND gp.parFormularioID = ? AND g.status = ?`
+        const [result] = await db.promise().query(sql, [unidadeID, 1, 1])
+
+        res.status(200).json(result);
+    }
+
     //? Atualiza resultado (aprovador, aprovado parcial, reprovado)
     async changeFormStatus(req, res) {
         const { id } = req.params
@@ -687,12 +701,13 @@ class FornecedorController {
     }
 
     async makeFornecedor(req, res) {
-        const { usuarioID, unidadeID, papelID, cnpj } = req.body;
+        const { usuarioID, unidadeID, papelID, cnpj, gruposAnexo } = req.body;
+        console.log("🚀 ~ gruposAnexo:", gruposAnexo)
 
         //? Verifica duplicidade 
         const sqlVerify = `
         SELECT *
-                FROM fabrica_fornecedor
+        FROM fabrica_fornecedor
         WHERE unidadeID = ? AND fornecedorCnpj = "${cnpj}"`
         const [resultVerify] = await db.promise().query(sqlVerify, [unidadeID])
         if (resultVerify.length > 0) {
@@ -704,12 +719,22 @@ class FornecedorController {
         INSERT INTO fabrica_fornecedor(unidadeID, fornecedorCnpj, status)
             VALUES(?, "${cnpj}", ?)`
         const [resultInsert] = await db.promise().query(sqlInsert, [unidadeID, 1])
+        const fabricaFornecedorID = resultInsert.insertId
+
+        //? Grava grupos de anexo do fornecedor
+        if (gruposAnexo && gruposAnexo.length > 0) {
+            for (const grupo of gruposAnexo) {
+                if (grupo.id > 0) {
+                    const sqlGrupo = `INSERT INTO fabrica_fornecedor_grupoanexo(fabricaFornecedorID, grupoAnexoID) VALUES(?, ?)`
+                    const [resultGrupo] = await db.promise().query(sqlGrupo, [fabricaFornecedorID, grupo.id])
+                }
+            }
+        }
 
         //? Gera um novo formulário em branco, pro fornecedor preencher depois quando acessar o sistema
         const initialStatus = 10
         const sqlFornecedor = `
-        INSERT INTO fornecedor(cnpj, unidadeID, status, atual)
-            VALUES("${cnpj}", ?, ?, ?)`
+        INSERT INTO fornecedor(cnpj, unidadeID, status, atual) VALUES("${cnpj}", ?, ?, ?)`
         const [resultFornecedor] = await db.promise().query(sqlFornecedor, [unidadeID, initialStatus, 1])
         const fornecedorID = resultFornecedor.insertId
 
