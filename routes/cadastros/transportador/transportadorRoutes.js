@@ -6,11 +6,12 @@ const transportadorController = new TransportadorController();
 
 const route = '/transportador';
 
-transportadorRoutes.post(`${route}/`, transportadorController.getList);
-transportadorRoutes.get(`${route}/:id`, transportadorController.getData);
+transportadorRoutes.post(`${route}`, transportadorController.getList);
+transportadorRoutes.post(`${route}/getData/:id`, transportadorController.getData);
 
-transportadorRoutes.put(`${route}/:id`, transportadorController.updateData);
+transportadorRoutes.post(`${route}/updateData/:id`, transportadorController.updateData);
+transportadorRoutes.post(`${route}/new/insertData`, transportadorController.insertData);
 transportadorRoutes.delete(`${route}/:id`, transportadorController.deleteData);
-transportadorRoutes.post(`${route}/novo`, transportadorController.insertData);
+
 
 module.exports = transportadorRoutes;

@@ -7,9 +7,11 @@ const atividadeController = new AtividadeController();
 const route = '/atividade';
 
 atividadeRoutes.get(`${route}`, atividadeController.getList);
-atividadeRoutes.get(`${route}/:id`, atividadeController.getData);
-atividadeRoutes.put(`${route}/:id`, atividadeController.updateData);
+atividadeRoutes.post(`${route}/getData/:id`, atividadeController.getData);
+
+atividadeRoutes.post(`${route}/updateData/:id`, atividadeController.updateData);
+atividadeRoutes.post(`${route}/new/insertData`, atividadeController.insertData);
 atividadeRoutes.delete(`${route}/:id`, atividadeController.deleteData);
-atividadeRoutes.post(`${route}/novo`, atividadeController.insertData);
+
 
 module.exports = atividadeRoutes;
