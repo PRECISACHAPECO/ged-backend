@@ -1,5 +1,5 @@
 const db = require('../../../config/db');
-const { hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class ItemController {
     async getList(req, res) {
@@ -85,9 +85,19 @@ class ItemController {
     async insertData(req, res) {
         try {
             const values = req.body
-            console.log("🚀 ~ values:", values)
 
-            //? Insere novo item
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['nome', 'parFormularioID'],
+                values: [values.fields.nome, values.formulario.fields.id],
+                table: 'item',
+                id: null
+            }
+            if (await hasConflict(validateConflicts)) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
+            }
+
+            // //? Insere novo item
             const sqlInsert = `INSERT INTO item (nome, status, parFormularioID) VALUES (?, ?, ?)`
             const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, (values.fields.status ? '1' : '0'), values.formulario.fields.id])
             const id = resultInsert.insertId
@@ -104,6 +114,17 @@ class ItemController {
             const values = req.body
 
             if (!id || id == undefined) return res.status(400).json({ message: "ID não informado" })
+
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['itemID', 'nome', 'parFormularioID'],
+                values: [id, values.fields.nome, values.formulario.fields.id],
+                table: 'item',
+                id: id
+            }
+            if (await hasConflict(validateConflicts)) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
+            }
 
             //? Atualiza item
             console.log("🚀 ~ values:", values)

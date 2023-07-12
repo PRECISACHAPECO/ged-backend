@@ -29,6 +29,18 @@ class SistemaQualidadeController {
     async insertData(req, res) {
         const values = req.body
         try {
+
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['nome'],
+                values: [values.fields.nome],
+                table: 'sistemaqualidade',
+                id: null
+            }
+            if (await hasConflict(validateConflicts)) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
+            }
+
             const sqlInsert = 'INSERT INTO sistemaqualidade (nome, status) VALUES (?, ?)'
             const [resultSqlInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.status])
             const id = resultSqlInsert.insertId
@@ -44,7 +56,14 @@ class SistemaQualidadeController {
             const { id } = req.params
             const values = req.body
 
-            if (await hasConflict(values.fields.nome, id, 'sistemaqualidade', 'sistemaqualidadeID')) {
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['sistemaqualidadeID', 'nome'],
+                values: [id, values.fields.nome],
+                table: 'sistemaqualidade',
+                id: id
+            }
+            if (await hasConflict(validateConflicts)) {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 

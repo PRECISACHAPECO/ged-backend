@@ -114,17 +114,37 @@ const hasPending = async (id, column, tables) => {
 };
 
 
-const hasConflict = async (value, id, table, column) => {
-    if (table && column && id) {
-        const sql = `SELECT ${column} AS id, nome FROM ${table}`
-        const [result] = await db.promise().query(sql)
+const hasConflict = async ({ columns, values, table, id }) => {
+    if (columns && values && table) {
+        //* Monta query dinamica com colunas e valores passados no array do parametro
+        let queryConditions = ``
+        if (id && id > 0) {
+            queryConditions += ` AND ${columns[0]} <> ${id}`
+            columns.map((column, index) => {
+                if (index > 0) {
+                    queryConditions += ` AND ${column} = "${values[index]}"`
+                }
+            })
+        } else {
+            columns.map((column, index) => {
+                queryConditions += ` AND ${column} = "${values[index]}"`
+            })
+        }
 
-        const rows = result.find(row => row.nome == value && row.id != id);
-        console.log("🚀 ~ sql:", rows)
-        return rows ? true : false
+        //* Monta consulta, se retornar algo, possui conflito
+        const sql = `
+        SELECT ${columns.join(', ')} 
+        FROM ${table}
+        WHERE 1 = 1${queryConditions}`;
+        const [result] = await db.promise().query(sql);
+
+        return result.length > 0 ? true : false
     }
-    return false
-}
+    return false;
+};
+
+
+
 
 const deleteItem = async (id, table, column, res) => {
     for (const item of table) {

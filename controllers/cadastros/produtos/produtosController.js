@@ -28,9 +28,19 @@ class ProdutosController {
 
     async insertData(req, res) {
         const { values } = req.body
-        console.log("🚀 ~ values:", values)
-        // return
         try {
+
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['nome', 'unidadeID', 'unidadeMedida'],
+                values: [values.fields.nome, values.fields.unidadeID, values.fields.unidadeMedida],
+                table: 'produto',
+                id: null
+            }
+            if (await hasConflict(validateConflicts)) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
+            }
+
             const sqlInsert = 'INSERT INTO produto (nome, status, unidadeMedida, unidadeID) VALUES (?, ?, ?, ?)'
             const [resultSqlInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.status, values.fields.unidadeMedida, values.fields.unidadeID])
             const id = resultSqlInsert.insertId
@@ -46,7 +56,14 @@ class ProdutosController {
             const { id } = req.params
             const values = req.body
 
-            if (await hasConflict(values.fields.nome, id, 'produto', 'produtoID')) {
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['produtoID', 'nome', 'unidadeMedida'],
+                values: [id, values.fields.nome, values.fields.unidadeMedida],
+                table: 'produto',
+                id: id
+            }
+            if (await hasConflict(validateConflicts)) {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 

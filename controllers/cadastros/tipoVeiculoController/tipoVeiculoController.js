@@ -29,6 +29,18 @@ class TipoVeiculoController {
     async insertData(req, res) {
         const values = req.body
         try {
+
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['nome'],
+                values: [values.fields.nome],
+                table: 'tipoveiculo',
+                id: null
+            }
+            if (await hasConflict(validateConflicts)) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
+            }
+
             const sqlInsert = 'INSERT INTO tipoveiculo (nome, status) VALUES (?, ?)'
             const [resultSqlInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.status])
             const id = resultSqlInsert.insertId
@@ -44,7 +56,14 @@ class TipoVeiculoController {
             const { id } = req.params
             const values = req.body
 
-            if (await hasConflict(values.fields.nome, id, 'tipoveiculo', 'tipoVeiculoID')) {
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['tipoveiculoID', 'nome'],
+                values: [id, values.fields.nome],
+                table: 'tipoveiculo',
+                id: id
+            }
+            if (await hasConflict(validateConflicts)) {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
