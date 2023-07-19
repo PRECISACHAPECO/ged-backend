@@ -73,17 +73,17 @@ class FornecedorController {
         if (papelID == 1) {
             if (!unidadeID) { return res.json({ message: 'Erro ao receber unidadeID!' }) }
             const sql = `
-        SELECT
-        f.fornecedorID AS id,
-                IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
-                IF(f.nome <> '', f.nome, '--') AS fornecedor,
-                IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,
-                IF(f.cidade <> '', CONCAT(f.cidade, '/', f.estado), '--') AS cidade,
-                IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,
-                f.status
-            FROM fornecedor AS f
-                LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
-            WHERE f.unidadeID = ${unidadeID}
+            SELECT
+            f.fornecedorID AS id,
+                    IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
+                    IF(f.nome <> '', f.nome, '--') AS fornecedor,
+                    IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,
+                    IF(f.cidade <> '', CONCAT(f.cidade, '/', f.estado), '--') AS cidade,
+                    IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,
+                    f.status
+                FROM fornecedor AS f
+                    LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
+                WHERE f.unidadeID = ${unidadeID}
             ORDER BY f.fornecedorID DESC, f.status ASC`
             const [result] = await db.promise().query(sql)
             return res.status(200).json(result);
@@ -91,18 +91,18 @@ class FornecedorController {
         //* Fornecedor 
         else if (papelID == 2 && cnpj) {
             const sql = `
-        SELECT
-        f.fornecedorID AS id,
-                IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
-                IF(u.nomeFantasia <> '', u.nomeFantasia, '--') AS fabrica,
-                IF(u.cnpj <> '', u.cnpj, '--') AS cnpj,
-                IF(u.cidade <> '', CONCAT(u.cidade, '/', u.uf), '--') AS cidade,
-                IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,
-                f.status
-            FROM fornecedor AS f
-                LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
-            WHERE f.cnpj = "${cnpj}"
-            ORDER BY f.fornecedorID DESC, f.status ASC`
+            SELECT
+            f.fornecedorID AS id,
+                    IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
+                    IF(u.nomeFantasia <> '', u.nomeFantasia, '--') AS fabrica,
+                    IF(u.cnpj <> '', u.cnpj, '--') AS cnpj,
+                    IF(u.cidade <> '', CONCAT(u.cidade, '/', u.uf), '--') AS cidade,
+                    IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,
+                    f.status
+                FROM fornecedor AS f
+                    LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
+                WHERE f.cnpj = "${cnpj}"
+                ORDER BY f.fornecedorID DESC, f.status ASC`
             const [result] = await db.promise().query(sql)
             return res.status(200).json(result);
         }
@@ -115,7 +115,8 @@ class FornecedorController {
     async getData(req, res) {
 
         try {
-            const { id, unidadeLogadaID } = req.params; // id do formulário
+            const { id } = req.params; // id do formulário
+            const { unidadeLogadaID } = req.body;
 
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar formulário!' }) }
 
