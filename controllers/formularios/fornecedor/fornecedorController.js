@@ -119,15 +119,17 @@ class FornecedorController {
             const { unidadeLogadaID } = req.body;
 
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar formulário!' }) }
+            console.log("🚀 ~ getData id:", id)
 
             //? obtém a unidadeID (fábrica) do formulário, pro formulário ter os campos de preenchimento de acordo com o configurado pra aquela fábrica.
             const sqlUnidade = `
             SELECT f.unidadeID, u.nomeFantasia
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
-            WHERE f.fornecedorID = ${id} `
-            const [resultUnidade] = await db.promise().query(sqlUnidade)
+            WHERE f.fornecedorID = ? `
+            const [resultUnidade] = await db.promise().query(sqlUnidade, [id])
             const unidade = resultUnidade[0]
+            console.log("🚀 ~ ==> unidade:", unidade)
 
             // Fields do header
             const sqlFields = `
@@ -218,85 +220,85 @@ class FornecedorController {
             if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
 
             //* GRUPO DE ANEXOS
-            // const sqlFabricaFornecedorId = `
-            // SELECT *
-            //     FROM fabrica_fornecedor AS ff
-            // WHERE ff.unidadeID = ? AND ff.fornecedorCnpj = "${resultData.cnpj}" `;
-            // const [resultFabricaFornecedorId] = await db.promise().query(sqlFabricaFornecedorId, [unidade.unidadeID]);
+            const sqlFabricaFornecedorId = `
+            SELECT *
+                FROM fabrica_fornecedor AS ff
+            WHERE ff.unidadeID = ? AND ff.fornecedorCnpj = "${resultData.cnpj}" `;
+            const [resultFabricaFornecedorId] = await db.promise().query(sqlFabricaFornecedorId, [unidade.unidadeID]);
 
-            // //? Grupo: pega os grupos de anexos solicitados pra esse fornecedor
-            // const sqlGrupoItens = `
-            // SELECT *
-            //     FROM fabrica_fornecedor_grupoanexo AS ffg
-            //     LEFT JOIN grupoanexo AS ga ON(ffg.grupoAnexoID = ga.grupoanexoID)
-            // WHERE ffg.fabricaFornecedorID = ? AND ga.status = 1`;
-            // const [resultGrupo] = await db.promise().query(sqlGrupoItens, [resultFabricaFornecedorId[0].fabricaFornecedorID]);
+            //? Grupo: pega os grupos de anexos solicitados pra esse fornecedor
+            const sqlGrupoItens = `
+            SELECT *
+                FROM fabrica_fornecedor_grupoanexo AS ffg
+                LEFT JOIN grupoanexo AS ga ON(ffg.grupoAnexoID = ga.grupoanexoID)
+            WHERE ffg.fabricaFornecedorID = ? AND ga.status = 1`;
+            const [resultGrupo] = await db.promise().query(sqlGrupoItens, [resultFabricaFornecedorId[0].fabricaFornecedorID]);
 
-            // const gruposAnexo = [];
-            // for (const grupo of resultGrupo) {
-            //     //? Pega os itens do grupo atual
-            //     const sqlItens = `SELECT * FROM grupoanexo_item WHERE grupoanexoID = ? AND status = 1`;
-            //     const [resultGrupoItens] = await db.promise().query(sqlItens, [grupo.grupoanexoID]);
+            const gruposAnexo = [];
+            for (const grupo of resultGrupo) {
+                //? Pega os itens do grupo atual
+                const sqlItens = `SELECT * FROM grupoanexo_item WHERE grupoanexoID = ? AND status = 1`;
+                const [resultGrupoItens] = await db.promise().query(sqlItens, [grupo.grupoanexoID]);
 
-            //     //? Varre itens do grupo, verificando se tem anexo
-            //     for (const item of resultGrupoItens) {
-            //         item.anexo = {}
-            //         const sqlAnexo = `SELECT * FROM anexo WHERE fornecedorID = ? AND unidadeID = ? AND grupoAnexoItemID = ? `
-            //         const [resultAnexo] = await db.promise().query(sqlAnexo, [id, unidadeLogadaID, item.grupoanexoitemID]);
-            //         if (resultAnexo.length > 0) {
-            //             item.anexo = {
-            //                 exist: true,
-            //                 path: `${process.env.BASE_URL_UPLOADS}anexos/${resultAnexo[0].arquivo} `,
-            //                 nome: resultAnexo[0]?.titulo,
-            //                 tipo: resultAnexo[0]?.tipo,
-            //                 size: resultAnexo[0]?.tamanho,
-            //                 time: resultAnexo[0]?.dataHora,
-            //             }
-            //         }
-            //     }
-            //     grupo.itens = resultGrupoItens;
-            //     gruposAnexo.push(grupo)
-            // }
+                //? Varre itens do grupo, verificando se tem anexo
+                for (const item of resultGrupoItens) {
+                    item.anexo = {}
+                    const sqlAnexo = `SELECT * FROM anexo WHERE fornecedorID = ? AND unidadeID = ? AND grupoAnexoItemID = ? `
+                    const [resultAnexo] = await db.promise().query(sqlAnexo, [id, unidadeLogadaID, item.grupoanexoitemID]);
+                    if (resultAnexo.length > 0) {
+                        item.anexo = {
+                            exist: true,
+                            path: `${process.env.BASE_URL_UPLOADS}anexos/${resultAnexo[0].arquivo} `,
+                            nome: resultAnexo[0]?.titulo,
+                            tipo: resultAnexo[0]?.tipo,
+                            size: resultAnexo[0]?.tamanho,
+                            time: resultAnexo[0]?.dataHora,
+                        }
+                    }
+                }
+                grupo.itens = resultGrupoItens;
+                gruposAnexo.push(grupo)
+            }
 
-            // const sqlBlocos = `
-            // SELECT *
-            //     FROM par_fornecedor_bloco
-            // WHERE unidadeID = ? AND status = 1
-            // ORDER BY ordem ASC`
-            // const [resultBlocos] = await db.promise().query(sqlBlocos, [unidade.unidadeID])
+            const sqlBlocos = `
+            SELECT *
+                FROM par_fornecedor_bloco
+            WHERE unidadeID = ? AND status = 1
+            ORDER BY ordem ASC`
+            const [resultBlocos] = await db.promise().query(sqlBlocos, [unidade.unidadeID])
 
-            // //? Blocos
-            // const sqlBloco = getSqlBloco()
-            // for (const bloco of resultBlocos) {
-            //     const [resultBloco] = await db.promise().query(sqlBloco, [id, id, id, bloco.parFornecedorBlocoID])
+            //? Blocos
+            const sqlBloco = getSqlBloco()
+            for (const bloco of resultBlocos) {
+                const [resultBloco] = await db.promise().query(sqlBloco, [id, id, id, bloco.parFornecedorBlocoID])
 
-            //     //? Categorias do bloco
-            //     const sqlCategorias = `SELECT categoriaID FROM par_fornecedor_bloco_categoria WHERE parFornecedorBlocoID = ? AND unidadeID = ? `
-            //     const [resultCategorias] = await db.promise().query(sqlCategorias, [bloco.parFornecedorBlocoID, unidade.unidadeID])
+                //? Categorias do bloco
+                const sqlCategorias = `SELECT categoriaID FROM par_fornecedor_bloco_categoria WHERE parFornecedorBlocoID = ? AND unidadeID = ? `
+                const [resultCategorias] = await db.promise().query(sqlCategorias, [bloco.parFornecedorBlocoID, unidade.unidadeID])
 
-            //     //? Atividades do bloco
-            //     const sqlAtividades = `SELECT atividadeID FROM par_fornecedor_bloco_atividade WHERE parFornecedorBlocoID = ? AND unidadeID = ? `
-            //     const [resultAtividades] = await db.promise().query(sqlAtividades, [bloco.parFornecedorBlocoID, unidade.unidadeID])
+                //? Atividades do bloco
+                const sqlAtividades = `SELECT atividadeID FROM par_fornecedor_bloco_atividade WHERE parFornecedorBlocoID = ? AND unidadeID = ? `
+                const [resultAtividades] = await db.promise().query(sqlAtividades, [bloco.parFornecedorBlocoID, unidade.unidadeID])
 
-            //     //? Itens
-            //     for (const item of resultBloco) {
-            //         const sqlAlternativa = getAlternativasSql()
-            //         const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item['parFornecedorBlocoItemID']])
-            //         item.alternativas = resultAlternativa
+                //? Itens
+                for (const item of resultBloco) {
+                    const sqlAlternativa = getAlternativasSql()
+                    const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item['parFornecedorBlocoItemID']])
+                    item.alternativas = resultAlternativa
 
-            //         // Cria objeto da resposta (se for de selecionar)
-            //         if (item?.respostaID > 0) {
-            //             item.resposta = {
-            //                 id: item.respostaID,
-            //                 nome: item.resposta
-            //             }
-            //         }
-            //     }
+                    // Cria objeto da resposta (se for de selecionar)
+                    if (item?.respostaID > 0) {
+                        item.resposta = {
+                            id: item.respostaID,
+                            nome: item.resposta
+                        }
+                    }
+                }
 
-            //     bloco.categorias = resultCategorias ? resultCategorias : []
-            //     bloco.atividades = resultAtividades ? resultAtividades : []
-            //     bloco.itens = resultBloco
-            // }
+                bloco.categorias = resultCategorias ? resultCategorias : []
+                bloco.atividades = resultAtividades ? resultAtividades : []
+                bloco.itens = resultBloco
+            }
 
             // Observação e status
             const sqlOtherInformations = getSqlOtherInfos()

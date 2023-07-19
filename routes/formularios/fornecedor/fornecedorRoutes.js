@@ -11,10 +11,7 @@ const { upload } = require('../../../config/uploads/multerConfigPDF');
 fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
 fornecedorRoutes.post(`${route}/saveAnexo/:id`, upload.array('pdfFiles'), fornecedorController.saveAnexo);
 
-// fornecedorRoutes.get(`${route}/:id/:unidadeLogadaID`, fornecedorController.getData);
 fornecedorRoutes.post(`${route}/:id`, fornecedorController.getData);
-
-
 fornecedorRoutes.put(`${route}/:id`, fornecedorController.updateData);
 fornecedorRoutes.delete(`${route}/:id`, fornecedorController.deleteData);
 fornecedorRoutes.post(`${route}/novo`, fornecedorController.insertData);
