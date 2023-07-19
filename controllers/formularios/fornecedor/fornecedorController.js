@@ -220,8 +220,8 @@ class FornecedorController {
             const sqlFabricaFornecedorId = `
             SELECT *
                 FROM fabrica_fornecedor AS ff
-            WHERE ff.unidadeID = ? AND ff.fornecedorCnpj = ? `;
-            const [resultFabricaFornecedorId] = await db.promise().query(sqlFabricaFornecedorId, [unidade.unidadeID, resultData.cnpj]);
+            WHERE ff.unidadeID = ? AND ff.fornecedorCnpj = "${resultData.cnpj}" `;
+            const [resultFabricaFornecedorId] = await db.promise().query(sqlFabricaFornecedorId, [unidade.unidadeID]);
 
             //? Grupo: pega os grupos de anexos solicitados pra esse fornecedor
             const sqlGrupoItens = `
