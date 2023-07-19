@@ -1,87 +1,85 @@
 const db = require('../../../config/db');
-const { hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class TransportadorController {
-    getList(req, res) {
-        const { unidadeID } = req.body
-
-        db.query("SELECT transportadorID AS id, nome, status FROM transportador WHERE unidadeID = ?", [unidadeID], (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                res.status(200).json(result);
-            }
-        })
+    async getList(req, res) {
+        try {
+            console.log("chegou")
+            const getList = 'SELECT transportadorID AS id, nome, status FROM transportador'
+            const [resultGetList] = await db.promise().query(getList);
+            res.status(200).json(resultGetList);
+        } catch (error) {
+            console.log(error)
+        }
     }
 
-    getData(req, res) {
-        const { id } = req.params
-        db.query("SELECT * FROM transportador WHERE transportadorID = ?", [id], (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                res.status(200).json(result[0]);
+    async getData(req, res) {
+        try {
+            const { id } = req.params
+            const sqlGet = `SELECT * FROM transportador WHERE transportadorID = ?`
+            const [resultSqlGet] = await db.promise().query(sqlGet, id)
+            const result = {
+                fields: resultSqlGet[0]
             }
-        })
+            return res.status(200).json(result)
+        } catch (error) {
+            console.log(error)
+        }
     }
 
-    insertData(req, res) {
-        const { nome } = req.body.data;
-        const unidadeID = req.body.unidadeID;
+    async insertData(req, res) {
+        try {
+            const { values } = req.body
 
-        db.query("SELECT * FROM transportador WHERE unidadeID = ?", [unidadeID], (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                const rows = result.find(row => row.nome === nome);
-                if (rows) {
-                    res.status(409).json(err);
-                } else {
-                    db.query("INSERT INTO transportador (nome, unidadeID) VALUES (?, ?)", [nome, unidadeID], (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(201).json(result);
-                        }
-                    });
-                }
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['nome', 'unidadeID'],
+                values: [values.fields.nome, values.fields.unidadeID],
+                table: 'transportador',
+                id: null
             }
-        });
+            if (await hasConflict(validateConflicts)) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
+            }
+
+            const sqlInsert = 'INSERT INTO transportador (nome, status, unidadeID) VALUES (?, ?, ?)'
+            const [resultSqlInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.status, values.fields.unidadeID])
+            const id = resultSqlInsert.insertId
+            return res.status(200).json(id)
+        } catch (error) {
+            console.log(error)
+        }
     }
 
-    updateData(req, res) {
-        const { id } = req.params
-        const { nome, status } = req.body
-        db.query("SELECT * FROM transportador", (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                // Verifica se já existe um registro com o mesmo nome e id diferente
-                const rows = result.find(row => row.nome == nome && row.transportadorID != id);
-                if (rows) {
-                    res.status(409).json({ message: "Dados já cadastrados!" });
-                } else {
-                    // Passou na validação, atualiza os dados
-                    db.query("UPDATE transportador SET nome = ?, status = ? WHERE transportadorID = ?", [nome, status, id], (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(200).json(result);
-                        }
-                    });
-                }
+    async updateData(req, res) {
+        try {
+            const { id } = req.params
+            const values = req.body
+
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['transportadorID', 'nome'],
+                values: [id, values.fields.nome],
+                table: 'transportador',
+                id: id
             }
-        })
+            if (await hasConflict(validateConflicts)) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
+            }
+
+            const sqlUpdate = `UPDATE transportador SET nome = ?, status = ? WHERE transportadorID = ?`
+            const [resultSqlUpdat] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.status, id])
+
+            return res.status(200).json({ message: 'Dados atualizados com sucesso' })
+        } catch (error) {
+            console.log(error)
+        }
     }
 
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'transportador',
+            table: ['transportador'],
             column: 'transportadorID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
@@ -104,5 +102,7 @@ class TransportadorController {
             });
     }
 }
+
+
 
 module.exports = TransportadorController;

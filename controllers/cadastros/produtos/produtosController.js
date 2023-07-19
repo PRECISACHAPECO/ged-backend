@@ -1,87 +1,85 @@
 const db = require('../../../config/db');
-const { hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class ProdutosController {
-    getList(req, res) {
-        const { unidadeID } = req.body
-
-        db.query("SELECT produtoID AS id, nome, unidadeMedida, status FROM produto WHERE unidadeID = ?", [unidadeID], (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                res.status(200).json(result);
-            }
-        })
+    async getList(req, res) {
+        try {
+            const getList = 'SELECT produtoID AS id, nome, status, unidadeMedida FROM produto'
+            const [resultGetList] = await db.promise().query(getList);
+            res.status(200).json(resultGetList);
+        } catch (error) {
+            console.log(error)
+        }
     }
 
-    getData(req, res) {
-        const { id } = req.params
-        db.query("SELECT * FROM produto WHERE produtoID = ?", [id], (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                res.status(200).json(result[0]);
+    async getData(req, res) {
+        try {
+            const { id } = req.params
+            const sqlGet = `SELECT * FROM produto WHERE produtoID = ?`
+            const [resultSqlGet] = await db.promise().query(sqlGet, id)
+            const result = {
+                fields: resultSqlGet[0]
             }
-        })
+            return res.status(200).json(result)
+        } catch (error) {
+            console.log(error)
+        }
     }
 
-    insertData(req, res) {
-        const { nome, unidadeMedida } = req.body.data;
-        const unidadeID = req.body.unidadeID;
+    async insertData(req, res) {
+        const { values } = req.body
+        try {
 
-        db.query("SELECT * FROM produto WHERE unidadeID = ?", [unidadeID], (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                const rows = result.find(row => row.nome === nome);
-                if (rows) {
-                    res.status(409).json(err);
-                } else {
-                    db.query("INSERT INTO produto (nome, unidadeMedida, unidadeID) VALUES (?, ?, ?)", [nome, unidadeMedida, unidadeID], (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(201).json(result);
-                        }
-                    });
-                }
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['nome', 'unidadeID', 'unidadeMedida'],
+                values: [values.fields.nome, values.fields.unidadeID, values.fields.unidadeMedida],
+                table: 'produto',
+                id: null
             }
-        });
+            if (await hasConflict(validateConflicts)) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
+            }
+
+            const sqlInsert = 'INSERT INTO produto (nome, status, unidadeMedida, unidadeID) VALUES (?, ?, ?, ?)'
+            const [resultSqlInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.status, values.fields.unidadeMedida, values.fields.unidadeID])
+            const id = resultSqlInsert.insertId
+            return res.status(200).json(id)
+
+        } catch (error) {
+            console.log(error)
+        }
     }
 
-    updateData(req, res) {
-        const { id } = req.params
-        const { nome, unidadeMedida, status } = req.body
-        db.query("SELECT * FROM produto", (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                // Verifica se já existe um registro com o mesmo nome e id diferente
-                const rows = result.find(row => row.nome == nome && row.produtoID != id);
-                if (rows) {
-                    res.status(409).json({ message: "Dados já cadastrados!" });
-                } else {
-                    // Passou na validação, atualiza os dados
-                    db.query("UPDATE produto SET nome = ?, unidadeMedida = ?,  status = ? WHERE produtoID = ?", [nome, unidadeMedida, status, id], (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(200).json(result);
-                        }
-                    });
-                }
+    async updateData(req, res) {
+        try {
+            const { id } = req.params
+            const values = req.body
+
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['produtoID', 'nome', 'unidadeMedida'],
+                values: [id, values.fields.nome, values.fields.unidadeMedida],
+                table: 'produto',
+                id: id
             }
-        })
+            if (await hasConflict(validateConflicts)) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
+            }
+
+            const sqlUpdate = `UPDATE produto SET nome = ?, unidadeMedida = ?, status = ? WHERE produtoID = ?`
+            const [resultSqlUpdat] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.unidadeMedida, values.fields.status, id])
+
+            return res.status(200).json({ message: 'Dados atualizados com sucesso' })
+        } catch (error) {
+            console.log(error)
+        }
     }
 
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'produto',
+            table: ['produto'],
             column: 'produtoID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
@@ -104,5 +102,7 @@ class ProdutosController {
             });
     }
 }
+
+
 
 module.exports = ProdutosController;

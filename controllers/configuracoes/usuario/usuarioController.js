@@ -1,5 +1,9 @@
 const db = require('../../../config/db');
-const { hasPending, deleteItem, getMenuPermissions } = require('../../../config/defaultConfig');
+require('dotenv/config')
+const path = require('path');
+const fs = require('fs');
+const { hasPending, deleteItem, getMenuPermissions, criptoMd5 } = require('../../../config/defaultConfig');
+const multer = require('multer');
 
 class UsuarioController {
     async getList(req, res) {
@@ -35,7 +39,11 @@ class UsuarioController {
             return res.status(404).json({ message: 'Usuário não encontrado!' })
         }
 
-        getData = result[0]
+        // getData = result[0]
+        getData = {
+            ...result[0],
+            imagem: result[0].imagem ? `${process.env.BASE_URL_UPLOADS}profile/${result[0].imagem}` : null,
+        }
         getData['units'] = []
 
         // Se for admin, busca os dados da unidade, papel e cargo
@@ -148,9 +156,9 @@ class UsuarioController {
         //* USUARIO
         // CPF novo
         const sqlUsuario = `
-        INSERT INTO usuario (nome, cpf, senha, dataNascimento, rg, email, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)`;
-        const [resultUsuario] = await db.promise().query(sqlUsuario, [data.nome, data.cpf, data.senha, data.dataNascimento, data.rg, data.email, 1])
+        INSERT INTO usuario (nome, cpf, senha, dataNascimento, rg, email, role, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        const [resultUsuario] = await db.promise().query(sqlUsuario, [data.nome, data.cpf, criptoMd5(data.senha), data.dataNascimento, data.rg, data.email, 'admin', 1])
         const usuarioID = resultUsuario.insertId
 
         //* USUARIO_UNIDADE
@@ -163,6 +171,91 @@ class UsuarioController {
             id: usuarioID,
             message: 'Dados inseridos com sucesso!'
         })
+    }
+
+    async updatePhotoProfile(req, res) {
+        try {
+            const photoProfile = req.file;
+            const { id } = req.params;
+            const sqlSelectPreviousPhoto = `SELECT imagem FROM usuario WHERE usuarioID = ?`;
+            const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuarioID = ?`;
+
+            // Verificar se um arquivo foi enviado
+            if (!photoProfile) {
+                res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+                return;
+            }
+
+            //! Obter o nome da foto de perfil anterior
+            const [rows] = await db.promise().query(sqlSelectPreviousPhoto, [id]);
+            const previousPhotoProfile = rows[0]?.imagem;
+
+            //! Atualizar a foto de perfil no banco de dados
+            await db.promise().query(sqlUpdatePhotoProfile, [photoProfile.filename, id]);
+
+            //! Excluir a foto de perfil anterior
+            if (previousPhotoProfile) {
+                const previousPhotoPath = path.resolve('uploads/profile', previousPhotoProfile);
+                fs.unlink(previousPhotoPath, (error) => {
+                    if (error) {
+                        return console.error('Erro ao excluir a imagem anterior:', error);
+                    } else {
+                        return console.log('Imagem anterior excluída com sucesso!');
+                    }
+                });
+            }
+
+            const photoProfileUrl = `${process.env.BASE_URL_UPLOADS}profile/${photoProfile.filename}`;
+            console.log("🚀 ~ photoProfileUrl:", photoProfileUrl);
+            res.status(200).json(photoProfileUrl);
+        } catch (error) {
+            if (error instanceof multer.MulterError) {
+                // Erro do Multer (arquivo incompatível ou muito grande)
+                console.log("entrou akikfkjjfgfggfgffg")
+                if (error.code === 'LIMIT_FILE_SIZE') {
+                    res.status(400).json({ error: 'O tamanho do arquivo excede o limite permitido.' });
+                } else {
+                    res.status(400).json({ error: 'O arquivo enviado é incompatível.' });
+                }
+            } else {
+                // Outro erro interno do servidor
+                res.status(500).json({ error: 'Erro interno do servidor.' });
+            }
+        }
+    }
+
+
+    async handleDeleteImage(req, res) {
+        const { id } = req.params;
+
+        const sqlSelectPreviousPhoto = `SELECT imagem FROM usuario WHERE usuarioID = ?`;
+        const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuarioID = ?`;
+
+        try {
+            //! Obter o nome da foto de perfil anterior
+            const [rows] = await db.promise().query(sqlSelectPreviousPhoto, [id]);
+            const previousPhotoProfile = rows[0]?.imagem;
+
+            //! Atualizar a foto de perfil no banco de dados
+            await db.promise().query(sqlUpdatePhotoProfile, [null, id]);
+
+            //! Excluir a foto de perfil anterior
+            if (previousPhotoProfile) {
+                const previousPhotoPath = path.resolve('uploads/profile', previousPhotoProfile);
+                fs.unlink(previousPhotoPath, (error) => {
+                    if (error) {
+                        console.error('Erro ao excluir a imagem anterior:', error);
+                    } else {
+                        console.log('Imagem anterior excluída com sucesso!');
+                    }
+                });
+            }
+
+            res.status(200).json({ message: 'Imagem excluída com sucesso!' });
+        } catch (error) {
+            console.error('Erro ao excluir a imagem:', error);
+            res.status(500).json({ error: 'Erro ao excluir a imagem' });
+        }
     }
 
     async updateData(req, res) {
@@ -181,7 +274,7 @@ class UsuarioController {
             data.dataNascimento,
             data.cpf,
             data.rg,
-            ...(data.senha && data.senha.length > 0 ? [data.senha] : []),
+            ...(data.senha && data.senha.length > 0 ? [criptoMd5(data.senha)] : []),
             id
         ])
 
@@ -384,7 +477,7 @@ class UsuarioController {
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'usuario',
+            table: ['usuario'],
             column: 'usuarioID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual

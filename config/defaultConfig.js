@@ -90,7 +90,8 @@ const getMenuPermissions = async (papelID, usuarioID, unidadeID) => {
     return menu;
 }
 
-const hasPending = (id, column, tables) => {
+
+const hasPending = async (id, column, tables) => {
     if (!tables) {
         // Se tables é nulo, você pode retornar uma Promise rejeitada com uma mensagem de erro
         return Promise.resolve('Erro hasPending: parâmetro tables é nulo');
@@ -112,15 +113,56 @@ const hasPending = (id, column, tables) => {
     });
 };
 
-const deleteItem = (id, table, column, res) => {
-    db.query(`DELETE FROM ${table} WHERE ${column} = ?`, [id], (err, result) => {
-        if (err) {
-            console.log(err);
-            res.status(500).json(err);
+
+const hasConflict = async ({ columns, values, table, id }) => {
+    if (columns && values && table) {
+        //* Monta query dinamica com colunas e valores passados no array do parametro
+        let queryConditions = ``
+        if (id && id > 0) {
+            queryConditions += ` AND ${columns[0]} <> ${id}`
+            columns.map((column, index) => {
+                if (index > 0) {
+                    queryConditions += ` AND ${column} = "${values[index]}"`
+                }
+            })
         } else {
-            res.status(200).json(result);
+            columns.map((column, index) => {
+                queryConditions += ` AND ${column} = "${values[index]}"`
+            })
         }
-    });
+
+        //* Monta consulta, se retornar algo, possui conflito
+        const sql = `
+        SELECT ${columns.join(', ')} 
+        FROM ${table}
+        WHERE 1 = 1${queryConditions}`;
+        const [result] = await db.promise().query(sql);
+
+        return result.length > 0 ? true : false
+    }
+    return false;
+};
+
+
+
+
+const deleteItem = async (id, table, column, res) => {
+    for (const item of table) {
+        console.log("🚀 ~ item:", id, item, column)
+        const [result] = await db.promise().query(`DELETE FROM ${item} WHERE ${column} = ?`, [id])
+    }
+    return res.json({})
 }
 
-module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions };
+
+const criptoMd5 = (senha) => {
+    const crypto = require('crypto');
+    const hash = crypto.createHash('md5').update(senha).digest('hex');
+    return hash;
+}
+
+const onlyNumbers = (string) => {
+    return string.replace(/[^0-9]/g, '');
+}
+
+module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict };

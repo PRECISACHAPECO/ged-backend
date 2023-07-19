@@ -1,131 +1,147 @@
 const db = require('../../../config/db');
-const { hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class ItemController {
-    getList(req, res) {
-        db.query("SELECT itemID AS id, a.nome, a.status, b.nome AS formulario FROM item AS a LEFT JOIN par_formulario b ON (a.parFormularioID = b.parFormularioID) ORDER BY b.parFormularioID ASC, a.itemID ASC", (err, result) => {
-            if (err) {
-                res.status(502).json(err);
-            } else {
-                res.status(200).json(result);
-            }
-        })
-    }
-
-    async getData(req, res) {
-        const functionName = req.headers['function-name'];
-        console.log("função", functionName)
-
-        switch (functionName) {
-
-            case 'getData':
-                console.log("get data")
-
-                try {
-                    const [resultData] = await db.promise().query("SELECT * FROM item WHERE itemID = ?", [req.params.id]);
-
-                    if (!resultData || resultData.length === 0) {
-                        return res.status(404).json({ error: "Nenhum dado encontrado." });
-                    }
-
-                    const [resultFormularios] = await db.promise().query("SELECT * FROM par_formulario");
-
-                    const resultTipoFormulario = resultFormularios.find((row) => {
-                        return row.parFormularioID === resultData[0].parFormularioID;
-                    });
-
-                    const objData = {
-                        value: resultData[0],
-                        formularios: resultFormularios,
-                        tipoFormulario: resultTipoFormulario,
-                    };
-
-                    res.status(200).json(objData);
-                } catch (error) {
-                    console.error("Erro ao buscar dados no banco de dados: ", error);
-                    res.status(500).json({ error: "Ocorreu um erro ao buscar os dados no banco de dados." });
-                }
-
-                break
-
-            case 'getNovo':
-                console.log("get novo")
-
-                const [resultFormularios] = await db.promise().query("SELECT * FROM par_formulario");
-
-                const objData = {
-                    value: null,
-                    formularios: resultFormularios,
-                    tipoFormulario: null,
-                };
-
-                res.status(200).json(objData);
-
-                break
+    async getList(req, res) {
+        try {
+            const sqlGetList = `
+            SELECT 
+                itemID AS id, 
+                a.nome, 
+                a.status, 
+            b.nome AS formulario 
+            FROM item AS a 
+            LEFT JOIN par_formulario b ON (a.parFormularioID = b.parFormularioID) 
+            ORDER BY b.parFormularioID ASC, a.itemID ASC`
+            const resultSqlGetList = await db.promise().query(sqlGetList)
+            return res.status(200).json(resultSqlGetList[0])
+        } catch (error) {
+            console.log(error)
         }
     }
 
-    insertData(req, res) {
-        const { nome, status, tipoFormularioID } = req.body
+    async getData(req, res) {
+        try {
+            const { id } = req.params
+            const sqlData = `SELECT * FROM item WHERE itemID = ?`
+            const [resultData] = await db.promise().query(sqlData, id);
 
-        db.query("SELECT * FROM item", (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                // Verifica se já existe um registro com o mesmo nome
-                const rows = result.find(row => row.nome == nome);
-                if (rows) {
-                    res.status(409).json({ message: "Dados já cadastrados!" });
-                } else {
-                    // Passou na validação, insere os dados
-                    db.query("INSERT INTO item (nome, status, parFormularioID) VALUES (?, ?, ?)", [nome, status, tipoFormularioID], (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(200).json(result);
-                        }
-                    });
-                }
-            }
-        })
+            if (!resultData || resultData.length === 0) return res.status(404).json({ error: "Nenhum dado encontrado." })
+
+            const sqlFormulario = `
+            SELECT pf.nome, pf.parFormularioID AS id
+            FROM item AS gp 
+                JOIN par_formulario AS pf ON (gp.parFormularioID = pf.parFormularioID)
+            WHERE gp.itemID = ?`
+            const [resultFormulario] = await db.promise().query(sqlFormulario, [id]);
+
+            const sqlOptionsFormulario = `SELECT nome, parFormularioID AS id FROM par_formulario`
+            const [resultOptionsFormulario] = await db.promise().query(sqlOptionsFormulario);
+
+            const sqlItens = `
+            SELECT grupoanexoitemID AS id, nome, descricao, obrigatorio, status,
+                (SELECT IF(COUNT(*) > 0, 1, 0)
+                FROM anexo AS a 
+                WHERE a.grupoAnexoItemID = grupoanexo_item.grupoanexoitemID) AS hasPending
+            FROM grupoanexo_item 
+            WHERE grupoanexoID = ?`
+            const [resultItens] = await db.promise().query(sqlItens, [id]);
+
+            const result = {
+                fields: resultData[0],
+                formulario: {
+                    fields: resultFormulario[0],
+                    options: resultOptionsFormulario
+                },
+            };
+            res.status(200).json(result);
+        } catch (error) {
+            console.error("Erro ao buscar dados no banco de dados: ", error);
+            res.status(500).json({ error: "Ocorreu um erro ao buscar os dados no banco de dados." });
+        }
     }
 
-    updateData(req, res) {
-        const { id } = req.params
-        const { nome, status, tipoFormularioID } = req.body
+    async getNewData(req, res) {
+        try {
+            const sqlForms = 'SELECT parFormularioID AS id, nome FROM par_formulario'
+            const [resultForms] = await db.promise().query(sqlForms)
 
-        console.log(nome, status, tipoFormularioID)
-        db.query("SELECT * FROM item", (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                // Verifica se já existe um registro com o mesmo nome e id diferente
-                const rows = result.find(row => row.nome == nome && row.itemID != id);
-                if (rows) {
-                    res.status(409).json({ message: "Dados já cadastrados!" });
-                } else {
-                    // Passou na validação, atualiza os dados
-                    // fazer update com left join com par_formulario
-                    db.query("UPDATE item SET nome = ?, status = ?" + (tipoFormularioID ? ", parFormularioID = ?" : "") + " WHERE itemID = ?", [nome, status].concat(tipoFormularioID ? [tipoFormularioID] : [], [id]), (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(200).json(result);
-                        }
-                    });
-                }
+            const result = {
+                fields: {
+                    status: true
+                },
+                formulario: {
+                    fields: null,
+                    options: resultForms
+                },
             }
-        })
+            res.status(200).json(result);
+        } catch (error) {
+            console.error("Erro ao buscar dados no banco de dados: ", error);
+            res.json({ error: "Ocorreu um erro ao buscar os dados no banco de dados." });
+        }
+    }
+
+    async insertData(req, res) {
+        try {
+            const values = req.body
+
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['nome', 'parFormularioID'],
+                values: [values.fields.nome, values.formulario.fields.id],
+                table: 'item',
+                id: null
+            }
+            if (await hasConflict(validateConflicts)) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
+            }
+
+            // //? Insere novo item
+            const sqlInsert = `INSERT INTO item (nome, status, parFormularioID) VALUES (?, ?, ?)`
+            const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, (values.fields.status ? '1' : '0'), values.formulario.fields.id])
+            const id = resultInsert.insertId
+
+            return res.status(200).json(id)
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async updateData(req, res) {
+        try {
+            const { id } = req.params
+            const values = req.body
+
+            if (!id || id == undefined) return res.status(400).json({ message: "ID não informado" })
+
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['itemID', 'nome', 'parFormularioID'],
+                values: [id, values.fields.nome, values.formulario.fields.id],
+                table: 'item',
+                id: id
+            }
+            if (await hasConflict(validateConflicts)) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
+            }
+
+            //? Atualiza item
+            console.log("🚀 ~ values:", values)
+            console.log("🚀 ~ id:", id)
+            const sqlUpdate = `UPDATE item SET nome = ?, parFormularioID = ?,  status = ? WHERE itemID = ?`;
+            const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.formulario.fields.id, (values.fields.status ? '1' : '0'), id]);
+
+            return res.status(200).json({ message: 'Dados atualizados com sucesso!' })
+        } catch (error) {
+            console.log(error)
+        }
     }
 
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'item',
+            table: ['item'],
             column: 'itemID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual

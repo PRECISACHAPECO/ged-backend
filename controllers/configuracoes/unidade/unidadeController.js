@@ -2,106 +2,78 @@ const db = require('../../../config/db');
 const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class UnidadeController {
-    getList(req, res) {
-        const { usuarioID } = req.query;
-
-        db.query("SELECT admin FROM usuario WHERE usuarioID = ?", [usuarioID], (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                const admin = result[0].admin;
-                if (admin == 1) {
-                    db.query("SELECT unidadeID AS id, nomeFantasia AS nome, status FROM unidade", (err, result) => {
-                        if (err) {
-                            res.status(500).json(err);
-                        } else {
-                            res.status(200).json(result);
-                        }
-                    })
-                } else {
-                    db.query("SELECT unidadeID AS id, nomeFantasia AS nome, status FROM unidade WHERE unidadeID IN (SELECT unidadeID FROM usuario_unidade WHERE usuarioID = ?)", [usuarioID], (err, result) => {
-                        if (err) {
-                            res.status(500).json(err);
-                        } else {
-                            res.status(200).json(result);
-                        }
-                    })
-                }
-            }
-        })
-
-
+    async getList(req, res) {
+        try {
+            const { admin, unidadeID, usuarioID } = req.query;
+            const sqlGetList = `
+            SELECT unidadeID AS id, nomeFantasia AS nome, status
+            FROM unidade 
+            WHERE unidadeID > 0 `
+            const [resultGetList] = await db.promise().query(sqlGetList)
+            res.status(200).json(resultGetList);
+        } catch (error) {
+            console.log(error)
+        }
 
     }
 
-    getData(req, res) {
-        const { id } = req.params
-        db.query("SELECT * FROM unidade WHERE unidadeID = ?", [id], (err, result) => {
-            if (err) {
-                res.status(500).json(err);
-            } else {
-                res.status(200).json(result[0]);
+    async getData(req, res) {
+        try {
+            const { id } = req.params
+            const sqlGetData = 'SELECT * FROM unidade WHERE unidadeID = ?'
+            const [resultSqlGetData] = await db.promise().query(sqlGetData, id)
+            const result = {
+                fields: resultSqlGetData[0]
             }
-        })
+            res.status(200).json(result);
+        } catch (error) {
+            console.log(error)
+        }
     }
 
-    insertData(req, res) {
-        const data = req.body;
-        db.query("SELECT * FROM unidade", (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                const rows = result.find(row => row.cnpj === data.cnpj);
-                if (rows) {
-                    res.status(409).json(err);
-                } else {
-                    db.query("INSERT INTO unidade SET ?", [data], (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(201).json(result);
-                        }
-                    });
-                }
+    async insertData(req, res) {
+        try {
+            const data = req.body;
+            const sqlExist = 'SELECT * FROM unidade'
+            const [resultSqlExist] = await db.promise().query(sqlExist)
+
+            const rows = resultSqlExist.find(row => row.cnpj === data.cnpj);
+
+            if (!rows) {
+                const sqlInsert = 'INSERT INTO unidade SET ?'
+                const resultSqlInsert = await db.promise().query(sqlInsert, data)
+                console.log("🚀 ~ resultSqlInsert:", resultSqlInsert)
             }
-        })
+            res.status(201).json({ message: 'Cadastro realizado com sucesso!' });
+
+        } catch (error) {
+            console.log(error)
+        }
     }
 
-    updateData(req, res) {
-        const { id } = req.params
-        const data = req.body
+    async updateData(req, res) {
+        try {
+            const { id } = req.params
+            const data = req.body
 
-        console.log(data)
+            const sqlExist = 'SELECT * FROM unidade'
+            const resultSqlExist = await db.promise().query(sqlExist)
 
-        db.query("SELECT * FROM unidade", (err, result) => {
-            if (err) {
-                console.log(err);
-                res.status(500).json(err);
-            } else {
-                const rows = result.find(row => row.cnpj == data.cnpj && row.unidadeID !== id);
-                if (rows > 0) {
-                    res.status(409).json({ message: "CNPJ já cadastrado!" });
-                } else {
-                    // Passou na validação, atualiza os dados
-                    db.query("UPDATE unidade SET ? WHERE unidadeID = ?", [data, id], (err, result) => {
-                        if (err) {
-                            console.log(err);
-                            res.status(500).json(err);
-                        } else {
-                            res.status(200).json({ message: 'Unidade atualizada com sucesso!' });
-                        }
-                    });
-                }
-            }
-        })
+            const rows = resultSqlExist[0].find(row => row.cnpj == data.cnpj && row.unidadeID !== id);
+            if (rows > 0) return res.status(409).json({ message: "CNPJ já cadastrado!" });
+
+            const sqlUpdate = 'UPDATE unidade SET ? WHERE unidadeID = ?'
+            const resultSqlUpdate = await db.promise().query(sqlUpdate, [data, id])
+            res.status(200).json({ message: 'Unidade atualizada com sucesso!' });
+        } catch (error) {
+            console.log(error)
+        }
     }
 
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: 'unidade',
+            table: ['unidade'],
             column: 'unidadeID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual

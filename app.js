@@ -4,10 +4,13 @@ const app = express();
 const routes = require("./routes");
 const routerReports = require("./reports");
 app.use(express.json());
-app.use(cors());
+app.use(cors({ origin: '*' }));
 app.use(routes);
 app.use(routerReports);
+app.use('/api/uploads', express.static('uploads'));
 
-app.listen(3333, (req, res) => {
+
+
+app.listen(3333, () => {
     console.log('Server is running on port 3333');
 });

@@ -7,9 +7,12 @@ const tipoVeiculoController = new TipoVeiculoController();
 const route = '/tipo-veiculo';
 
 tipoVeiculoRoutes.get(`${route}`, tipoVeiculoController.getList);
-tipoVeiculoRoutes.get(`${route}/:id`, tipoVeiculoController.getData);
-tipoVeiculoRoutes.put(`${route}/:id`, tipoVeiculoController.updateData);
+tipoVeiculoRoutes.post(`${route}/getData/:id`, tipoVeiculoController.getData);
+
+tipoVeiculoRoutes.post(`${route}/updateData/:id`, tipoVeiculoController.updateData);
+tipoVeiculoRoutes.post(`${route}/new/insertData`, tipoVeiculoController.insertData);
 tipoVeiculoRoutes.delete(`${route}/:id`, tipoVeiculoController.deleteData);
-tipoVeiculoRoutes.post(`${route}/novo`, tipoVeiculoController.insertData);
+
 
 module.exports = tipoVeiculoRoutes;
+

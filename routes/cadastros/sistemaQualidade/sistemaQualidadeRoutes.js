@@ -7,9 +7,11 @@ const sistemaQualidadeController = new SistemaQualidadeController();
 const route = '/sistema-qualidade';
 
 sistemaQualidadeRoutes.get(`${route}`, sistemaQualidadeController.getList);
-sistemaQualidadeRoutes.get(`${route}/:id`, sistemaQualidadeController.getData);
-sistemaQualidadeRoutes.put(`${route}/:id`, sistemaQualidadeController.updateData);
+sistemaQualidadeRoutes.post(`${route}/getData/:id`, sistemaQualidadeController.getData);
+
+sistemaQualidadeRoutes.post(`${route}/updateData/:id`, sistemaQualidadeController.updateData);
+sistemaQualidadeRoutes.post(`${route}/new/insertData`, sistemaQualidadeController.insertData);
 sistemaQualidadeRoutes.delete(`${route}/:id`, sistemaQualidadeController.deleteData);
-sistemaQualidadeRoutes.post(`${route}/novo`, sistemaQualidadeController.insertData);
+
 
 module.exports = sistemaQualidadeRoutes;
