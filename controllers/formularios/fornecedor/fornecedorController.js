@@ -217,6 +217,9 @@ class FornecedorController {
             const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id])
             if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
 
+            res.status(200).json({ message: 'até aqui ok' })
+            return
+
             //* GRUPO DE ANEXOS
             const sqlFabricaFornecedorId = `
             SELECT *
@@ -231,9 +234,6 @@ class FornecedorController {
                 LEFT JOIN grupoanexo AS ga ON(ffg.grupoAnexoID = ga.grupoanexoID)
             WHERE ffg.fabricaFornecedorID = ? AND ga.status = 1`;
             const [resultGrupo] = await db.promise().query(sqlGrupoItens, [resultFabricaFornecedorId[0].fabricaFornecedorID]);
-
-            res.status(200).json({ message: 'até aqui ok' })
-            return
 
             const gruposAnexo = [];
             for (const grupo of resultGrupo) {
