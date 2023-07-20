@@ -129,6 +129,9 @@ class FornecedorController {
             const unidade = resultUnidade[0]
             console.log("🚀 ~ ==> unidade:", unidade)
 
+            res.status(200).json({ message: 'até aqui ok' })
+            return
+
             // Fields do header
             const sqlFields = `
             SELECT *
@@ -216,9 +219,6 @@ class FornecedorController {
             ORDER BY s.nome ASC; `
             const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id])
             if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
-
-            res.status(200).json({ message: 'até aqui ok' })
-            return
 
             //* GRUPO DE ANEXOS
             const sqlFabricaFornecedorId = `
