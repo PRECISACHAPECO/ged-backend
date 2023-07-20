@@ -129,9 +129,6 @@ class FornecedorController {
             const unidade = resultUnidade[0]
             console.log("🚀 ~ ==> unidade:", unidade)
 
-            res.status(200).json({ message: 'até aqui ok' })
-            return
-
             // Fields do header
             const sqlFields = `
             SELECT *
@@ -140,6 +137,9 @@ class FornecedorController {
             WHERE pfu.unidadeID = ?
                 ORDER BY pf.ordem ASC`
             const [resultFields] = await db.promise().query(sqlFields, [unidade.unidadeID])
+
+            res.status(200).json({ message: `Até aqui ok! id: ${id}, unidade: ${unidade.unidadeID}` })
+            return
 
             // Varre fields, verificando se há tipo == 'int', se sim, busca opções pra selecionar no select 
             for (const alternatives of resultFields) {
