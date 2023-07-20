@@ -182,7 +182,7 @@ class FornecedorController {
                 }
             }
 
-            res.status(200).json({ message: `...Até aqui ok! id: ${id}, unidade: ${unidade.unidadeID}` })
+            res.status(200).json({ message: `...Até aqui ok! ${columns.join(', ')}` })
             return
 
             sqlData = `SELECT ${columns.join(', ')} FROM fornecedor WHERE fornecedorID = ${id} `;
