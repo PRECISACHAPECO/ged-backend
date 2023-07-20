@@ -154,9 +154,6 @@ class FornecedorController {
                 }
             }
 
-            res.status(200).json({ message: `Até aqui ok! id: ${id}, unidade: ${unidade.unidadeID}` })
-            return
-
             // Varrer result, pegando nomeColuna e inserir em um array se row.tabela == null
             let columns = []
             for (const row of resultFields) {
@@ -188,6 +185,9 @@ class FornecedorController {
             sqlData = `SELECT ${columns.join(', ')} FROM fornecedor WHERE fornecedorID = ${id} `;
             let [temp2] = await db.promise().query(sqlData)
             resultData = { ...resultData, ...temp2[0] }
+
+            res.status(200).json({ message: `...Até aqui ok! id: ${id}, unidade: ${unidade.unidadeID}` })
+            return
 
             // Categorias 
             const sqlCategoria = `
