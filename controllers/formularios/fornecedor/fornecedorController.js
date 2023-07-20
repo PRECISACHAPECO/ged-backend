@@ -115,6 +115,7 @@ class FornecedorController {
         try {
             const { id } = req.params; // id do formulário
             const { unidadeLogadaID } = req.body;
+            console.log("🚀 ~ unidadeLogadaID:", unidadeLogadaID)
 
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar formulário!' }) }
 
@@ -202,7 +203,7 @@ class FornecedorController {
                 FROM fornecedor_atividade AS fa 
                 WHERE fa.atividadeID = a.atividadeID AND fa.fornecedorID = ?) AS checked
             FROM atividade AS a 
-            ORDER BY a.nome ASC; `
+            ORDER BY a.nome ASC `
             const [resultAtividade] = await db.promise().query(sqlAtividade, [id])
 
             // Sistemas de qualidade 
@@ -230,6 +231,9 @@ class FornecedorController {
                 LEFT JOIN grupoanexo AS ga ON(ffg.grupoAnexoID = ga.grupoanexoID)
             WHERE ffg.fabricaFornecedorID = ? AND ga.status = 1`;
             const [resultGrupo] = await db.promise().query(sqlGrupoItens, [resultFabricaFornecedorId[0].fabricaFornecedorID]);
+
+            res.status(200).json({ message: 'até aqui ok' })
+            return
 
             const gruposAnexo = [];
             for (const grupo of resultGrupo) {
@@ -315,6 +319,7 @@ class FornecedorController {
                     status: resultOtherInformations[0].status,
                 }
             }
+            console.log("🚀 ~ data:", data)
 
             res.status(200).json(data);
         } catch (error) {
