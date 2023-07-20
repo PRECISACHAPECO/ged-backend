@@ -138,9 +138,6 @@ class FornecedorController {
                 ORDER BY pf.ordem ASC`
             const [resultFields] = await db.promise().query(sqlFields, [unidade.unidadeID])
 
-            res.status(200).json({ message: `Até aqui ok! id: ${id}, unidade: ${unidade.unidadeID}` })
-            return
-
             // Varre fields, verificando se há tipo == 'int', se sim, busca opções pra selecionar no select 
             for (const alternatives of resultFields) {
                 if (alternatives.tipo === 'int' && alternatives.tabela) {
@@ -156,6 +153,9 @@ class FornecedorController {
                     alternatives.options = resultOptions
                 }
             }
+
+            res.status(200).json({ message: `Até aqui ok! id: ${id}, unidade: ${unidade.unidadeID}` })
+            return
 
             // Varrer result, pegando nomeColuna e inserir em um array se row.tabela == null
             let columns = []
