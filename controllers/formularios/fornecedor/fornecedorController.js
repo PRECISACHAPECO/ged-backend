@@ -182,12 +182,12 @@ class FornecedorController {
                 }
             }
 
-            res.status(200).json({ message: `...Até aqui ok! ${columns.join(', ')}` })
-            return
-
             sqlData = `SELECT ${columns.join(', ')} FROM fornecedor WHERE fornecedorID = ${id} `;
             let [temp2] = await db.promise().query(sqlData)
             resultData = { ...resultData, ...temp2[0] }
+
+            // res.status(200).json({ message: `...Até aqui ok! ${columns.join(', ')}` })
+            // return
 
             // Categorias 
             const sqlCategoria = `
