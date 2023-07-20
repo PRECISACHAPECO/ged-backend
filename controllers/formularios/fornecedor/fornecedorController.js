@@ -186,9 +186,6 @@ class FornecedorController {
             let [temp2] = await db.promise().query(sqlData)
             resultData = { ...resultData, ...temp2[0] }
 
-            // res.status(200).json({ message: `...Até aqui ok! ${columns.join(', ')}` })
-            // return
-
             // Categorias 
             const sqlCategoria = `
             SELECT c.categoriaID AS id, c.nome, c.status,
@@ -319,7 +316,6 @@ class FornecedorController {
                     status: resultOtherInformations[0].status,
                 }
             }
-            console.log("🚀 ~ data:", data)
 
             res.status(200).json(data);
         } catch (error) {
