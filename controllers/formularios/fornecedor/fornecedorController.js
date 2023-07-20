@@ -9,7 +9,6 @@ const sendMailConfig = require('../../../config/email');
 const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
 
 class FornecedorController {
-
     //* Salva os anexos do formulário na pasta uploads/anexo e insere os dados na tabela anexo
     async saveAnexo(req, res) {
         try {
@@ -113,13 +112,11 @@ class FornecedorController {
 
     //* Retorna a estrutura do formulário configurada pra aquela unidade
     async getData(req, res) {
-
         try {
             const { id } = req.params; // id do formulário
             const { unidadeLogadaID } = req.body;
 
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar formulário!' }) }
-            console.log("🚀 ~ getData id:", id)
 
             //? obtém a unidadeID (fábrica) do formulário, pro formulário ter os campos de preenchimento de acordo com o configurado pra aquela fábrica.
             const sqlUnidade = `
