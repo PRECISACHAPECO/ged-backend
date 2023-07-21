@@ -212,8 +212,6 @@ class GrupoAnexosController {
             return res.status(409).json({ message: "Dado possui pendência." });
         }
     }
-
-
 }
 
 module.exports = GrupoAnexosController;
