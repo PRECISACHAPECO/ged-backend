@@ -4,6 +4,7 @@ const authFornecedorRoutes = Router();
 const AuthControllerFornecedor = require('../../controllers/auth/authControllerFornecedor');
 const authControllerFornecedor = new AuthControllerFornecedor();
 
+
 //* Login do fornecedor  
 const routeFornecedor = '/login-fornecedor';
 authFornecedorRoutes.post(`${routeFornecedor}`, authControllerFornecedor.loginFornecedor);
