@@ -1,11 +1,11 @@
-const pdf = require('html-pdf');
+
 const db = require('../../../config/db');
 const { arraysIguais } = require('../../configs/config');
-const content = require('./content');
 
 
-const Fornecedor = async (req, res) => {
-    const { fornecedorID } = req.body.data;
+const dadosFornecedor = async (req, res) => {
+    const { id } = req.body.data;
+    const fornecedorID = id
 
     //? Obtém unidadeID da fábrica (quem define o padrão do formulário)
     const sqlUnity = `SELECT unidadeID FROM fornecedor WHERE fornecedorID = ?`;
@@ -113,45 +113,9 @@ const Fornecedor = async (req, res) => {
         fornecedorID: fornecedorID
     }
 
-    let html = content(result);
-
-    const options = {
-        "height": "266.7mm",
-        "width": "203.2mm",
-        "format": "Letter",
-        "zoomFactor": "0.", // Definindo o zoom em 70%
-        "orientation": "portrait",
-        "border": {
-            "top": "9mm",
-            "right": "9mm",
-            "left": "9mm"
-        },
-        "footer": {
-            "height": "9mm",
-            "contents": {
-                default: '<div style="text-align: center; border-top: 1px solid #e5e7eb;">' +
-                    '<span style="color: #444; font-size:12px; " >{{page}}/{{pages}}</span>' +
-                    '</div>',
-            }
-        },
-    };
-
-
-
-    pdf.create(html, options).toStream((err, stream) => {
-        if (err) {
-            console.error(err);
-            res.status(500).send('Erro ao gerar o PDF');
-        } else {
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', 'attachment; filename=relatorio.pdf');
-
-            stream.pipe(res);
-        }
-    });
-
+    res.json(result)
 
 }
 
 
-module.exports = Fornecedor;
+module.exports = dadosFornecedor;

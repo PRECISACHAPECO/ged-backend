@@ -118,6 +118,7 @@ class FornecedorController {
 
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar formulário!' }) }
 
+
             //? obtém a unidadeID (fábrica) do formulário, pro formulário ter os campos de preenchimento de acordo com o configurado pra aquela fábrica.
             const sqlUnidade = `
             SELECT f.unidadeID, u.nomeFantasia
@@ -126,15 +127,14 @@ class FornecedorController {
             WHERE f.fornecedorID = ? `
             const [resultUnidade] = await db.promise().query(sqlUnidade, [id])
             const unidade = resultUnidade[0]
-            console.log("🚀 ~ ==> unidade:", unidade)
 
             // Fields do header
             const sqlFields = `
             SELECT *
-                FROM par_fornecedor AS pf 
-                LEFT JOIN par_fornecedor_unidade AS pfu ON(pf.parFornecedorID = pfu.parFornecedorID) 
+            FROM par_fornecedor AS pf 
+            LEFT JOIN par_fornecedor_unidade AS pfu ON(pf.parFornecedorID = pfu.parFornecedorID) 
             WHERE pfu.unidadeID = ?
-                ORDER BY pf.ordem ASC`
+            ORDER BY pf.ordem ASC`
             const [resultFields] = await db.promise().query(sqlFields, [unidade.unidadeID])
 
             // Varre fields, verificando se há tipo == 'int', se sim, busca opções pra selecionar no select 
