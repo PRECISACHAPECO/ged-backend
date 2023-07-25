@@ -94,8 +94,8 @@ class GrupoAnexosController {
             const values = req.body
 
             //? Atualiza grupo_anexo 
-            const sqlInsert = `INSERT INTO grupoanexo (nome, descricao, status) VALUES (?, ?, ?)`
-            const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.descricao, (values.fields.status ? '1' : '0')])
+            const sqlInsert = `INSERT INTO grupoanexo (nome, descricao, unidadeID, status) VALUES (?, ?, ?, ?)`
+            const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.descricao, values.unidade, (values.fields.status ? '1' : '0')])
             const id = resultInsert.insertId
 
             //? Atualizado formulários (+1)
