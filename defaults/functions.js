@@ -30,15 +30,16 @@ const addFormStatusMovimentation = async (parFormularioID, id, usuarioID, unidad
 //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
 const formatFieldsToTable = async (table, fields) => {
     let dataHeader = {}
-    for (const columnName in fields) {
-        const sql = `SELECT nomeColuna FROM ${table} WHERE tabela = "${columnName}" `
-        const [result] = await db.promise().query(sql)
+    //? Usar Promise.all para aguardar a conclusão de todas as consultas
+    await Promise.all(fields.map(async (field) => {
+        const sql = `SELECT nomeColuna FROM ${table} WHERE tabela = "${field.tabela}" `;
+        const [result] = await db.promise().query(sql);
         if (result.length > 0) {
-            dataHeader[result[0]['nomeColuna']] = fields[columnName]?.id > 0 ? fields[columnName].id : 0
+            dataHeader[field.nomeColuna] = field[field.tabela]?.id > 0 ? field[field.tabela].id : 0;
         } else {
-            dataHeader[columnName] = fields[columnName] ? fields[columnName] : null
+            dataHeader[field.nomeColuna] = field[field.nomeColuna] ? field[field.nomeColuna] : null
         }
-    }
+    }));
     return dataHeader;
 }
 
