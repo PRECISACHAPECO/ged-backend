@@ -8,7 +8,7 @@ const route = '/item';
 
 itemRoutes.get(`${route}`, itemController.getList);
 
-itemRoutes.post(`${route}/getData/:id`, itemController.getData);
+itemRoutes.get(`${route}/:id`, itemController.getData);
 itemRoutes.post(`${route}/updateData/:id`, itemController.updateData);
 itemRoutes.delete(`${route}/:id`, itemController.deleteData);
 

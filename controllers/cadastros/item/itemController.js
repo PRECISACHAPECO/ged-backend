@@ -22,7 +22,8 @@ class ItemController {
 
     async getData(req, res) {
         try {
-            const { id } = req.params
+            const { id } = req.params;
+            console.log("🚀 ~ id:", id)
             const sqlData = `SELECT * FROM item WHERE itemID = ?`
             const [resultData] = await db.promise().query(sqlData, id);
 
