@@ -22,125 +22,129 @@ class UsuarioController {
     }
 
     async getData(req, res) {
-        const { id } = req.params
-        const { unidadeID, papelID, admin } = req.query
-        let getData = {}
+        try {
+            const { id } = req.params
+            const { unidadeID, papelID, admin } = req.query
+            let getData = {}
 
-        const sql = `
-        SELECT a.*, b.usuarioUnidadeID, b.profissaoID, b.registroConselhoClasse, c.nome AS profissao, d.nome AS papel
-        FROM usuario a 
-            JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
-            LEFT JOIN profissao c on (b.profissaoID = c.profissaoID)
-            LEFT JOIN papel d on (b.papelID = d.papelID)
-        WHERE a.usuarioID = ? AND b.unidadeID = ?`
-        const [result] = await db.promise().query(sql, [id, unidadeID])
-
-        if (result.length === 0) {
-            return res.status(404).json({ message: 'Usuário não encontrado!' })
-        }
-
-        // getData = result[0]
-        getData = {
-            ...result[0],
-            imagem: result[0].imagem ? `${process.env.BASE_URL_UPLOADS}profile/${result[0].imagem}` : null,
-        }
-        getData['units'] = []
-
-        // Se for admin, busca os dados da unidade, papel e cargo
-        if (admin == 1) {
-            const sqlUnits = `
-            SELECT b.usuarioUnidadeID, a.*, b.registroConselhoClasse, b.unidadeID, b.papelID, d.nomeFantasia as unidade, c.profissaoID, b.status as statusUnidade, c.nome AS profissao, e.nome AS papel
+            const sql = `
+            SELECT a.*, b.usuarioUnidadeID, b.profissaoID, b.registroConselhoClasse, c.nome AS profissao, d.nome AS papel
             FROM usuario a 
                 JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
                 LEFT JOIN profissao c on (b.profissaoID = c.profissaoID)
-                JOIN unidade d on (b.unidadeID = d.unidadeID)
-                JOIN papel e on (b.papelID = e.papelID)
-            WHERE a.usuarioID = ?
-            ORDER BY IF((b.unidadeID = ${unidadeID} AND b.papelID = ${papelID}), 1, 0) DESC, d.nomeFantasia ASC `;
+                LEFT JOIN papel d on (b.papelID = d.papelID)
+            WHERE a.usuarioID = ? AND b.unidadeID = ?`
+            const [result] = await db.promise().query(sql, [id, unidadeID])
 
-            const [resultUnits] = await db.promise().query(sqlUnits, [id])
+            if (result.length === 0) {
+                return res.status(404).json({ message: 'Usuário não encontrado!' })
+            }
 
-            for (const unit of resultUnits) {
-                unit[`unidade`] = {
-                    id: unit.unidadeID,
-                    nome: unit.unidade,
-                }
-                unit[`papel`] = {
-                    id: unit.papelID,
-                    nome: unit.papel,
-                }
-                unit[`profissao`] = {
-                    id: unit.profissaoID,
-                    nome: unit.profissao,
+            // getData = result[0]
+            getData = {
+                ...result[0],
+                imagem: result[0].imagem ? `${process.env.BASE_URL_UPLOADS}profile/${result[0].imagem}` : null,
+            }
+            getData['units'] = []
+
+            // Se for admin, busca os dados da unidade, papel e cargo
+            if (admin == 1) {
+                const sqlUnits = `
+                SELECT b.usuarioUnidadeID, a.*, b.registroConselhoClasse, b.unidadeID, b.papelID, d.nomeFantasia as unidade, c.profissaoID, b.status as statusUnidade, c.nome AS profissao, e.nome AS papel
+                FROM usuario a 
+                    JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
+                    LEFT JOIN profissao c on (b.profissaoID = c.profissaoID)
+                    JOIN unidade d on (b.unidadeID = d.unidadeID)
+                    JOIN papel e on (b.papelID = e.papelID)
+                WHERE a.usuarioID = ?
+                ORDER BY IF((b.unidadeID = ${unidadeID} AND b.papelID = ${papelID}), 1, 0) DESC, d.nomeFantasia ASC `;
+
+                const [resultUnits] = await db.promise().query(sqlUnits, [id])
+
+                for (const unit of resultUnits) {
+                    unit[`unidade`] = {
+                        id: unit.unidadeID,
+                        nome: unit.unidade,
+                    }
+                    unit[`papel`] = {
+                        id: unit.papelID,
+                        nome: unit.papel,
+                    }
+                    unit[`profissao`] = {
+                        id: unit.profissaoID,
+                        nome: unit.profissao,
+                    }
+
+                    // Obtém os cargos
+                    const sqlCargos = `
+                    SELECT c.cargoID AS id, nome
+                    FROM usuario_unidade a
+                        JOIN usuario_unidade_cargo b on (a.usuarioUnidadeID = b.usuarioUnidadeID)
+                        JOIN cargo c on (b.cargoID = c.cargoID)
+                    WHERE a.usuarioID = ? AND a.unidadeID = ? AND a.papelID = ?`;
+                    const [resultCargos] = await db.promise().query(sqlCargos, [id, unit.unidadeID, unit.papelID])
+                    unit[`cargos`] = resultCargos
+
+                    // Obtém opções do menu pra setar permissões (empresa ou fornecedor)
+                    unit['menu'] = await getMenuPermissions(unit?.papelID, id, unit.unidadeID)
                 }
 
-                // Obtém os cargos
+                getData['units'] = resultUnits
+
+                // Options pros selects
+                const sqlUnidadesAll = `
+                SELECT unidadeID, nomeFantasia AS nome
+                FROM unidade
+                WHERE status = 1
+                ORDER BY nomeFantasia ASC`;
+                const [resultUnidadesAll] = await db.promise().query(sqlUnidadesAll)
+                getData['unidadesOptions'] = resultUnidadesAll
+
+                const sqlPapel = `
+                SELECT papelID AS id, nome
+                FROM papel
+                WHERE status = 1
+                ORDER BY nome ASC`;
+                const [resultPapel] = await db.promise().query(sqlPapel)
+                getData['papelOptions'] = resultPapel
+            } else { // Não é admin 
+                // Profissão
+                getData[`profissao`] = {
+                    id: result[0].profissaoID,
+                    nome: result[0].profissao,
+                }
+
+                // Cargos 
                 const sqlCargos = `
                 SELECT c.cargoID AS id, nome
                 FROM usuario_unidade a
                     JOIN usuario_unidade_cargo b on (a.usuarioUnidadeID = b.usuarioUnidadeID)
                     JOIN cargo c on (b.cargoID = c.cargoID)
                 WHERE a.usuarioID = ? AND a.unidadeID = ? AND a.papelID = ?`;
-                const [resultCargos] = await db.promise().query(sqlCargos, [id, unit.unidadeID, unit.papelID])
-                unit[`cargos`] = resultCargos
-
-                // Obtém opções do menu pra setar permissões (empresa ou fornecedor)
-                unit['menu'] = await getMenuPermissions(unit?.papelID, id, unit.unidadeID)
+                const [resultCargos] = await db.promise().query(sqlCargos, [id, unidadeID, papelID])
+                getData[`cargo`] = resultCargos
             }
 
-            getData['units'] = resultUnits
-
-            // Options pros selects
-            const sqlUnidadesAll = `
-            SELECT unidadeID, nomeFantasia AS nome
-            FROM unidade
-            WHERE status = 1
-            ORDER BY nomeFantasia ASC`;
-            const [resultUnidadesAll] = await db.promise().query(sqlUnidadesAll)
-            getData['unidadesOptions'] = resultUnidadesAll
-
-            const sqlPapel = `
-            SELECT papelID AS id, nome
-            FROM papel
-            WHERE status = 1
-            ORDER BY nome ASC`;
-            const [resultPapel] = await db.promise().query(sqlPapel)
-            getData['papelOptions'] = resultPapel
-        } else { // Não é admin 
-            // Profissão
-            getData[`profissao`] = {
-                id: result[0].profissaoID,
-                nome: result[0].profissao,
-            }
-
-            // Cargos 
-            const sqlCargos = `
-            SELECT c.cargoID AS id, nome
-            FROM usuario_unidade a
-                JOIN usuario_unidade_cargo b on (a.usuarioUnidadeID = b.usuarioUnidadeID)
-                JOIN cargo c on (b.cargoID = c.cargoID)
-            WHERE a.usuarioID = ? AND a.unidadeID = ? AND a.papelID = ?`;
-            const [resultCargos] = await db.promise().query(sqlCargos, [id, unidadeID, papelID])
-            getData[`cargo`] = resultCargos
-        }
-
-        const sqlProfissao = `
+            const sqlProfissao = `
             SELECT * 
             FROM profissao
             WHERE status = 1 
             ORDER BY nome ASC`;
-        const [resultProfissao] = await db.promise().query(sqlProfissao)
-        getData['profissaoOptions'] = resultProfissao
+            const [resultProfissao] = await db.promise().query(sqlProfissao)
+            getData['profissaoOptions'] = resultProfissao
 
-        const sqlCargosAll = `
+            const sqlCargosAll = `
             SELECT cargoID AS id, nome
             FROM cargo
             WHERE status = 1
             ORDER BY nome ASC`;
-        const [resultCargosAll] = await db.promise().query(sqlCargosAll)
-        getData['cargosOptions'] = resultCargosAll
+            const [resultCargosAll] = await db.promise().query(sqlCargosAll)
+            getData['cargosOptions'] = resultCargosAll
 
-        res.status(200).json(getData)
+            res.status(200).json(getData)
+        } catch (error) {
+            console.log("🚀 ~ error:", error)
+        }
     }
 
     async insertData(req, res) {

@@ -8,8 +8,8 @@ const route = '/unidade';
 
 unidadeRoutes.get(`${route}`, unidadeController.getList);
 unidadeRoutes.get(`${route}/:id`, unidadeController.getData);
-unidadeRoutes.put(`${route}/:id`, unidadeController.updateData);
+unidadeRoutes.post(`${route}/updateData/:id`, unidadeController.updateData);
 unidadeRoutes.delete(`${route}/:id`, unidadeController.deleteData);
-unidadeRoutes.post(`${route}/novo`, unidadeController.insertData);
+unidadeRoutes.post(`${route}/new/insertData`, unidadeController.insertData);
 
 module.exports = unidadeRoutes;

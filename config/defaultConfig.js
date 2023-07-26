@@ -90,7 +90,6 @@ const getMenuPermissions = async (papelID, usuarioID, unidadeID) => {
     return menu;
 }
 
-
 const hasPending = async (id, column, tables) => {
     if (!tables) {
         // Se tables é nulo, você pode retornar uma Promise rejeitada com uma mensagem de erro
