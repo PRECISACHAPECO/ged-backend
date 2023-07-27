@@ -23,7 +23,11 @@ class UnidadeController {
             const sqlGetData = 'SELECT * FROM unidade WHERE unidadeID = ?'
             const [resultSqlGetData] = await db.promise().query(sqlGetData, id)
             const result = {
-                fields: resultSqlGetData[0]
+                fields: {
+                    ...resultSqlGetData[0],
+                    cabecalhoRelatorio: resultSqlGetData[0].cabecalhoRelatorio ? `${process.env.BASE_URL_UPLOADS}report/${resultSqlGetData[0].cabecalhoRelatorio}` : null,
+                    cabecalhoRelatorioTitle: resultSqlGetData[0].cabecalhoRelatorio
+                }
             }
             res.status(200).json(result);
         } catch (error) {
@@ -42,10 +46,11 @@ class UnidadeController {
             if (!rows) {
                 const sqlInsert = 'INSERT INTO unidade SET ?'
                 const resultSqlInsert = await db.promise().query(sqlInsert, data)
-                console.log("🚀 ~ resultSqlInsert:", resultSqlInsert)
-            }
-            res.status(201).json({ message: 'Cadastro realizado com sucesso!' });
+                console.log(" entrou", resultSqlInsert)
+                const id = resultSqlInsert[0].insertId
+                res.json(id)
 
+            }
         } catch (error) {
             console.log(error)
         }
@@ -67,6 +72,45 @@ class UnidadeController {
             res.status(200).json({ message: 'Unidade atualizada com sucesso!' });
         } catch (error) {
             console.log(error)
+        }
+    }
+
+    async updateDataReport(req, res) {
+        try {
+            const { id } = req.params;
+            const reportFile = req.file;
+
+            console.log("id da unidade", id)
+            const sqlSelectPreviousFileReport = `SELECT cabecalhoRelatorio FROM unidade  WHERE unidadeID = ?`;
+            const sqlUpdateFileReport = `UPDATE unidade SET cabecalhoRelatorio = ? WHERE unidadeID = ?`;
+
+            // Verificar se um arquivo foi enviado
+            if (!reportFile) {
+                res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+                return;
+            }
+
+            //! Obter o nome da foto de perfil anterior
+            const [rows] = await db.promise().query(sqlSelectPreviousFileReport, [id]);
+            const previousFileReport = rows[0]?.imagem;
+
+            //! Atualizar a foto de perfil no banco de dados
+            await db.promise().query(sqlUpdateFileReport, [reportFile.filename, id]);
+
+            //! Excluir a foto de perfil anterior
+            if (previousFileReport) {
+                const previousFileReportPath = path.resolve('uploads/report', previousFileReport);
+                fs.unlink(previousFileReportPath, (error) => {
+                    if (error) {
+                        return console.error('Erro ao excluir a imagem anterior:', error);
+                    } else {
+                        return console.log('Imagem anterior excluída com sucesso!');
+                    }
+                });
+            }
+            res.status(200).json({ message: 'Atualizado com sucesso' });
+        } catch (e) {
+            console.log(e)
         }
     }
 
