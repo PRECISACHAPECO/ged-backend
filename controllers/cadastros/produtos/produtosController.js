@@ -27,7 +27,7 @@ class ProdutosController {
     }
 
     async insertData(req, res) {
-        const { values } = req.body
+        const values = req.body
         try {
 
             //* Valida conflito

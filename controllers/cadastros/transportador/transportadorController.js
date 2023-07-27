@@ -4,7 +4,6 @@ const { hasConflict, hasPending, deleteItem } = require('../../../config/default
 class TransportadorController {
     async getList(req, res) {
         try {
-            console.log("chegou")
             const getList = 'SELECT transportadorID AS id, nome, status FROM transportador'
             const [resultGetList] = await db.promise().query(getList);
             res.status(200).json(resultGetList);
@@ -29,7 +28,7 @@ class TransportadorController {
 
     async insertData(req, res) {
         try {
-            const { values } = req.body
+            const values = req.body
 
             //* Valida conflito
             const validateConflicts = {

@@ -118,21 +118,20 @@ class FornecedorController {
 
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar formulário!' }) }
 
-
             //? obtém a unidadeID (fábrica) do formulário, pro formulário ter os campos de preenchimento de acordo com o configurado pra aquela fábrica.
             const sqlUnidade = `
-            SELECT f.unidadeID, u.nomeFantasia
+            SELECT f.unidadeID, u.nomeFantasia, f.cnpj
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
             WHERE f.fornecedorID = ? `
-            const [resultUnidade] = await db.promise().query(sqlUnidade, [id])
-            const unidade = resultUnidade[0]
+            const [resultFornecedor] = await db.promise().query(sqlUnidade, [id])
+            const unidade = resultFornecedor[0]
 
             // Fields do header
             const sqlFields = `
             SELECT *
             FROM par_fornecedor AS pf 
-            LEFT JOIN par_fornecedor_unidade AS pfu ON(pf.parFornecedorID = pfu.parFornecedorID) 
+                LEFT JOIN par_fornecedor_unidade AS pfu ON(pf.parFornecedorID = pfu.parFornecedorID) 
             WHERE pfu.unidadeID = ?
             ORDER BY pf.ordem ASC`
             const [resultFields] = await db.promise().query(sqlFields, [unidade.unidadeID])
@@ -160,8 +159,6 @@ class FornecedorController {
             }
 
             // varrer resultFields 
-            let sqlData = ``
-            let resultData = {}
             for (const field of resultFields) {
                 if (field.tabela) {
                     // Monta objeto pra preencher select 
@@ -169,21 +166,21 @@ class FornecedorController {
                     //     id: 1,
                     //     nome: 'Fulano'
                     // }
-                    sqlData = `
+                    const sqlFieldData = `
                     SELECT t.${field.nomeColuna} AS id, t.nome
                     FROM fornecedor AS f 
                         JOIN ${field.tabela} AS t ON(f.${field.nomeColuna} = t.${field.nomeColuna}) 
                     WHERE f.fornecedorID = ${id} `
-                    let [temp] = await db.promise().query(sqlData)
+                    let [temp] = await db.promise().query(sqlFieldData)
                     if (temp) {
-                        resultData[field.tabela] = temp[0]
+                        field[field.tabela] = temp[0]
                     }
+                } else {
+                    const sqlFieldData = `SELECT ${field.nomeColuna} AS coluna FROM fornecedor WHERE fornecedorID = ? `;
+                    let [resultFieldData] = await db.promise().query(sqlFieldData, [id])
+                    field[field.nomeColuna] = resultFieldData[0].coluna
                 }
             }
-
-            sqlData = `SELECT ${columns.join(', ')} FROM fornecedor WHERE fornecedorID = ${id} `;
-            let [temp2] = await db.promise().query(sqlData)
-            resultData = { ...resultData, ...temp2[0] }
 
             // Categorias 
             const sqlCategoria = `
@@ -220,7 +217,7 @@ class FornecedorController {
             const sqlFabricaFornecedorId = `
             SELECT *
                 FROM fabrica_fornecedor AS ff
-            WHERE ff.unidadeID = ? AND ff.fornecedorCnpj = "${resultData.cnpj}" `;
+            WHERE ff.unidadeID = ? AND ff.fornecedorCnpj = "${resultFornecedor[0].cnpj}" `;
             const [resultFabricaFornecedorId] = await db.promise().query(sqlFabricaFornecedorId, [unidade.unidadeID]);
 
             //? Grupo: pega os grupos de anexos solicitados pra esse fornecedor
@@ -304,7 +301,6 @@ class FornecedorController {
             const data = {
                 unidade: unidade,
                 fields: resultFields,
-                data: resultData,
                 categorias: resultCategoria,
                 atividades: resultAtividade,
                 sistemasQualidade: resultSistemaQualidade,
@@ -421,7 +417,7 @@ class FornecedorController {
 
     async updateData(req, res) {
         const { id } = req.params
-        const data = req.body.forms
+        const data = req.body.form
         const { usuarioID, papelID, unidadeID } = req.body.auth
 
         if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
@@ -429,10 +425,10 @@ class FornecedorController {
         const sqlSelect = `SELECT status FROM fornecedor WHERE fornecedorID = ? `
         const [resultFornecedor] = await db.promise().query(sqlSelect, [id])
 
-        // Atualizar o header e setar o status
-        if (data.header) {
+        // Atualizar o header e setar o status        
+        if (data.fields) {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
-            let dataHeader = await formatFieldsToTable('par_fornecedor', data.header)
+            let dataHeader = await formatFieldsToTable('par_fornecedor', data.fields)
             const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id} `;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
@@ -506,9 +502,10 @@ class FornecedorController {
                         const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parFornecedorBlocoID, item.itemID])
 
                         const resposta = item.resposta && item.resposta.nome ? item.resposta.nome : item.resposta
-                        const respostaID = item.resposta && item.resposta.itemID > 0 ? item.resposta.itemID : null
+                        const respostaID = item.resposta && item.resposta.id > 0 ? item.resposta.id : null
                         const observacao = item.observacao != undefined ? item.observacao : ''
-                        // console.log('antes ==> ', resposta)
+
+                        console.log('antes ==> ', item)
 
                         if (resposta && resultVerificaResposta.length === 0) {
                             const sqlInsert = `INSERT INTO fornecedor_resposta(fornecedorID, parFornecedorBlocoID, itemID, resposta, respostaID, obs) VALUES(?, ?, ?, ?, ?, ?)`
@@ -524,9 +521,9 @@ class FornecedorController {
                             // console.log("🚀 ~~~~~~~~~~~ INSERT:", id, bloco.parFornecedorBlocoID, item.itemID, resposta, respostaID, observacao)
                         } else if (resposta && resultVerificaResposta.length > 0) {
                             const sqlUpdate = `
-                                UPDATE fornecedor_resposta 
-                                SET resposta = ?, respostaID = ?, obs = ?, fornecedorID = ?
-                                WHERE fornecedorID = ? AND parFornecedorBlocoID = ? AND itemID = ? `
+                            UPDATE fornecedor_resposta 
+                            SET resposta = ?, respostaID = ?, obs = ?, fornecedorID = ?
+                            WHERE fornecedorID = ? AND parFornecedorBlocoID = ? AND itemID = ? `
                             const [resultUpdate] = await db.promise().query(sqlUpdate, [
                                 resposta,
                                 respostaID,
@@ -553,12 +550,13 @@ class FornecedorController {
 
         // Observação
         const sqlUpdateObs = `UPDATE fornecedor SET obs = ?, obsConclusao = ? WHERE fornecedorID = ? `
-        const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.obs, data.obsConclusao, id])
+        const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.info?.obs, data?.obsConclusao, id])
         if (resultUpdateObs.length === 0) { return res.json('Error'); }
 
         //* Status
         //? É um fornecedor e é um status anterior, seta status pra "Em preenchimento" (30)
         const newStatus = papelID == 2 && data.status != 40 ? 30 : data.status
+        console.log("🚀 ~ newStatus:", newStatus)
 
         const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ? `
         const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])
@@ -950,8 +948,8 @@ const getSqlBloco = () => {
 
 const getAlternativasSql = () => {
     const sql = `
-            SELECT *
-                FROM par_fornecedor_bloco_item AS pfbi 
+    SELECT ai.alternativaItemID AS id, ai.nome
+    FROM par_fornecedor_bloco_item AS pfbi 
         JOIN alternativa AS a ON(pfbi.alternativaID = a.alternativaID)
         JOIN alternativa_item AS ai ON(a.alternativaID = ai.alternativaID)
     WHERE pfbi.parFornecedorBlocoItemID = ? `
