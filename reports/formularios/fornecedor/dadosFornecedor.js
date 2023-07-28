@@ -2,13 +2,12 @@
 const db = require('../../../config/db');
 const { arraysIguais } = require('../../configs/config');
 
-
 const dadosFornecedor = async (req, res) => {
     const { id } = req.body.data;
     const fornecedorID = id
 
     //? Obtém unidadeID da fábrica (quem define o padrão do formulário)
-    const sqlUnity = `SELECT unidadeID FROM fornecedor WHERE fornecedorID = ?`;
+    const sqlUnity = `SELECT *, unidadeID FROM fornecedor WHERE fornecedorID = ? LIMIT 1`;
     const [resultUnidade] = await db.promise().query(sqlUnity, [fornecedorID]);
     const { unidadeID } = resultUnidade[0] //? unidadeID da fábrica
 
@@ -23,17 +22,22 @@ const dadosFornecedor = async (req, res) => {
     // Varrer result, pegando nomeColuna e inserir em um array 
     const columns = colunsFornecedor.map(row => row.nomeColuna);
     const titleColumns = colunsFornecedor.map(row => row.nomeCampo);
+    const typeColumns = colunsFornecedor.map(row => row.tipo);
+
 
     const resultData = [];
     for (let i = 0; i < columns.length; i++) {
-        const sqlQuery = `SELECT ${columns[i]} FROM fornecedor WHERE fornecedorID = ?`;
+        const sqlQuery = `SELECT  ${columns[i]} FROM fornecedor WHERE fornecedorID = ?`;
         const [queryResult] = await db.promise().query(sqlQuery, [fornecedorID]);
 
         resultData.push({
             title: titleColumns[i],
-            value: queryResult[0][columns[i]]
+            value: typeColumns[i] === 'date'
+                ? new Date(queryResult[0][columns[i]]).toLocaleDateString('pt-BR')
+                : queryResult[0][columns[i]]
         });
     }
+
 
     const [atividades] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as atividade FROM atividade a  LEFT JOIN fornecedor_atividade b on (a.atividadeID = b.atividadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
     const [sistemaQualidade] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as sistemaQualidade FROM sistemaqualidade a  LEFT JOIN fornecedor_sistemaqualidade b on (a.sistemaQualidadeID = b.sistemaQualidadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
@@ -115,7 +119,7 @@ const dadosFornecedor = async (req, res) => {
         sistemaQualidade: sistemaQualidade[0].sistemaQualidade,
         categoria: categoria[0].categoria,
         blocos: resultBlocos,
-        fornecedorID: fornecedorID
+        fornecedorID: fornecedorID,
     }
 
     res.json(result)
