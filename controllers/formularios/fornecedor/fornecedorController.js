@@ -691,7 +691,7 @@ class FornecedorController {
     }
 
     async makeFornecedor(req, res) {
-        const { usuarioID, unidadeID, papelID, cnpj, gruposAnexo } = req.body;
+        const { usuarioID, unidadeID, papelID, cnpj, nomeFornecedor, gruposAnexo } = req.body;
 
         //? Verifica duplicidade 
         const sqlVerify = `
@@ -723,8 +723,8 @@ class FornecedorController {
         //? Gera um novo formulário em branco, pro fornecedor preencher depois quando acessar o sistema
         const initialStatus = 10
         const sqlFornecedor = `
-        INSERT INTO fornecedor(cnpj, unidadeID, status, atual) VALUES("${cnpj}", ?, ?, ?)`
-        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [unidadeID, initialStatus, 1])
+        INSERT INTO fornecedor(cnpj, razaoSocial, nome, unidadeID, status, atual) VALUES("${cnpj}", ?, ?, ?, ?, ?)`
+        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [nomeFornecedor, nomeFornecedor, unidadeID, initialStatus, 1])
         const fornecedorID = resultFornecedor.insertId
 
         //? Gera histórico de alteração de status
