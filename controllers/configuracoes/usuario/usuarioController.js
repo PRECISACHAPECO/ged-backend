@@ -210,12 +210,10 @@ class UsuarioController {
             }
 
             const photoProfileUrl = `${process.env.BASE_URL_UPLOADS}profile/${photoProfile.filename}`;
-            console.log("🚀 ~ photoProfileUrl:", photoProfileUrl);
             res.status(200).json(photoProfileUrl);
         } catch (error) {
             if (error instanceof multer.MulterError) {
                 // Erro do Multer (arquivo incompatível ou muito grande)
-                console.log("entrou akikfkjjfgfggfgffg")
                 if (error.code === 'LIMIT_FILE_SIZE') {
                     res.status(400).json({ error: 'O tamanho do arquivo excede o limite permitido.' });
                 } else {
@@ -508,7 +506,6 @@ class UsuarioController {
 const boolToNumber = (bool) => { return bool ? 1 : 0 }
 
 const existsUsuarioUnidadePapel = async (usuarioID, unidadeID, papelID) => {
-    console.log("🚀 ~ usuarioID, unidadeID, papelID:", usuarioID, unidadeID, papelID)
     const sql = `
     SELECT * 
     FROM usuario_unidade 

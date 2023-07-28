@@ -1,5 +1,7 @@
 const db = require('../../../config/db');
 const { hasPending, deleteItem } = require('../../../config/defaultConfig');
+const path = require('path');
+const fs = require('fs');
 
 class UnidadeController {
     async getList(req, res) {
@@ -46,7 +48,6 @@ class UnidadeController {
             if (!rows) {
                 const sqlInsert = 'INSERT INTO unidade SET ?'
                 const resultSqlInsert = await db.promise().query(sqlInsert, data)
-                console.log(" entrou", resultSqlInsert)
                 const id = resultSqlInsert[0].insertId
                 res.json(id)
 
@@ -80,7 +81,6 @@ class UnidadeController {
             const { id } = req.params;
             const reportFile = req.file;
 
-            console.log("id da unidade", id)
             const sqlSelectPreviousFileReport = `SELECT cabecalhoRelatorio FROM unidade  WHERE unidadeID = ?`;
             const sqlUpdateFileReport = `UPDATE unidade SET cabecalhoRelatorio = ? WHERE unidadeID = ?`;
 
@@ -114,8 +114,28 @@ class UnidadeController {
         }
     }
 
-    deleteData(req, res) {
+    async deleteData(req, res) {
         const { id } = req.params
+
+        //! Deletar imagem da pasta reports
+        const sqlSelectPreviousFile = `SELECT cabecalhoRelatorio FROM unidade WHERE unidadeID = ?`;
+
+        //! Obter o nome da foto anterior
+        const [rows] = await db.promise().query(sqlSelectPreviousFile, [id]);
+        const previousFileReport = rows[0]?.cabecalhoRelatorio;
+
+        //! Excluir a foto anterior
+        if (previousFileReport) {
+            const previousPhotoPath = path.resolve('uploads/report', previousFileReport);
+            fs.unlink(previousPhotoPath, (error) => {
+                if (error) {
+                    return console.error('Erro ao excluir a imagem anterior:', error);
+                } else {
+                    return console.log('Imagem anterior excluída com sucesso!');
+                }
+            });
+        }
+
         const objModule = {
             table: ['unidade'],
             column: 'unidadeID'
