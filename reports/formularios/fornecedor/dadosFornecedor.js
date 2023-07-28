@@ -69,6 +69,11 @@ const dadosFornecedor = async (req, res) => {
         }
     }));
 
+    if (arrayBlocosAtivos.length === 0) {
+        res.json({ message: 'Não há blocos ativos para este fornecedor.' })
+        return
+    }
+
     const sqlBlocks = `SELECT * FROM par_fornecedor_bloco a WHERE a.unidadeID = ? AND a.parFornecedorBlocoID IN (${arrayBlocosAtivos}) `
     const [blocos] = await db.promise().query(sqlBlocks, [unidadeID]);
 

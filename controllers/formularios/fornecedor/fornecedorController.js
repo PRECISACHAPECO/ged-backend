@@ -189,7 +189,7 @@ class FornecedorController {
                 FROM fornecedor_categoria AS fc 
                 WHERE fc.categoriaID = c.categoriaID AND fc.fornecedorID = ?) AS checked
             FROM categoria AS c
-            ORDER BY c.nome ASC; `
+            ORDER BY c.nome ASC`
             const [resultCategoria] = await db.promise().query(sqlCategoria, [id])
 
             // Atividades 
@@ -446,7 +446,7 @@ class FornecedorController {
                     const [resultCategoria] = await db.promise().query(sqlCategoria2, [id, categoria.id])
                     if (resultCategoria.length === 0) { return res.status(500).json('Error'); }
                 }
-            } else {
+            } else if (categoria.checked == false) {
                 const sqlCategoria = `DELETE FROM fornecedor_categoria WHERE fornecedorID = ? AND categoriaID = ? `
                 const [resultCategoria] = await db.promise().query(sqlCategoria, [id, categoria.id])
                 if (resultCategoria.length === 0) { return res.status(500).json('Error'); }
@@ -505,8 +505,6 @@ class FornecedorController {
                         const respostaID = item.resposta && item.resposta.id > 0 ? item.resposta.id : null
                         const observacao = item.observacao != undefined ? item.observacao : ''
 
-                        console.log('antes ==> ', item)
-
                         if (resposta && resultVerificaResposta.length === 0) {
                             const sqlInsert = `INSERT INTO fornecedor_resposta(fornecedorID, parFornecedorBlocoID, itemID, resposta, respostaID, obs) VALUES(?, ?, ?, ?, ?, ?)`
                             const [resultInsert] = await db.promise().query(sqlInsert, [
@@ -556,16 +554,15 @@ class FornecedorController {
         //* Status
         //? É um fornecedor e é um status anterior, seta status pra "Em preenchimento" (30)
         const newStatus = papelID == 2 && data.status != 40 ? 30 : data.status
-        console.log("🚀 ~ newStatus:", newStatus)
 
         const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ? `
         const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])
 
         //? Gera histórico de alteração de status (se houve alteração)
-        if (resultFornecedor[0]['status'] != newStatus) {
-            const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', newStatus)
-            if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
-        }
+        // if (resultFornecedor[0]['status'] != newStatus) {
+        //     const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', newStatus)
+        //     if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+        // }
 
         res.status(200).json({})
     }
@@ -695,7 +692,6 @@ class FornecedorController {
 
     async makeFornecedor(req, res) {
         const { usuarioID, unidadeID, papelID, cnpj, gruposAnexo } = req.body;
-        console.log("🚀 ~ gruposAnexo:", gruposAnexo)
 
         //? Verifica duplicidade 
         const sqlVerify = `
