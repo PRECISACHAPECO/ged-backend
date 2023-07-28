@@ -14,14 +14,14 @@ async function instructionsNewFornecedor(cnpj, unidade, haveLogin) {
     html += css();
     // Body
     html += `
-        <body class="body">
-            <div class="box">`;
+    <body class="body">
+        <div class="box">`;
     // Cabeçalho
     html += cabecalho("INSTRUÇÕES PARA O FORNECEDOR");
     // Conteúdo
     html += `
-                <div class="content">
-                    <h1 class="title">Caro fornecedor,</h1>`;
+    <div class="content">
+        <h1 class="title">Caro fornecedor,</h1>`;
     {
         if (haveLogin) {
             html += `
@@ -48,8 +48,8 @@ async function instructionsNewFornecedor(cnpj, unidade, haveLogin) {
     html += rodape();
     html += `
         </body>
-    </html>
-    `;
+    </html>`;
+
     return html;
 }
 

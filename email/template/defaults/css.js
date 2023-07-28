@@ -22,7 +22,7 @@ const css = () => {
                 background-color: #fff;
             }
             .cabecalho {
-                background-color: #35553b;
+                background-color: #4A8B57;
                 padding: 25px;
                 z-index: -1;
             }

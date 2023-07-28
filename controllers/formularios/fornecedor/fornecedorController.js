@@ -75,7 +75,7 @@ class FornecedorController {
             SELECT
             f.fornecedorID AS id,
                     IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
-                    IF(f.nome <> '', f.nome, '--') AS fornecedor,
+                    IF(f.razaoSocial <> '', f.razaoSocial, '--') AS fornecedor,
                     IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,
                     IF(f.cidade <> '', CONCAT(f.cidade, '/', f.estado), '--') AS cidade,
                     IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,
@@ -91,17 +91,17 @@ class FornecedorController {
         else if (papelID == 2 && cnpj) {
             const sql = `
             SELECT
-            f.fornecedorID AS id,
-                    IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
-                    IF(u.nomeFantasia <> '', u.nomeFantasia, '--') AS fabrica,
-                    IF(u.cnpj <> '', u.cnpj, '--') AS cnpj,
-                    IF(u.cidade <> '', CONCAT(u.cidade, '/', u.uf), '--') AS cidade,
-                    IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,
-                    f.status
-                FROM fornecedor AS f
-                    LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
-                WHERE f.cnpj = "${cnpj}"
-                ORDER BY f.fornecedorID DESC, f.status ASC`
+                f.fornecedorID AS id,
+                IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
+                IF(u.nomeFantasia <> '', u.nomeFantasia, '--') AS fabrica,
+                IF(u.cnpj <> '', u.cnpj, '--') AS cnpj,
+                IF(u.cidade <> '', CONCAT(u.cidade, '/', u.uf), '--') AS cidade,
+                IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,
+                f.status
+            FROM fornecedor AS f
+                LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
+            WHERE f.cnpj = "${cnpj}"
+            ORDER BY f.fornecedorID DESC, f.status ASC`
             const [result] = await db.promise().query(sql)
             return res.status(200).json(result);
         }
@@ -768,7 +768,7 @@ class FornecedorController {
         // Verifica se já possui formulário preenchido pra minha empresa
         const sqlFormulario = `
         SELECT *
-                FROM fornecedor
+            FROM fornecedor
         WHERE unidadeID = ? AND cnpj = ? `
         const [resultFormulario] = await db.promise().query(sqlFormulario, [unidadeID, cnpj])
 
@@ -787,8 +787,8 @@ class FornecedorController {
         let haveLogin = false
 
         // Verifica se o fornecedor já possui login
-        const sql = `SELECT * FROM usuario WHERE cnpj = ? `
-        const [result] = await db.promise().query(sql, [data.cnpj])
+        const sql = `SELECT * FROM usuario WHERE cnpj = "${data.cnpj}" `
+        const [result] = await db.promise().query(sql)
         if (result.length > 0) {
             haveLogin = true
         }
