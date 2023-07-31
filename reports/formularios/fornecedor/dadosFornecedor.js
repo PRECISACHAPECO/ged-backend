@@ -27,7 +27,6 @@ const dadosFornecedor = async (req, res) => {
 
     const resultData = [];
     for (let i = 0; i < columns.length; i++) {
-
         // Tem ligação com outra tabela
         let sqlQuery = ''
         if (typeColumns[i] == 'int') {
@@ -40,7 +39,6 @@ const dadosFornecedor = async (req, res) => {
         } else {
             sqlQuery = `SELECT  ${columns[i]} FROM fornecedor WHERE fornecedorID = ?`;
         }
-
         const [queryResult] = await db.promise().query(sqlQuery, [fornecedorID]);
 
         resultData.push({
@@ -48,7 +46,7 @@ const dadosFornecedor = async (req, res) => {
             value: typeColumns[i] === 'date' && queryResult[0][columns[i]] !== null
                 ? new Date(queryResult[0][columns[i]]).toLocaleDateString('pt-BR')
                 : typeColumns[i] === 'int'
-                    ? queryResult[0].nome
+                    ? queryResult[0]?.nome
                     : queryResult[0][columns[i]]
         });
     }
