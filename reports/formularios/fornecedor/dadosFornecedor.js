@@ -22,22 +22,36 @@ const dadosFornecedor = async (req, res) => {
     // Varrer result, pegando nomeColuna e inserir em um array 
     const columns = colunsFornecedor.map(row => row.nomeColuna);
     const titleColumns = colunsFornecedor.map(row => row.nomeCampo);
+    const titleTable = colunsFornecedor.map(row => row.tabela);
     const typeColumns = colunsFornecedor.map(row => row.tipo);
-
 
     const resultData = [];
     for (let i = 0; i < columns.length; i++) {
-        const sqlQuery = `SELECT  ${columns[i]} FROM fornecedor WHERE fornecedorID = ?`;
+
+        // Tem ligação com outra tabela
+        let sqlQuery = ''
+        if (typeColumns[i] == 'int') {
+            sqlQuery = `
+            SELECT  
+            b.nome 
+            FROM fornecedor AS a 
+            JOIN ${titleTable[i]} AS b ON(a.${columns[i]} = b.${columns[i]})  
+            WHERE fornecedorID = ?`
+        } else {
+            sqlQuery = `SELECT  ${columns[i]} FROM fornecedor WHERE fornecedorID = ?`;
+        }
+
         const [queryResult] = await db.promise().query(sqlQuery, [fornecedorID]);
 
         resultData.push({
             title: titleColumns[i],
-            value: typeColumns[i] === 'date'
+            value: typeColumns[i] === 'date' && queryResult[0][columns[i]] !== null
                 ? new Date(queryResult[0][columns[i]]).toLocaleDateString('pt-BR')
-                : queryResult[0][columns[i]]
+                : typeColumns[i] === 'int'
+                    ? queryResult[0].nome
+                    : queryResult[0][columns[i]]
         });
     }
-
 
     const [atividades] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as atividade FROM atividade a  LEFT JOIN fornecedor_atividade b on (a.atividadeID = b.atividadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
     const [sistemaQualidade] = await db.promise().query(`SELECT GROUP_CONCAT(a.nome SEPARATOR ', ') as sistemaQualidade FROM sistemaqualidade a  LEFT JOIN fornecedor_sistemaqualidade b on (a.sistemaQualidadeID = b.sistemaQualidadeID) WHERE b.fornecedorID = ?`, [fornecedorID]);
