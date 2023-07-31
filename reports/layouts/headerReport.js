@@ -8,7 +8,6 @@ const headerReport = async (req, res) => {
 
     const sqlGetCabecalhoReport = 'SELECT tituloRelatorio, cabecalhoRelatorio FROM unidade WHERE unidadeID = ?'
     const [resultSqlGetCabecalhoReport] = await db.promise().query(sqlGetCabecalhoReport, unidadeID);
-    console.log("sql", resultSqlGetCabecalhoReport)
     if (resultSqlGetCabecalhoReport.length <= 0) return
 
     const result = {
