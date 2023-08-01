@@ -43,6 +43,9 @@ class AuthController {
             const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
 
             // +1 UNIDADE, SELECIONA UNIDADE ANTES DE LOGAR
+
+
+            console.log("resyult do usuario", result[0])
             if (result.length > 1) {
                 const response = {
                     accessToken,
