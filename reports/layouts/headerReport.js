@@ -1,13 +1,17 @@
 
 const db = require('../../config/db');
-const path = require('path');
-const fs = require('fs');
 
 const headerReport = async (req, res) => {
-    const { unidadeID } = req.body
+    const { id } = req.body
+
+    //? Obtém unidadeID da fábrica (quem define o padrão do formulário)
+    const sqlUnity = `SELECT *, unidadeID FROM fornecedor WHERE fornecedorID = ? LIMIT 1`;
+    const [resultUnidade] = await db.promise().query(sqlUnity, id);
+    const { unidadeID } = resultUnidade[0] //? unidadeID da fábrica
 
     const sqlGetCabecalhoReport = 'SELECT tituloRelatorio, cabecalhoRelatorio FROM unidade WHERE unidadeID = ?'
     const [resultSqlGetCabecalhoReport] = await db.promise().query(sqlGetCabecalhoReport, unidadeID);
+
     if (resultSqlGetCabecalhoReport.length <= 0) return
 
     const result = {

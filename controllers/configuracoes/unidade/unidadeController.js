@@ -76,6 +76,7 @@ class UnidadeController {
         }
     }
 
+    //! Atualiza a imagem de cabeçalho do relatório
     async updateDataReport(req, res) {
         try {
             const { id } = req.params;
@@ -90,14 +91,14 @@ class UnidadeController {
                 return;
             }
 
-            //! Obter o nome da foto de perfil anterior
+            // Obter o nome da foto de perfil anterior
             const [rows] = await db.promise().query(sqlSelectPreviousFileReport, [id]);
             const previousFileReport = rows[0]?.imagem;
 
-            //! Atualizar a foto de perfil no banco de dados
+            // Atualizar a foto de perfil no banco de dados
             await db.promise().query(sqlUpdateFileReport, [reportFile.filename, id]);
 
-            //! Excluir a foto de perfil anterior
+            // Excluir a foto de perfil anterior
             if (previousFileReport) {
                 const previousFileReportPath = path.resolve('uploads/report', previousFileReport);
                 fs.unlink(previousFileReportPath, (error) => {
@@ -108,39 +109,53 @@ class UnidadeController {
                     }
                 });
             }
-            res.status(200).json({ message: 'Atualizado com sucesso' });
+            const photoProfileUrl = `${process.env.BASE_URL_UPLOADS}report/${reportFile.filename}`;
+            res.status(200).json(photoProfileUrl);
         } catch (e) {
             console.log(e)
         }
     }
 
+    //! Deleta a imagem no banco de dados e no caminho uploads/report
+    async handleDeleteImage(req, res) {
+        const { id } = req.params;
+
+        const sqlSelectPreviousPhoto = `SELECT cabecalhoRelatorio FROM unidade WHERE unidadeID = ?`;
+        const sqlUpdatePhotoProfile = `UPDATE unidade SET cabecalhoRelatorio = ? WHERE unidadeID = ?`;
+
+        try {
+            // Obter o nome da foto de perfil anterior
+            const [rows] = await db.promise().query(sqlSelectPreviousPhoto, [id]);
+            const previousPhotoProfile = rows[0]?.imagem;
+
+            // Atualizar a foto de perfil no banco de dados
+            await db.promise().query(sqlUpdatePhotoProfile, [null, id]);
+
+            // Excluir a foto de perfil anterior
+            if (previousPhotoProfile) {
+                const previousPhotoPath = path.resolve('uploads/report', previousPhotoProfile);
+                fs.unlink(previousPhotoPath, (error) => {
+                    if (error) {
+                        console.error('Erro ao excluir a imagem anterior:', error);
+                    } else {
+                        console.log('Imagem anterior excluída com sucesso!');
+                    }
+                });
+            }
+            res.status(200).json({ message: 'Imagem excluída com sucesso!' });
+        } catch (error) {
+            console.error('Erro ao excluir a imagem:', error);
+            res.status(500).json({ error: 'Erro ao excluir a imagem' });
+        }
+    }
+
     async deleteData(req, res) {
         const { id } = req.params
-
-        //! Deletar imagem da pasta reports
-        const sqlSelectPreviousFile = `SELECT cabecalhoRelatorio FROM unidade WHERE unidadeID = ?`;
-
-        //! Obter o nome da foto anterior
-        const [rows] = await db.promise().query(sqlSelectPreviousFile, [id]);
-        const previousFileReport = rows[0]?.cabecalhoRelatorio;
-
-        //! Excluir a foto anterior
-        if (previousFileReport) {
-            const previousPhotoPath = path.resolve('uploads/report', previousFileReport);
-            fs.unlink(previousPhotoPath, (error) => {
-                if (error) {
-                    return console.error('Erro ao excluir a imagem anterior:', error);
-                } else {
-                    return console.log('Imagem anterior excluída com sucesso!');
-                }
-            });
-        }
-
         const objModule = {
             table: ['unidade'],
             column: 'unidadeID'
         }
-        const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
+        const tablesPending = []
 
         if (!tablesPending || tablesPending.length === 0) {
             return deleteItem(id, objModule.table, objModule.column, res)

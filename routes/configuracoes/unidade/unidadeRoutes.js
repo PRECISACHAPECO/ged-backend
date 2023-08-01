@@ -13,6 +13,7 @@ unidadeRoutes.get(`${route}`, unidadeController.getList);
 unidadeRoutes.get(`${route}/:id`, unidadeController.getData);
 unidadeRoutes.post(`${route}/updateData/:id`, unidadeController.updateData);
 unidadeRoutes.post(`${route}/updateData/report/:id`, upload.single('fileReport'), unidadeController.updateDataReport);
+unidadeRoutes.delete(`${route}/fileReport/:id`, unidadeController.handleDeleteImage);
 
 unidadeRoutes.delete(`${route}/:id`, unidadeController.deleteData);
 unidadeRoutes.post(`${route}/new/insertData`, unidadeController.insertData);

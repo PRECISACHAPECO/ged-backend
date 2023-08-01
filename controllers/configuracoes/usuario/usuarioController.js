@@ -177,6 +177,7 @@ class UsuarioController {
         })
     }
 
+    //! Atualiza a foto do perfil do usuário
     async updatePhotoProfile(req, res) {
         try {
             const photoProfile = req.file;
@@ -190,14 +191,14 @@ class UsuarioController {
                 return;
             }
 
-            //! Obter o nome da foto de perfil anterior
+            // Obter o nome da foto de perfil anterior
             const [rows] = await db.promise().query(sqlSelectPreviousPhoto, [id]);
             const previousPhotoProfile = rows[0]?.imagem;
 
-            //! Atualizar a foto de perfil no banco de dados
+            // Atualizar a foto de perfil no banco de dados
             await db.promise().query(sqlUpdatePhotoProfile, [photoProfile.filename, id]);
 
-            //! Excluir a foto de perfil anterior
+            // Excluir a foto de perfil anterior
             if (previousPhotoProfile) {
                 const previousPhotoPath = path.resolve('uploads/profile', previousPhotoProfile);
                 fs.unlink(previousPhotoPath, (error) => {
@@ -234,14 +235,14 @@ class UsuarioController {
         const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuarioID = ?`;
 
         try {
-            //! Obter o nome da foto de perfil anterior
+            // Obter o nome da foto de perfil anterior
             const [rows] = await db.promise().query(sqlSelectPreviousPhoto, [id]);
             const previousPhotoProfile = rows[0]?.imagem;
 
-            //! Atualizar a foto de perfil no banco de dados
+            // Atualizar a foto de perfil no banco de dados
             await db.promise().query(sqlUpdatePhotoProfile, [null, id]);
 
-            //! Excluir a foto de perfil anterior
+            // Excluir a foto de perfil anterior
             if (previousPhotoProfile) {
                 const previousPhotoPath = path.resolve('uploads/profile', previousPhotoProfile);
                 fs.unlink(previousPhotoPath, (error) => {
