@@ -559,10 +559,10 @@ class FornecedorController {
         const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])
 
         //? Gera histórico de alteração de status (se houve alteração)
-        // if (resultFornecedor[0]['status'] != newStatus) {
-        //     const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', newStatus)
-        //     if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
-        // }
+        if (resultFornecedor[0]['status'] != newStatus) {
+            const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', newStatus)
+            if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+        }
 
         res.status(200).json({})
     }
@@ -950,7 +950,7 @@ const getAlternativasSql = () => {
     FROM par_fornecedor_bloco_item AS pfbi 
         JOIN alternativa AS a ON(pfbi.alternativaID = a.alternativaID)
         JOIN alternativa_item AS ai ON(a.alternativaID = ai.alternativaID)
-    WHERE pfbi.parFornecedorBlocoItemID = ? `
+    WHERE pfbi.parFornecedorBlocoItemID = ? AND pfbi.status = 1`
     return sql
 }
 

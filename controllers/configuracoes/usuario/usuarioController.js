@@ -227,7 +227,6 @@ class UsuarioController {
         }
     }
 
-
     async handleDeleteImage(req, res) {
         const { id } = req.params;
 
@@ -314,16 +313,15 @@ class UsuarioController {
         //?      - profissões
         //?      - cargos
         //?      - permissões de acesso
-        if (data.admin == 1 && data.units && data.units.length > 0) {
+        if (data.permissionUserLogged == 1 && data.units && data.units.length > 0) {
             data.units.map(async (unit, indexUnit) => {
+
                 //* UNIDADE
                 //? Só vem se for inserida uma nova
                 if (unit.unidade && unit.unidade.id > 0 && unit.papel && unit.papel.id > 0) {
                     //? Verifica se já existe essa unidade com esse papel para esse usuário
                     const verifyUsuarioUnidadePapel = await existsUsuarioUnidadePapel(id, unit.unidade.id, unit.papel.id)
-                    if (verifyUsuarioUnidadePapel) {
-                        res.status(409).json({ message: 'Já existe essa unidade com esse papel pra esse usuário!' })
-                    } else { //? Ok, pode inserir nova unidade 
+                    if (!verifyUsuarioUnidadePapel) { //? Ok, pode inserir nova unidade 
                         const sqlUsuarioUnidade = `
                         INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID, profissaoID, status)
                         VALUES (?, ?, ?, ?, ?)`
@@ -385,7 +383,7 @@ class UsuarioController {
                 }
 
                 //* PERMISSÕES DE ACESSO
-                unit.menuGroup && unit.menuGroup.length > 0 && unit.menuGroup.map(async (menuGroup, indexMenuGroup) => {
+                unit.menu && unit.menu.length > 0 && unit.menu.map(async (menuGroup, indexMenuGroup) => {
                     menuGroup.menu && menuGroup.menu.length > 0 && menuGroup.menu.map(async (menu, indexMenu) => {
                         //? Editou menu
                         if (menu.edit) {
