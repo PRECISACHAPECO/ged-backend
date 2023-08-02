@@ -670,21 +670,23 @@ class FornecedorController {
         const { unidadeID, cnpj } = req.body;
         // Verifica se está vinculado como um fornecedor
         const sqlFornecedor = `
-            SELECT *
-                FROM fabrica_fornecedor
+        SELECT *
+            FROM fabrica_fornecedor
         WHERE unidadeID = ? AND fornecedorCnpj = ? AND status = ? `
         const [resultFornecedor] = await db.promise().query(sqlFornecedor, [unidadeID, cnpj, 1])
 
         // Verifica se já possui formulário preenchido pra minha empresa
         const sqlFormulario = `
         SELECT *
-                FROM fornecedor
+        FROM fornecedor
         WHERE unidadeID = ? AND cnpj = ? `
         const [resultFormulario] = await db.promise().query(sqlFormulario, [unidadeID, cnpj])
 
         const result = {
             isFornecedor: resultFornecedor.length > 0 ? true : false,
             hasFormulario: resultFormulario.length > 0 ? true : false,
+            nomeFornecedor: resultFormulario[0]?.nome,
+            email: resultFormulario[0]?.email
         }
 
         res.status(200).json(result);
