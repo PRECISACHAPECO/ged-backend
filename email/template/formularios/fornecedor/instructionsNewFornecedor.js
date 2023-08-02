@@ -4,10 +4,11 @@ const css = require('../../defaults/css');
 require('dotenv/config');
 const urlBase = process.env.BASE_URL;
 
-async function instructionsNewFornecedor(cnpj, unidade, haveLogin) {
+async function instructionsNewFornecedor(cnpj, unidade, haveLogin, nome, email) {
     // link login e registro enviando cnpj e unidade como parâmetros
     const linkLogin = `${urlBase}/fornecedor/?c=${cnpj}&u=${unidade}`;
-    const linkRegistro = `${urlBase}/registro/?c=${cnpj}&u=${unidade}`;
+    const linkRegistro = `${urlBase}/registro/?c=${cnpj}&u=${unidade}&n=${encodeURIComponent(nome)}&e=${email}`;
+
     let html = `
     <html>`;
     // CSS

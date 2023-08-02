@@ -691,7 +691,7 @@ class FornecedorController {
     }
 
     async makeFornecedor(req, res) {
-        const { usuarioID, unidadeID, papelID, cnpj, nomeFornecedor, gruposAnexo } = req.body;
+        const { usuarioID, unidadeID, papelID, cnpj, email, nomeFornecedor, gruposAnexo } = req.body;
 
         //? Verifica duplicidade 
         const sqlVerify = `
@@ -723,8 +723,8 @@ class FornecedorController {
         //? Gera um novo formulário em branco, pro fornecedor preencher depois quando acessar o sistema
         const initialStatus = 10
         const sqlFornecedor = `
-        INSERT INTO fornecedor(cnpj, razaoSocial, nome, unidadeID, status, atual) VALUES("${cnpj}", ?, ?, ?, ?, ?)`
-        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [nomeFornecedor, nomeFornecedor, unidadeID, initialStatus, 1])
+        INSERT INTO fornecedor(cnpj, razaoSocial, nome, email, unidadeID, status, atual) VALUES("${cnpj}", ?, ?, ?, ?, ?, ?)`
+        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [nomeFornecedor, nomeFornecedor, email, unidadeID, initialStatus, 1])
         const fornecedorID = resultFornecedor.insertId
 
         //? Gera histórico de alteração de status
@@ -783,8 +783,10 @@ class FornecedorController {
     //? Função que envia email para o fornecedor
     async sendMail(req, res) {
         const { data } = req.body;
+        console.log("🚀 ~ data sen email:", data)
         const destinatario = data.destinatario
         let haveLogin = false
+
 
         // Verifica se o fornecedor já possui login
         const sql = `SELECT * FROM usuario WHERE cnpj = "${data.cnpj}" `
@@ -794,7 +796,7 @@ class FornecedorController {
         }
 
         let assunto = 'Solicitação de Cadastro de Fornecedor'
-        const html = await instructionsNewFornecedor(criptoMd5(onlyNumbers(data.cnpj.toString())), criptoMd5(data.unidadeID.toString()), haveLogin);
+        const html = await instructionsNewFornecedor(criptoMd5(onlyNumbers(data.cnpj.toString())), criptoMd5(data.unidadeID.toString()), haveLogin, data.nomeFornecedor, data.destinatario);
         res.status(200).json(sendMailConfig(destinatario, assunto, html))
     }
 
