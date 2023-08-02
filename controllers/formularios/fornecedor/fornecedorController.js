@@ -237,8 +237,8 @@ class FornecedorController {
                 //? Varre itens do grupo, verificando se tem anexo
                 for (const item of resultGrupoItens) {
                     item.anexo = {}
-                    const sqlAnexo = `SELECT * FROM anexo WHERE fornecedorID = ? AND unidadeID = ? AND grupoAnexoItemID = ? `
-                    const [resultAnexo] = await db.promise().query(sqlAnexo, [id, unidadeLogadaID, item.grupoanexoitemID]);
+                    const sqlAnexo = `SELECT * FROM anexo WHERE fornecedorID = ? AND grupoAnexoItemID = ? `
+                    const [resultAnexo] = await db.promise().query(sqlAnexo, [id, item.grupoanexoitemID]);
                     if (resultAnexo.length > 0) {
                         item.anexo = {
                             exist: true,

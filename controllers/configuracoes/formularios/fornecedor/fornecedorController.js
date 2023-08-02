@@ -125,37 +125,60 @@ class FornecedorController {
 
     async updateData(req, res) {
         try {
-            const { unidadeID, header, blocks, arrRemovedItems, orientacoes } = req.body
+            const { unidadeID, header, blocks, arrRemovedBlocks, arrRemovedItems, orientacoes } = req.body
 
             if (!unidadeID || unidadeID == 'undefined') { return res.json({ message: 'Erro ao receber unidadeID!' }) }
 
             //? Header
             header && header.forEach(async (item) => {
-                if (item && item.mostra) {
-                    // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
-                    const sqlHeader = `
-                    SELECT COUNT(*) AS count
-                    FROM par_fornecedor_unidade AS pfu
-                    WHERE pfu.parFornecedorID = ? AND pfu.unidadeID = ?`
-                    // Verifica numero de linhas do sql 
-                    const [resultHeader] = await db.promise().query(sqlHeader, [item.parFornecedorID, unidadeID])
-                    if (resultHeader[0].count === 0) { // Insert
-                        const sqlInsert = `
-                        INSERT INTO par_fornecedor_unidade (parFornecedorID, unidadeID, obrigatorio)
-                        VALUES (?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [item.parFornecedorID, unidadeID, (item.obrigatorio ? 1 : 0)]);
-                    } else {                            // Update
-                        const sqlUpdate = `
-                        UPDATE par_fornecedor_unidade
-                        SET obrigatorio = ?
+                if (item.nomeColuna !== 'cnpj') {
+                    if (item && item.mostra) {
+                        // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
+                        const sqlHeader = `
+                        SELECT COUNT(*) AS count
+                        FROM par_fornecedor_unidade AS pfu
+                        WHERE pfu.parFornecedorID = ? AND pfu.unidadeID = ?`
+                        // Verifica numero de linhas do sql 
+                        const [resultHeader] = await db.promise().query(sqlHeader, [item.parFornecedorID, unidadeID])
+                        if (resultHeader[0].count === 0) { // Insert
+                            const sqlInsert = `
+                            INSERT INTO par_fornecedor_unidade (parFornecedorID, unidadeID, obrigatorio)
+                            VALUES (?, ?, ?)`
+                            const [resultInsert] = await db.promise().query(sqlInsert, [item.parFornecedorID, unidadeID, (item.obrigatorio ? 1 : 0)]);
+                        } else {                            // Update
+                            const sqlUpdate = `
+                            UPDATE par_fornecedor_unidade
+                            SET obrigatorio = ?
+                            WHERE parFornecedorID = ? AND unidadeID = ?`
+                            const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? 1 : 0), item.parFornecedorID, unidadeID]);
+                        }
+                    } else if (item) { // Deleta
+                        const sqlDelete = `
+                        DELETE FROM par_fornecedor_unidade
                         WHERE parFornecedorID = ? AND unidadeID = ?`
-                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? 1 : 0), item.parFornecedorID, unidadeID]);
+                        const [resultDelete] = await db.promise().query(sqlDelete, [item.parFornecedorID, unidadeID])
                     }
-                } else if (item) { // Deleta
-                    const sqlDelete = `
-                    DELETE FROM par_fornecedor_unidade
-                    WHERE parFornecedorID = ? AND unidadeID = ?`
-                    const [resultDelete] = await db.promise().query(sqlDelete, [item.parFornecedorID, unidadeID])
+                }
+            })
+
+            //? Blocos removidos
+            arrRemovedBlocks && arrRemovedBlocks.forEach(async (block) => {
+                if (block && block > 0) {
+                    // Blocos
+                    const sqlDeleteBlock = `DELETE FROM par_fornecedor_bloco WHERE parFornecedorBlocoID = ?`
+                    const [resultDeleteBlock] = await db.promise().query(sqlDeleteBlock, [block])
+
+                    // Atividades do bloco
+                    const sqlDeleteBlockActivities = `DELETE FROM par_fornecedor_bloco_atividade WHERE parFornecedorBlocoID = ?`
+                    const [resultDeleteBlockActivities] = await db.promise().query(sqlDeleteBlockActivities, [block])
+
+                    // Categorias do bloco
+                    const sqlDeleteBlockCategories = `DELETE FROM par_fornecedor_bloco_categoria WHERE parFornecedorBlocoID = ?`
+                    const [resultDeleteBlockCategories] = await db.promise().query(sqlDeleteBlockCategories, [block])
+
+                    // Itens do bloco
+                    const sqlDeleteBlockItems = `DELETE FROM par_fornecedor_bloco_item WHERE parFornecedorBlocoID = ?`
+                    const [resultDeleteBlockItems] = await db.promise().query(sqlDeleteBlockItems, [block])
                 }
             })
 
