@@ -88,79 +88,62 @@ class AuthControllerFornecedor {
     }
 
     //* Cadastro do fornecedor
-    async registroFornecedor(req, res) {
-        const functionName = req.headers['function-name'];
+    async getData(req, res) {
+        const { cnpj } = req.body;
+        const resultFormActive = await hasFormActive(cnpj) //? Verificar se alguma fábrica vinculou esse cnpj como um fornecedor
+        const resultUser = await hasUser(cnpj) //? Verificar se já existe esse usuário cadastrado
+        const resultUnity = await hasUnityRole(cnpj) //? Verificar se já existe essa unidade vinculada como fornecedor
 
-        switch (functionName) {
-
-            //? Verifica se o cnpj já existe na tabela fabrica_fornecedor
-            case 'VerifyCnpjTableFactory':
-                const { value } = req.body;
-                const verifyCnpjFactory = `SELECT * FROM fabrica_fornecedor WHERE fornecedorCnpj = ?`;
-                const [resultCnpjFactory] = await db.promise().query(verifyCnpjFactory, [value]);
-                if (resultCnpjFactory.length > 0) {
-                    return res.status(200).json(true);
-                } else {
-                    return res.status(200).json(false);
-                }
-                break;
-
-            //? Função que valida se o cnpj já existe no banco de dados
-            case 'handleGetCnpj':
-                const { cnpj } = req.body;
-
-                const resultUser = await hasUser(cnpj) //? Verificar se já existe esse usuário cadastrado
-                const resultUnity = await hasUnityRole(cnpj) //? Verificar se já existe essa unidade vinculada como fornecedor
-
-                //  Retornar um array vazio se não encontrar o cnpj no banco de dados
-                if (resultUser.length === 0 && resultUnity.length === 0) {
-                    return res.status(200).json([]);
-                } else {
-                    return res.status(200).json(resultUnity.length > 0 ? resultUnity : resultUser);
-                }
-                break;
-
-            //? Função que salva o cadastro do fornecedor no banco de dados
-            case 'handleSaveFornecedor':
-                const data = req.body.data.usuario.fields
-                let unidadeID = ''
-
-                // //? Verificar se o CNPJ já existe na tabela de usuário
-                const resultUserSave = await hasUser(data.cnpj)
-                if (resultUserSave.length > 0) {
-                    return res.status(201).json({ message: 'Já existe um acesso de usuário com esse CNPJ' });
-                }
-
-                // //? Verificar se o CNPJ já existe na tabela de unidade e se é um fornecedor
-                const resultUnitySave = await hasUnityRole(data.cnpj)
-                if (resultUnitySave.length > 0 && resultUnitySave[0].existsFornecedor > 0) {
-                    return res.status(202).json({ message: 'Esse CNPJ já cadastrado como um fornecedor, faça login pou recupere sua senha' });
-                }
-
-                // //? Salvar o usuário no banco de dados
-                const sqlInsertUsuario = `
-                INSERT INTO usuario (nome, cnpj, email, senha, admin, role) VALUES (?, ?, ?, ?, ?, ?)`;
-                const resultInsertUsuario = await db.promise().query(sqlInsertUsuario, [data.nomeFantasia, data.cnpj, data.email, criptoMd5(data.senha), 0, 'admin']);
-                const usuarioID = resultInsertUsuario[0].insertId;
-
-                // //? Salvar a unidade no banco de dados
-                if (resultUnitySave.length === 0) { // Unidade ainda nao existe
-                    const sqlInsertUnidade = `
-                    INSERT INTO unidade (cnpj, nomeFantasia, razaoSocial, email, telefone1, cep, logradouro, numero, complemento, bairro, cidade, uf, dataCadastro) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-                    const resultInsertUnidade = await db.promise().query(sqlInsertUnidade, [data.cnpj, data.nomeFantasia, data.razaoSocial, data.email, data.telefone, data.cep, data.logradouro, data.numero, data.complemento, data.bairro, data.cidade, data.uf, new Date()]);
-                    unidadeID = resultInsertUnidade[0].insertId;
-                } else {
-                    unidadeID = resultUnitySave[0].unidadeID;
-                }
-
-                // //? Salvar na tabela de usuário_unidade com papel 2 de fornecedor
-                const sqlInsertUsuarioUnidade = `
-                INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID, status) VALUES (?, ?, ?, ?)`;
-                const resultInsertUsuarioUnidade = await db.promise().query(sqlInsertUsuarioUnidade, [usuarioID, unidadeID, 2, 1]);
-
-                res.status(200).json({ message: 'Fornecedor cadastrado com sucesso!' });
-                break;
+        const result = {
+            status:
+                resultFormActive == 0 ? 'notAuthorized' //! O fornecedor não está habilidade por nenhuma fabrica
+                    : resultUser?.usuarioID > 0 && resultUnity?.existsFornecedor == 0 ? 'hasUserNotUnity' //! Já tem usuário mas não tem nenhuma unidade com papel fornecedor
+                        : resultUser?.usuarioID > 0 && resultUnity?.existsFornecedor == 1 ? 'hasUserHasUnity' //! Já tem usuário e já tem unidade com papel fornecedor
+                            : 'isAuthorized', //! Está habilidado por uma fábrica, e não possui cadastro de unidade e nem de usuário
+            user: resultUser ?? null,
+            unity: resultUnity ?? null
         }
+        res.json(result)
+    }
+
+    async registerNew(req, res) {
+        const data = req.body.data.usuario.fields
+        let unidadeID = ''
+
+        // //? Verificar se o CNPJ já existe na tabela de usuário
+        const resultUserSave = await hasUser(data.cnpj)
+        if (resultUserSave.length > 0) {
+            return res.status(201).json({ message: 'Já existe um acesso de usuário com esse CNPJ' });
+        }
+
+        // //? Verificar se o CNPJ já existe na tabela de unidade e se é um fornecedor
+        const resultUnitySave = await hasUnityRole(data.cnpj)
+        if (resultUnitySave.length > 0 && resultUnitySave[0].existsFornecedor > 0) {
+            return res.status(202).json({ message: 'Esse CNPJ já cadastrado como um fornecedor, faça login pou recupere sua senha' });
+        }
+
+        // //? Salvar o usuário no banco de dados
+        const sqlInsertUsuario = `
+                INSERT INTO usuario (nome, cnpj, email, senha, admin, role) VALUES (?, ?, ?, ?, ?, ?)`;
+        const resultInsertUsuario = await db.promise().query(sqlInsertUsuario, [data.nomeFantasia, data.cnpj, data.email, criptoMd5(data.senha), 0, 'admin']);
+        const usuarioID = resultInsertUsuario[0].insertId;
+
+        // //? Salvar a unidade no banco de dados
+        if (resultUnitySave.length === 0) { // Unidade ainda nao existe
+            const sqlInsertUnidade = `
+                    INSERT INTO unidade (cnpj, nomeFantasia, razaoSocial, email, telefone1, cep, logradouro, numero, complemento, bairro, cidade, uf, dataCadastro) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            const resultInsertUnidade = await db.promise().query(sqlInsertUnidade, [data.cnpj, data.nomeFantasia, data.razaoSocial, data.email, data.telefone, data.cep, data.logradouro, data.numero, data.complemento, data.bairro, data.cidade, data.uf, new Date()]);
+            unidadeID = resultInsertUnidade[0].insertId;
+        } else {
+            unidadeID = resultUnitySave[0].unidadeID;
+        }
+
+        // //? Salvar na tabela de usuário_unidade com papel 2 de fornecedor
+        const sqlInsertUsuarioUnidade = `
+                INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID, status) VALUES (?, ?, ?, ?)`;
+        const resultInsertUsuarioUnidade = await db.promise().query(sqlInsertUsuarioUnidade, [usuarioID, unidadeID, 2, 1]);
+
+        res.status(200).json({ message: 'Fornecedor cadastrado com sucesso!' });
     }
 
 
@@ -213,6 +196,15 @@ class AuthControllerFornecedor {
     }
 }
 
+async function hasFormActive(cnpj) {
+    const sql = ` 
+    SELECT COUNT(*) AS count
+    FROM fabrica_fornecedor AS ff
+    WHERE ff.fornecedorCnpj = "${cnpj}" AND ff.status = 1 `;
+    const [result] = await db.promise().query(sql);
+    return result[0]['count'];
+}
+
 async function hasUnityRole(cnpj) {
     const sql = ` 
     SELECT a.*, b.*,
@@ -221,7 +213,7 @@ async function hasUnityRole(cnpj) {
         LEFT JOIN usuario_unidade AS b ON(a.unidadeID = b.unidadeID)
     WHERE a.cnpj = ? `;
     const [result] = await db.promise().query(sql, [cnpj]);
-    return result;
+    return result[0];
 }
 
 async function hasUser(cnpj) {
@@ -230,7 +222,7 @@ async function hasUser(cnpj) {
     FROM usuario AS a 
     WHERE a.cnpj = ? `;
     const [result] = await db.promise().query(sql, [cnpj]);
-    return result;
+    return result[0];
 }
 
 module.exports = AuthControllerFornecedor;

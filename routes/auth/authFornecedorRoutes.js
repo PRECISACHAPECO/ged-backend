@@ -12,8 +12,11 @@ authFornecedorRoutes.get(`${routeFornecedor}`, authControllerFornecedor.getAvail
 authFornecedorRoutes.post(`${routeFornecedor}/setAcessLink`, authControllerFornecedor.setAcessLink);
 authFornecedorRoutes.post(`${routeFornecedor}/validationCNPJ`, authControllerFornecedor.ValidationCNPJ);
 
+
 //* Cadastro do fornecedor
 const routeRegister = '/registro-fornecedor';
-authFornecedorRoutes.post(`${routeRegister}`, authControllerFornecedor.registroFornecedor);
+authFornecedorRoutes.post(`${routeRegister}/getData`, authControllerFornecedor.getData);
+// authFornecedorRoutes.post(`${routeRegister}/verifyCnpj`, authControllerFornecedor.verifyCnpj);
+authFornecedorRoutes.post(`${routeRegister}/registerNew`, authControllerFornecedor.registerNew);
 
 module.exports = authFornecedorRoutes;
