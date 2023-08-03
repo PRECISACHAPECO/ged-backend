@@ -242,6 +242,7 @@ class FornecedorController {
                     if (resultAnexo.length > 0) {
                         item.anexo = {
                             exist: true,
+                            anexoID: resultAnexo[0].anexoID,
                             path: `${process.env.BASE_URL_UPLOADS}anexos/${resultAnexo[0].arquivo} `,
                             nome: resultAnexo[0]?.titulo,
                             tipo: resultAnexo[0]?.tipo,
