@@ -1,13 +1,13 @@
 const db = require('../config/db');
 require('dotenv/config')
 
-const addFormStatusMovimentation = async (parFormularioID, id, usuarioID, unidadeID, papelID, statusAnterior, statusAtual) => {
+const addFormStatusMovimentation = async (parFormularioID, id, usuarioID, unidadeID, papelID, statusAnterior, statusAtual, observacao) => {
 
     if (parFormularioID && id && usuarioID && unidadeID && papelID && statusAnterior && statusAtual) {
         const sql = `
         INSERT INTO 
-        movimentacaoformulario (parFormularioID, id, usuarioID, unidadeID, papelID, dataHora, statusAnterior, statusAtual) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        movimentacaoformulario (parFormularioID, id, usuarioID, unidadeID, papelID, dataHora, statusAnterior, statusAtual, observacao) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
         const [result] = await db.promise().query(sql, [
             parFormularioID,
             id,
@@ -16,7 +16,8 @@ const addFormStatusMovimentation = async (parFormularioID, id, usuarioID, unidad
             papelID,
             new Date(),
             statusAnterior,
-            statusAtual
+            statusAtual,
+            observacao ?? ''
         ])
 
         if (result.length === 0) { return false; }

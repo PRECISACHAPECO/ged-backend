@@ -236,7 +236,7 @@ class RecebimentoMpController {
         }
 
         //? Gera histórico de alteração de status (se alterou de status)        
-        const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, '0', '10')
+        const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, '0', '10', '')
         if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
 
         res.status(200).json(id)
@@ -359,7 +359,7 @@ class RecebimentoMpController {
 
         //? Gera histórico de alteração de status (se alterou de status)
         if (resultStatus[0]['status'] != data.status) {
-            const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, resultStatus[0]['status'] ?? '0', data.status)
+            const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, resultStatus[0]['status'] ?? '0', data.status, '')
             if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
         }
 
@@ -399,7 +399,7 @@ class RecebimentoMpController {
             const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [status, id])
 
             //? Gera histórico de alteração de status
-            const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, resultData[0]['status'] ?? '0', status)
+            const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, resultData[0]['status'] ?? '0', status, '')
             if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
         }
 

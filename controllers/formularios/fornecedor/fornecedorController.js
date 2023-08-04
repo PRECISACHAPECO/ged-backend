@@ -561,7 +561,7 @@ class FornecedorController {
 
         //? Gera histórico de alteração de status (se houve alteração)
         if (resultFornecedor[0]['status'] != newStatus) {
-            const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', newStatus)
+            const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', newStatus, data?.obsConclusao)
             if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
         }
 
@@ -584,7 +584,7 @@ class FornecedorController {
                 const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [status, id])
 
                 //? Gera histórico de alteração de status
-                const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', status)
+                const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', status, '')
                 if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
             }
         }
@@ -609,7 +609,7 @@ class FornecedorController {
     //? Atualiza resultado (aprovador, aprovado parcial, reprovado)
     async changeFormStatus(req, res) {
         const { id } = req.params
-        const status = req.body.status
+        const { status, observacao } = req.body
         const { usuarioID, papelID, unidadeID } = req.body.auth
 
         const sqlSelect = `SELECT status FROM fornecedor WHERE fornecedorID = ? `
@@ -621,7 +621,7 @@ class FornecedorController {
             const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [status, id])
 
             //? Gera histórico de alteração de status
-            const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', status)
+            const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', status, observacao)
             if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
         }
 
@@ -731,7 +731,7 @@ class FornecedorController {
         const fornecedorID = resultFornecedor.insertId
 
         //? Gera histórico de alteração de status
-        const movimentation = await addFormStatusMovimentation(1, fornecedorID, usuarioID, unidadeID, papelID, '0', initialStatus)
+        const movimentation = await addFormStatusMovimentation(1, fornecedorID, usuarioID, unidadeID, papelID, '0', initialStatus, '')
         if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário!" }) }
 
         const result = {
@@ -818,7 +818,7 @@ class FornecedorController {
         if (resultUpdate.length === 0) { return res.status(201).json({ message: 'Erro ao atualizar status do formulário! ' }) }
 
         //? Gera histórico de alteração de status
-        const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', newStatus)
+        const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', newStatus, '')
         if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
 
         //? Envia e-mail pra fábrica
@@ -891,7 +891,7 @@ class FornecedorController {
 
         if (id && parFormularioID) {
             const sql = `
-            SELECT u.nome AS usuario, un.nomeFantasia AS unidade, m.papelID, DATE_FORMAT(m.dataHora, "%d/%m/%Y") AS data, DATE_FORMAT(m.dataHora, "%H:%ih") AS hora, m.statusAnterior, m.statusAtual
+            SELECT u.nome AS usuario, un.nomeFantasia AS unidade, m.papelID, DATE_FORMAT(m.dataHora, "%d/%m/%Y") AS data, DATE_FORMAT(m.dataHora, "%H:%ih") AS hora, m.statusAnterior, m.statusAtual, m.observacao
             FROM movimentacaoformulario AS m
                 LEFT JOIN usuario AS u ON(m.usuarioID = u.usuarioID)
                 LEFT JOIN unidade AS un ON(m.unidadeID = un.unidadeID)
