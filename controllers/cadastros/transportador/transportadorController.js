@@ -81,7 +81,7 @@ class TransportadorController {
             table: ['transportador'],
             column: 'transportadorID'
         }
-        const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
+        const tablesPending = ['recebimentomp'] // Tabelas que possuem relacionamento com a tabela atual
 
         if (!tablesPending || tablesPending.length === 0) {
             return deleteItem(id, objModule.table, objModule.column, res)

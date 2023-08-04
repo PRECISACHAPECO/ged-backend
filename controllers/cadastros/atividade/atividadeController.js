@@ -81,7 +81,7 @@ class AtividadeController {
             table: ['atividade'],
             column: 'atividadeID'
         }
-        const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
+        const tablesPending = ['fornecedor_atividade', 'par_fornecedor_bloco_atividade', 'recebimentomp_produto'] // Tabelas que possuem relacionamento com a tabela atual
 
         if (!tablesPending || tablesPending.length === 0) {
             return deleteItem(id, objModule.table, objModule.column, res)
