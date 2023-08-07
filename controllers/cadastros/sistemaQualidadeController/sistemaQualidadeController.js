@@ -82,7 +82,7 @@ class SistemaQualidadeController {
             table: ['sistemaqualidade'],
             column: 'sistemaqualidadeID'
         }
-        const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
+        const tablesPending = ['fornecedor_sistemaqualidade'] // Tabelas que possuem relacionamento com a tabela atual
 
         if (!tablesPending || tablesPending.length === 0) {
             return deleteItem(id, objModule.table, objModule.column, res)
