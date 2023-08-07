@@ -9,7 +9,12 @@ app.use(routes);
 app.use(routerReports);
 app.use('/api/uploads', express.static('uploads'));
 
+// const errorHandler = (err, req, res, next) => {
+//     console.error(err);
+//     res.status(500).json({ error: 'Erro interno no servidor.' });
+// };
 
+// app.use(errorHandler);
 
 app.listen(3333, () => {
     console.log('Server is running on port 3333');

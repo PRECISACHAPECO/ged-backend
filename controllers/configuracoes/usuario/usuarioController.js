@@ -184,21 +184,13 @@ class UsuarioController {
     }
 
     //! Atualiza a foto do perfil do usuário
-
     async updatePhotoProfile(req, res) {
         try {
             const photoProfile = req.file;
             const { id } = req.params;
             const sqlSelectPreviousPhoto = `SELECT imagem FROM usuario WHERE usuarioID = ?`;
             const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuarioID = ?`;
-            console.log('CONTROLLERRRRRR')
-
-            // Verifique se há um erro do multer
-            if (req.fileValidationError) {
-                console.log('Erro do multer no controller .....')
-                return res.status(400).json({ error: req.fileValidationError });
-            }
-
+            console.log('CONTROLLERRRRRR: ', req.file)
 
             // Verificar se um arquivo foi enviado
             if (!photoProfile) {

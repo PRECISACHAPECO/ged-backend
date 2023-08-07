@@ -8,6 +8,15 @@ const usuarioRoutes = Router();
 const usuarioController = new UsuarioController();
 const route = '/usuario';
 
+usuarioRoutes.get(`${route}`, usuarioController.getList);
+usuarioRoutes.post(`${route}/getData/:id`, usuarioController.getData);
+usuarioRoutes.post(`${route}/updateData/:id`, usuarioController.updateData);
+
+usuarioRoutes.delete(`${route}/photo-profile/:id`, usuarioController.handleDeleteImage);
+usuarioRoutes.delete(`${route}/:id`, usuarioController.deleteData);
+usuarioRoutes.post(`${route}/new/insertData`, usuarioController.insertData);
+
+//! Arquivos com multer aqui
 const getExtensions = async () => {
     const sql = `
     SELECT * 
@@ -18,89 +27,55 @@ const getExtensions = async () => {
     return result
 }
 
-const imageFilter = async (req, file, callback) => {
-    const allowedUnityExtensions = await getExtensions();
-    console.log("🚀 ~ allowedUnityExtensions:", allowedUnityExtensions)
-
-    try {
-        if (allowedUnityExtensions.length > 0) {
-            let isValidExtension = false;
-
-            for (const ext of allowedUnityExtensions) {
-                if (file.mimetype.startsWith(ext.mimetype)) {
-                    console.log("Encontrou a extensão permitida:", ext.nome, ext.mimetype);
-                    isValidExtension = true;
-                    break;
-                }
-            }
-
-            if (isValidExtension) {
-                console.log("É uma imagem válida.");
-                callback(null, true);
-            } else {
-                console.log("Erro na imagem");
-                throw new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'O arquivo enviado não é uma imagem válida.');
-            }
+// Multer: tratar diretorio pra salvar arquivos, extensões permitidas e tamanho máximo do arquivo, após isso, se estiver tudo ok, enviar pra usuarioController.updatePhotoProfile
+const storage = multer.diskStorage({
+    destination: async (req, file, cb) => {
+        const allowedUnityExtensions = await getExtensions()
+        const isValidExtension = allowedUnityExtensions.some(ext => file.mimetype.startsWith(ext.mimetype));
+        if (isValidExtension) {
+            cb(null, 'uploads/profile')
         } else {
-            console.log("Erro na imagem 2");
-            throw new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Não há extensões permitidas para a unidade selecionada.');
+            cb(new Error('Extensão não permitida (Apenas: ' + allowedUnityExtensions.map(ext => ext.nome).join(', ') + ')'))
         }
-    } catch (err) {
-        console.log("Erro na imagem 3");
-        console.log("🚀 ~ err:", err)
-        callback(err);
-    }
-};
-
-const upload = ({ pathName, maxSize, usuarioID, unidadeID }) => multer({
-    storage: multer.diskStorage({
-        destination: (req, file, cb) => {
-            cb(null, pathName)
-        },
-        filename: (req, file, cb) => {
-            const ext = path.extname(file.originalname);
-            console.log("🚀 ~ ext:", ext)
-            cb(null, `${unidadeID}-${usuarioID}-${Date.now()}-${file.originalname}`);
-        }
-    }),
-    limits: {
-        fileSize: maxSize * 1024 * 1024 // 1MB (tamanho máximo permitido)
     },
-    // fileFilter: (req, file, callback) => {
-    //     imageFilter(req, file, (error, isValid) => {
-    //         console.log('no filter......')
-    //         if (error) {
-    //             console.log('ERRO: no imageFilter 1')
-    //             callback(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Não há extensões permitidas para a unidade selecionada.'));
-    //             // callback(error); // Lidar com o erro aqui
-    //         } else if (isValid) {
-    //             console.log('VALIDO: no imageFilter 2')
-    //             callback(null, true);
-    //         } else {
-    //             console.log('ERRO: no imageFilter 3')
-    //             callback(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Não há extensões permitidas para a unidade selecionada.'));
-    //             // callback(null, false);
-    //         }
-    //     });
-    // }
-    fileFilter: imageFilter
-});
+    filename: (req, file, cb) => {
+        // const extensao = path.extname(file.originalname).toLowerCase()
+        const nomeArquivo = `${Date.now()}-${file.originalname}`
+        cb(null, nomeArquivo)
+    }
+})
 
-const profileImagesUpload = upload({
-    pathName: path.resolve("uploads/profile"),
-    maxSize: 1, // 8MB
-    usuarioID: 1,
-    unidadeID: 1
-});
+const upload = multer({
+    storage,
+    limits: {
+        fileSize: 1024 * 1024 * 5 // 5MB
+    }
+})
 
-usuarioRoutes.get(`${route}`, usuarioController.getList);
-usuarioRoutes.post(`${route}/getData/:id`, usuarioController.getData);
-usuarioRoutes.post(`${route}/updateData/:id`, usuarioController.updateData);
+//? middleware pra tratar erros do multer, como tamanho máximo do arquivo e extensão não permitida
+const uploadMiddleware = (req, res, next) => {
+    upload.single('file')(req, res, (err) => {
+        // console.log("🚀 ~ err:", err)
+        // if (err instanceof multer.MulterError) {
+        //     if (err.code === 'LIMIT_FILE_SIZE') {
+        //         console.log('erro tamanho')
+        //         return res.status(400).json({ error: 'Tamanho máximo do arquivo excedido.' });
+        //     }
+        //     if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+        //         console.log('erro extensaooo')
+        //         return res.status(400).json({ error: 'Tipo de arquivo não permitido.' });
+        //     }
+        // }
+        if (err) {
+            console.log('erro nao sei: ', err.message)
+            return res.status(401).json({ message: err.message });
+        }
+        return next();
+    });
+}
 
-usuarioRoutes.post(`${route}/photo-profile/:id`, profileImagesUpload.single('file'), usuarioController.updatePhotoProfile);
-
-usuarioRoutes.delete(`${route}/photo-profile/:id`, usuarioController.handleDeleteImage);
-usuarioRoutes.delete(`${route}/:id`, usuarioController.deleteData);
-usuarioRoutes.post(`${route}/new/insertData`, usuarioController.insertData);
+usuarioRoutes.post(`${route}/photo-profile/:id`, uploadMiddleware, usuarioController.updatePhotoProfile)
+// usuarioRoutes.post(`${route}/photo-profile/:id`, upload.single('file'), usuarioController.updatePhotoProfile)
+//! Arquivos com multer aqui
 
 module.exports = usuarioRoutes;
