@@ -24,11 +24,22 @@ class UnidadeController {
             const { id } = req.params
             const sqlGetData = 'SELECT * FROM unidade WHERE unidadeID = ?'
             const [resultSqlGetData] = await db.promise().query(sqlGetData, id)
+
+            //? Todas as extensões da unidade
+            const sqlMyExtensions = `SELECT extensaoID AS id, nome FROM extensao WHERE extensaoID IN (SELECT extensaoID FROM unidade_extensao WHERE unidadeID = ?)`
+            const [resultExtensions] = await db.promise().query(sqlMyExtensions, id)
+
+            //? Todas as extensões
+            const sqlExtensions = `SELECT extensaoID AS id, nome FROM extensao`
+            const [resultAllExtensions] = await db.promise().query(sqlExtensions)
+
             const result = {
                 fields: {
                     ...resultSqlGetData[0],
                     cabecalhoRelatorio: resultSqlGetData[0].cabecalhoRelatorio ? `${process.env.BASE_URL_UPLOADS}report/${resultSqlGetData[0].cabecalhoRelatorio}` : null,
-                    cabecalhoRelatorioTitle: resultSqlGetData[0].cabecalhoRelatorio
+                    cabecalhoRelatorioTitle: resultSqlGetData[0].cabecalhoRelatorio,
+                    extensoes: resultExtensions.length > 0 ? resultExtensions : [],
+                    allExtensions: resultAllExtensions.length > 0 ? resultAllExtensions : []
                 }
             }
             res.status(200).json(result);
@@ -62,6 +73,10 @@ class UnidadeController {
             const { id } = req.params
             const data = req.body
 
+            const extensoes = data.extensoes
+            delete data.extensoes
+            delete data.allExtensions
+
             const sqlExist = 'SELECT * FROM unidade'
             const resultSqlExist = await db.promise().query(sqlExist)
 
@@ -70,6 +85,17 @@ class UnidadeController {
 
             const sqlUpdate = 'UPDATE unidade SET ? WHERE unidadeID = ?'
             const resultSqlUpdate = await db.promise().query(sqlUpdate, [data, id])
+
+            //? Atualiza extensões da unidade na tabela unidade_extensao 
+            if (extensoes.length > 0) {
+                const sqlDelete = 'DELETE FROM unidade_extensao WHERE unidadeID = ?'
+                await db.promise().query(sqlDelete, id)
+
+                const sqlInsert = 'INSERT INTO unidade_extensao (unidadeID, extensaoID) VALUES ?'
+                const values = extensoes.map(extensao => [id, extensao.id])
+                await db.promise().query(sqlInsert, [values])
+            }
+
             res.status(200).json({ message: 'Unidade atualizada com sucesso!' });
         } catch (error) {
             console.log(error)

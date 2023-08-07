@@ -184,12 +184,21 @@ class UsuarioController {
     }
 
     //! Atualiza a foto do perfil do usuário
+
     async updatePhotoProfile(req, res) {
         try {
             const photoProfile = req.file;
             const { id } = req.params;
             const sqlSelectPreviousPhoto = `SELECT imagem FROM usuario WHERE usuarioID = ?`;
             const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuarioID = ?`;
+            console.log('CONTROLLERRRRRR')
+
+            // Verifique se há um erro do multer
+            if (req.fileValidationError) {
+                console.log('Erro do multer no controller .....')
+                return res.status(400).json({ error: req.fileValidationError });
+            }
+
 
             // Verificar se um arquivo foi enviado
             if (!photoProfile) {
@@ -219,6 +228,7 @@ class UsuarioController {
             const photoProfileUrl = `${process.env.BASE_URL_UPLOADS}profile/${photoProfile.filename}`;
             res.status(200).json(photoProfileUrl);
         } catch (error) {
+            console.log("🚀 ~ error:", error)
             if (error instanceof multer.MulterError) {
                 // Erro do Multer (arquivo incompatível ou muito grande)
                 if (error.code === 'LIMIT_FILE_SIZE') {
