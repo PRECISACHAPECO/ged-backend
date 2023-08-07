@@ -52,6 +52,8 @@ class RecebimentoMpController {
     async getData(req, res) {
         const { id } = req.params;
         const { type, unidadeID } = req.body;
+        // console.log("🚀 ~ type, unidadeID:", type, unidadeID)
+        // return
 
         if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar recebimento' }) }
 

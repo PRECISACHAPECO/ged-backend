@@ -7,5 +7,4 @@ routerReports.post(`${urlBase}/fornecedor/dadosFornecedor`, dadosFornecedor);
 const headerReport = require('./layouts/headerReport');
 routerReports.post(`${urlBase}/header`, headerReport);
 
-
 module.exports = routerReports;
