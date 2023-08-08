@@ -167,7 +167,7 @@ class RecebimentoMpController {
                 fields: resultFields,
                 fieldsProduct: resultFieldsProducts,
                 products: products.length > 0 ? products : [{}], //? Inicia com 1 produto aberto
-                blocks: resultBlocos,
+                blocos: resultBlocos,
                 info: {
                     obs: resultOtherInformations?.obs,
                     status: resultOtherInformations?.status,
@@ -300,16 +300,13 @@ class RecebimentoMpController {
                 }
             }
         }
+
         // Remove os produtos removidos
         if (data.removedProducts.length > 0) {
-            const removedProductIds = data.removedProducts.map(product => product.recebimentompProdutoID);
-            const sqlRemoveProduct = `DELETE FROM recebimentomp_produto WHERE recebimentompProdutoID IN (${removedProductIds.join(',')})`;
+            const sqlRemoveProduct = `DELETE FROM recebimentomp_produto WHERE recebimentompProdutoID IN (${data.removedProducts.join(',')})`;
             const [resultRemoveProduct] = await db.promise().query(sqlRemoveProduct)
             if (resultRemoveProduct.length === 0) { return res.json('Error'); }
         }
-
-        res.status(200).json({ message: 'Até aqui ok!' })
-        return
 
         // Blocos 
         for (const bloco of data.blocos) {
@@ -569,11 +566,11 @@ const getBlocks = async (id, unidadeID) => {
             }
 
             const sqlAlternativa = `
-                SELECT *
-                FROM par_recebimentomp_bloco_item AS prbi 
-                    JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
-                    JOIN alternativa_item AS ai ON (a.alternativaID = ai.alternativaID)
-                WHERE prbi.parRecebimentompBlocoItemID = ?`
+            SELECT ai.alternativaItemID AS id, ai.nome
+            FROM par_recebimentomp_bloco_item AS prbi 
+                JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
+                JOIN alternativa_item AS ai ON (a.alternativaID = ai.alternativaID)
+            WHERE prbi.parRecebimentompBlocoItemID = ?`
             const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.parRecebimentompBlocoItemID])
             item2.alternativas = resultAlternativa
         }
