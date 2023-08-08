@@ -11,7 +11,7 @@ recebimentoMpRoutes.post(`${route}/getData/:id`, recebimentoMpController.getData
 recebimentoMpRoutes.post(`${route}/getNewData`, recebimentoMpController.getNewData);
 
 recebimentoMpRoutes.post(`${route}/insertData`, recebimentoMpController.insertData);
-recebimentoMpRoutes.put(`${route}/:id`, recebimentoMpController.updateData);
+recebimentoMpRoutes.post(`${route}/updateData/:id`, recebimentoMpController.updateData);
 
 recebimentoMpRoutes.delete(`${route}/:id`, recebimentoMpController.deleteData);
 recebimentoMpRoutes.post(`${route}/changeFormStatus/:id`, recebimentoMpController.changeFormStatus);

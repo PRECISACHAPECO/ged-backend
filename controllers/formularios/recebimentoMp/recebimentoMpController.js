@@ -59,7 +59,22 @@ class RecebimentoMpController {
 
         //? Fields do header
         const resultFields = await getFields(unidadeID)
-        console.log("🚀 ~ resultFields:", resultFields)
+
+        // Varre fields, verificando se há tipo == 'int', se sim, busca opções pra selecionar no select 
+        for (const alternatives of resultFields) {
+            if (alternatives.tipo === 'int' && alternatives.tabela) {
+                // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
+                const sqlOptions = `
+                SELECT ${alternatives.tabela}ID AS id, nome
+                FROM ${alternatives.tabela} 
+                WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                ORDER BY nome ASC`
+
+                // Executar select e inserir no objeto alternatives
+                const [resultOptions] = await db.promise().query(sqlOptions)
+                alternatives.options = resultOptions
+            }
+        }
 
         // Varrer result, pegando nomeColuna e inserir em um array se row.tabela == null
         let columns = []
@@ -69,7 +84,6 @@ class RecebimentoMpController {
 
         // varrer resultFields 
         let sqlData = ``
-        let resultData = {}
         if (type == 'edit') {
             for (const field of resultFields) {
                 if (field.tabela) {
@@ -85,17 +99,13 @@ class RecebimentoMpController {
                     WHERE rm.recebimentompID = ${id}`
                     let [temp] = await db.promise().query(sqlData)
                     if (temp) {
-                        resultData[field.tabela] = temp[0]
+                        field[field.tabela] = temp[0]
                     }
+                } else {
+                    const sqlFieldData = `SELECT ${field.nomeColuna} AS coluna FROM recebimentomp WHERE recebimentompID = ? `;
+                    let [resultFieldData] = await db.promise().query(sqlFieldData, [id])
+                    field[field.nomeColuna] = resultFieldData[0].coluna
                 }
-            }
-            console.log("🚀 ~ columns:", columns)
-            // return
-
-            if (columns.length > 0) {
-                sqlData = `SELECT ${columns.join(', ')} FROM recebimentomp WHERE recebimentompID = ${id}`;
-                let [temp2] = await db.promise().query(sqlData)
-                resultData = { ...resultData, ...temp2[0] }
             }
         }
 
@@ -105,13 +115,12 @@ class RecebimentoMpController {
         const resultFieldsProducts = await getFieldsProduct(unidadeID)
 
         // Dados (linhas)
-        let dataProducts = []
+        let products = []
         if (type == 'edit') {
             const sqlDataProducts = `SELECT * FROM recebimentomp_produto WHERE recebimentompID = ?`
             let [resultDataProducts] = await db.promise().query(sqlDataProducts, [id])
 
             // Dados dos produtos (array com os produtos)
-            let sqlProductsData = ``
             let dataFieldProducts = {}
             for (const data of resultDataProducts) {
                 for (const field of resultFieldsProducts) {
@@ -121,7 +130,7 @@ class RecebimentoMpController {
                         //     id: 1,
                         //     nome: 'Fulano'
                         // }
-                        sqlProductsData = `
+                        const sqlProductsData = `
                         SELECT t.${field.nomeColuna} AS id, t.nome
                         FROM recebimentomp_produto AS rm 
                             JOIN ${field.tabela} AS t ON (rm.${field.nomeColuna} = t.${field.nomeColuna}) 
@@ -136,37 +145,37 @@ class RecebimentoMpController {
                     }
                 }
 
-                dataProducts.push({ ...data, ...dataFieldProducts })
+                // dataFieldProducts['fields'] = resultFieldsProducts
+                products.push({ ...data, ...dataFieldProducts })
             }
-        }
 
-        //? Blocos 
-        const resultBlocos = await getBlocks(id, unidadeID)
+            //? Blocos 
+            const resultBlocos = await getBlocks(id, unidadeID)
 
-        // Observação e status
-        let resultOtherInformations = null
-        if (type == 'edit') {
-            const sqlOtherInformations = `
+            // Observação e status
+            let resultOtherInformations = null
+            if (type == 'edit') {
+                const sqlOtherInformations = `
             SELECT obs, status
             FROM recebimentomp
             WHERE recebimentompID = ?`
-            const [temp] = await db.promise().query(sqlOtherInformations, [id])
-            resultOtherInformations = temp[0]
-        }
-
-        const data = {
-            fields: resultFields,
-            data: resultData ?? null,
-            fieldsProducts: resultFieldsProducts,
-            dataProducts: dataProducts.length > 0 ? dataProducts : [{}], //? Inicia com 1 produto aberto
-            blocos: resultBlocos,
-            info: {
-                obs: resultOtherInformations?.obs,
-                status: resultOtherInformations?.status,
+                const [temp] = await db.promise().query(sqlOtherInformations, [id])
+                resultOtherInformations = temp[0]
             }
-        }
 
-        res.status(200).json(data);
+            const data = {
+                fields: resultFields,
+                fieldsProduct: resultFieldsProducts,
+                products: products.length > 0 ? products : [{}], //? Inicia com 1 produto aberto
+                blocks: resultBlocos,
+                info: {
+                    obs: resultOtherInformations?.obs,
+                    status: resultOtherInformations?.status,
+                }
+            }
+
+            res.status(200).json(data);
+        }
     }
 
     async insertData(req, res) {
@@ -246,9 +255,8 @@ class RecebimentoMpController {
 
     async updateData(req, res) {
         const { id } = req.params
-        const data = req.body.forms
+        const data = req.body.form
         const { usuarioID, papelID, unidadeID } = req.body.auth
-        console.log("🚀 ~ usuarioID, papelID, unidadeID:", usuarioID, papelID, unidadeID)
 
         if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
 
@@ -256,42 +264,52 @@ class RecebimentoMpController {
         const [resultStatus] = await db.promise().query(sqlStatus, [id])
 
         // Header         
-        if (data.header) {
+        if (data.fields) {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
-            let dataHeader = await formatFieldsToTable('par_recebimentomp', data.header)
-            console.log("🚀 ~ dataHeader:", dataHeader)
+            let dataHeader = await formatFieldsToTable('par_recebimentomp', data.fields)
             const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentompID = ${id}`;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
         }
 
         // Produtos 
-        if (data.produtos) {
-            for (const produto of data.produtos) {
+        if (data.products && data.products.length > 0) {
+            let dataProduct = {}
+            for (const product of data.products) {
                 //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
-                let dataProduto = await formatFieldsToTable('par_recebimentomp_produto', produto)
+                // let dataProduct = await formatFieldsToTable('par_recebimentomp_produto', data.fieldsProduct)
+                for (const field of data.fieldsProduct) {
+                    if (field.tabela && field.tipo == 'int') {
+                        dataProduct[field.nomeColuna] = product[field.tabela].id ?? 0
+                    } else {
+                        dataProduct[field.nomeColuna] = product[field.nomeColuna] ?? null
+                    }
+                }
 
-                if (produto.recebimentompProdutoID > 0) { // UPDATE
+                console.log("🚀 ~ product:", product)
+
+                if (product['recebimentompProdutoID'] > 0) { // UPDATE
                     const sqlUpdateProduto = `UPDATE recebimentomp_produto SET ? WHERE recebimentompProdutoID = ?`
-                    const [resultUpdateProduto] = await db.promise().query(sqlUpdateProduto, [dataProduto, produto.recebimentompProdutoID])
+                    const [resultUpdateProduto] = await db.promise().query(sqlUpdateProduto, [dataProduct, product['recebimentompProdutoID']])
                     if (resultUpdateProduto.length === 0) { return res.status(500).json('Error'); }
                 } else {                                  // INSERT
-                    dataProduto['recebimentompID'] = id
+                    dataProduct['recebimentompID'] = id
                     const sqlInsertProduto = `INSERT INTO recebimentomp_produto SET ?`
-                    const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [dataProduto])
+                    const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [dataProduct])
                     if (resultInsertProduto.length === 0) { return res.status(500).json('Error'); }
                 }
             }
-            // Remove os produtos removidos
-            if (data.removedProducts.length > 0) {
-                const removedProductIds = data.removedProducts.map(product => product.recebimentompProdutoID);
-                const sqlRemoveProduct = `DELETE FROM recebimentomp_produto WHERE recebimentompProdutoID IN (${removedProductIds.join(',')})`;
-                const [resultRemoveProduct] = await db.promise().query(sqlRemoveProduct)
-                if (resultRemoveProduct.length === 0) {
-                    return res.json('Error');
-                }
-            }
         }
+        // Remove os produtos removidos
+        if (data.removedProducts.length > 0) {
+            const removedProductIds = data.removedProducts.map(product => product.recebimentompProdutoID);
+            const sqlRemoveProduct = `DELETE FROM recebimentomp_produto WHERE recebimentompProdutoID IN (${removedProductIds.join(',')})`;
+            const [resultRemoveProduct] = await db.promise().query(sqlRemoveProduct)
+            if (resultRemoveProduct.length === 0) { return res.json('Error'); }
+        }
+
+        res.status(200).json({ message: 'Até aqui ok!' })
+        return
 
         // Blocos 
         for (const bloco of data.blocos) {
@@ -438,11 +456,11 @@ class RecebimentoMpController {
 //* Obtém colunas
 const getFields = async (unidadeID) => {
     const sqlFields = `
-            SELECT * 
-            FROM par_recebimentomp AS pr 
-                JOIN par_recebimentomp_unidade AS pru ON (pr.parRecebimentompID = pru.parRecebimentompID) 
-            WHERE pru.unidadeID = ? 
-            ORDER BY pr.ordem ASC`
+    SELECT * 
+    FROM par_recebimentomp AS pr 
+        JOIN par_recebimentomp_unidade AS pru ON (pr.parRecebimentompID = pru.parRecebimentompID) 
+    WHERE pru.unidadeID = ? 
+    ORDER BY pr.ordem ASC`
     const [resultFields] = await db.promise().query(sqlFields, [unidadeID])
     if (resultFields.length === 0) { return res.json({ message: 'Nenhum campo encontrado' }) }
 
