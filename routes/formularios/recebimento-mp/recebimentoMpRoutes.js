@@ -8,7 +8,7 @@ const route = '/formularios/recebimento-mp';
 
 recebimentoMpRoutes.get(`${route}/getList/:unidadeID`, recebimentoMpController.getList);
 recebimentoMpRoutes.post(`${route}/getData/:id`, recebimentoMpController.getData);
-recebimentoMpRoutes.post(`${route}/getNewData`, recebimentoMpController.getNewData);
+recebimentoMpRoutes.post(`${route}/new/getData`, recebimentoMpController.getNewData);
 
 recebimentoMpRoutes.post(`${route}/insertData`, recebimentoMpController.insertData);
 recebimentoMpRoutes.post(`${route}/updateData/:id`, recebimentoMpController.updateData);

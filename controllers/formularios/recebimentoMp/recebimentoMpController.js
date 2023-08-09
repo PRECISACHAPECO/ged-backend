@@ -36,9 +36,8 @@ class RecebimentoMpController {
 
         const data = {
             fields: resultFields,
-            data: null,
-            fieldsProducts: resultFieldsProducts,
-            dataProducts: [{}], //? Inicia com 1 produto aberto
+            fieldsProduct: resultFieldsProducts,
+            products: [{}], //? Inicia com 1 produto aberto
             blocos: resultBlocos,
             info: {
                 obs: null,
@@ -179,12 +178,12 @@ class RecebimentoMpController {
     }
 
     async insertData(req, res) {
-        const data = req.body.forms
+        const data = req.body.form
         const { usuarioID, papelID, unidadeID } = req.body.auth
 
         //? Header             
         //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
-        let dataHeader = await formatFieldsToTable('par_recebimentomp', data.header)
+        let dataHeader = await formatFieldsToTable('par_recebimentomp', data.fields)
         dataHeader['unidadeID'] = unidadeID
         dataHeader['obs'] = data.obs ?? ''
         dataHeader['status'] = 10
@@ -198,16 +197,31 @@ class RecebimentoMpController {
         if (!id || id == 'undefined') { return res.json({ message: 'Erro ao gravar novo formulário!' }) }
 
         //? Produtos 
-        if (data.produtos) {
-            for (const produto of data.produtos) {
-                if (produto && produto.produto && produto.produto.id > 0) {
+        if (data.products) {
+            let dataProduct = {}
+            for (const product of data.products) {
+                if (product && product.produto && product.produto.id > 0) {
                     //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
-                    let dataProduto = await formatFieldsToTable('par_recebimentomp_produto', produto)
+                    // let dataProduto = await formatFieldsToTable('par_recebimentomp_produto', product)
+                    for (const field of data.fieldsProduct) {
+                        if (field.tabela && field.tipo == 'int') {
+                            dataProduct[field.nomeColuna] = product[field.tabela].id ?? 0
+                        } else {
+                            dataProduct[field.nomeColuna] = product[field.nomeColuna] ?? null
+                        }
+                    }
 
-                    dataProduto['recebimentompID'] = id
+                    console.log("🚀 ~ product:", product)
+
+                    dataProduct['recebimentompID'] = id
                     const sqlInsertProduto = `INSERT INTO recebimentomp_produto SET ?`
-                    const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [dataProduto])
-                    if (resultInsertProduto.length === 0) { return res.json('Error'); }
+                    const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [dataProduct])
+                    if (resultInsertProduto.length === 0) { return res.status(500).json('Error'); }
+
+                    // dataProduto['recebimentompID'] = id
+                    // const sqlInsertProduto = `INSERT INTO recebimentomp_produto SET ?`
+                    // const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [dataProduto])
+                    // if (resultInsertProduto.length === 0) { return res.json('Error'); }
                 }
             }
         }
@@ -276,8 +290,6 @@ class RecebimentoMpController {
         if (data.products && data.products.length > 0) {
             let dataProduct = {}
             for (const product of data.products) {
-                //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
-                // let dataProduct = await formatFieldsToTable('par_recebimentomp_produto', data.fieldsProduct)
                 for (const field of data.fieldsProduct) {
                     if (field.tabela && field.tipo == 'int') {
                         dataProduct[field.nomeColuna] = product[field.tabela].id ?? 0
@@ -364,19 +376,21 @@ class RecebimentoMpController {
             }
         }
 
-        // Observação e Status (se houver)
-        const sqlUpdateObs = `UPDATE recebimentomp SET obs = ?, obsConclusao = ? ${data.status > 0 ? ', status = ? ' : ''} WHERE recebimentompID = ?`
-        const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [
-            data.obs,
-            data?.obsConclusao ? data?.obsConclusao : null,
-            ...(data.status > 0 ? [data.status] : []),
-            id
-        ])
+        // Observação
+        const sqlUpdateObs = `UPDATE recebimentomp SET obs = ?, obsConclusao = ? WHERE recebimentompID = ? `
+        const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.info?.obs, data?.obsConclusao, id])
         if (resultUpdateObs.length === 0) { return res.json('Error'); }
 
-        //? Gera histórico de alteração de status (se alterou de status)
-        if (resultStatus[0]['status'] != data.status) {
-            const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, resultStatus[0]['status'] ?? '0', data.status, '')
+        //* Status
+        //? 10->Pendente (ainda não concluiu) 50->Reprovado 60->Aprovado Parcial 70->Aprovado	
+        const newStatus = data.status > 30 ? data.status : 30
+
+        const sqlUpdateStatus = `UPDATE recebimentomp SET status = ? WHERE recebimentompID = ? `
+        const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])
+
+        //? Gera histórico de alteração de status (se houve alteração)
+        if (resultStatus[0]['status'] != newStatus) {
+            const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, resultStatus[0]['status'] ?? '0', newStatus, data?.obsConclusao)
             if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
         }
 
