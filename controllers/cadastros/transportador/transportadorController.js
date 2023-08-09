@@ -4,8 +4,14 @@ const { hasConflict, hasPending, deleteItem } = require('../../../config/default
 class TransportadorController {
     async getList(req, res) {
         try {
-            const getList = 'SELECT transportadorID AS id, nome, status FROM transportador'
-            const [resultGetList] = await db.promise().query(getList);
+            const { unidadeID } = req.body
+
+            if (!unidadeID) {
+                return res.status(400).json({ message: "Unidade não informada!" });
+            }
+
+            const getList = 'SELECT transportadorID AS id, nome, status FROM transportador WHERE unidadeID = ? ORDER BY nome ASC'
+            const [resultGetList] = await db.promise().query(getList, [unidadeID]);
             res.status(200).json(resultGetList);
         } catch (error) {
             console.log(error)

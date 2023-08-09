@@ -9,6 +9,10 @@ class UsuarioController {
     async getList(req, res) {
         const { unidadeID, papelID } = req.query
 
+        if (!unidadeID || !papelID) {
+            return res.status(400).json({ message: "Dados inválidos!" });
+        }
+
         //? Busca usuários da unidade e papel atual 
         const sql = `
         SELECT u.usuarioID AS id, u.nome, u.cpf, u.dataNascimento, u.status 

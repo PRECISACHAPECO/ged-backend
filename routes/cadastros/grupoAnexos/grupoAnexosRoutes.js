@@ -6,7 +6,7 @@ const grupoAnexosController = new GrupoAnexosController();
 
 const route = '/grupo-anexos';
 
-grupoAnexosRoutes.get(`${route}`, grupoAnexosController.getList);
+grupoAnexosRoutes.post(`${route}`, grupoAnexosController.getList);
 
 grupoAnexosRoutes.post(`${route}/getData/:id`, grupoAnexosController.getData);
 grupoAnexosRoutes.post(`${route}/updateData/:id`, grupoAnexosController.updateData);

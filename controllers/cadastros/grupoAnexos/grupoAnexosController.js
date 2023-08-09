@@ -4,11 +4,19 @@ const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 class GrupoAnexosController {
     async getList(req, res) {
         try {
+
+            const { unidadeID } = req.body
+
+            if (!unidadeID) {
+                return res.status(400).json({ message: "Dados inválidos!" });
+            }
+
             const sqlGetGrupoAnexos = `
             SELECT grupoanexoID AS id, a.nome, a.status, a.descricao
             FROM grupoanexo AS a 
+            WHERE a.unidadeID = ?
             ORDER BY a.nome ASC`
-            const [resultSqlGetGrupoAnexos] = await db.promise().query(sqlGetGrupoAnexos);
+            const [resultSqlGetGrupoAnexos] = await db.promise().query(sqlGetGrupoAnexos, [unidadeID]);
             return res.status(200).json(resultSqlGetGrupoAnexos)
         }
         catch (err) {
