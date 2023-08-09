@@ -6,7 +6,7 @@ const recebimentoMpController = new RecebimentoMpController();
 
 const route = '/formularios/recebimentoMp';
 
-recebimentoMpRoutes.post(`${route}/getData/:id`, recebimentoMpController.getData);
+recebimentoMpRoutes.post(`${route}/getData`, recebimentoMpController.getData);
 recebimentoMpRoutes.put(`${route}/updateData`, recebimentoMpController.updateData);
 recebimentoMpRoutes.delete(`${route}/:id`, recebimentoMpController.deleteData);
 
