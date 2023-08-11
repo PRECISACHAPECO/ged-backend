@@ -9,8 +9,8 @@ class RecebimentoMpController {
         SELECT 
             rm.recebimentompID AS id, 
             IF(MONTH(rm.data) > 0, DATE_FORMAT(rm.data, "%d/%m/%Y"), '--') AS data, 
-            f.nome AS fornecedor, 
-            f.cnpj,
+            IF(f.nome <> '', f.nome, '--') AS fornecedor, 
+            IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,
             (SELECT COUNT(*)
             FROM recebimentomp_produto AS rp 
             WHERE rp.recebimentompID = rm.recebimentompID) AS totalProdutos,
@@ -291,7 +291,7 @@ class RecebimentoMpController {
             let dataProduct = {}
             for (const product of data.products) {
                 for (const field of data.fieldsProduct) {
-                    if (field.tabela && field.tipo == 'int') {
+                    if (field.tabela && field.tipo == 'int' && product[field.tabela] && product[field.tabela].id > 0) {
                         dataProduct[field.nomeColuna] = product[field.tabela].id ?? 0
                     } else {
                         dataProduct[field.nomeColuna] = product[field.nomeColuna] ?? null
