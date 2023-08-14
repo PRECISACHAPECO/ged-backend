@@ -4,30 +4,51 @@ const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = requir
 
 class NaoConformidadeController {
     async getList(req, res) {
-        const { unidadeID } = req.params;
+        const { unidadeID, papelID, usuarioID, cnpjFornecedor } = req.body
 
         if (!unidadeID) {
             return res.status(400).json({ message: 'ID da unidade não recebido!' })
         }
 
-        const sql = `
-        SELECT 
-            rn.recebimentompNaoconformidadeID AS id,
-            r.recebimentompID, 
-            rn.fabricacao,
-            rn.lote,
-            IF(MONTH(rn.dataEmissao) > 0, DATE_FORMAT(rn.dataEmissao, "%d/%m/%Y"), '--') AS data, 
-            IF(f.nome <> '', f.nome, '--') AS fornecedor, 
-            IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,            
-            rn.status 
-        FROM recebimentomp_naoconformidade AS rn 
-            JOIN recebimentomp AS r ON (rn.recebimentompID = r.recebimentompID)    
-            LEFT JOIN fornecedor AS f ON (r.fornecedorID = f.fornecedorID)        
-        WHERE rn.unidadeID = ?
-        ORDER BY rn.recebimentompNaoconformidadeID DESC, rn.status ASC`
-        const [result] = await db.promise().query(sql, [unidadeID])
-
-        res.status(200).json(result)
+        if (papelID === 1) { //* Fábrica
+            const sql = `
+            SELECT 
+                rn.recebimentompNaoconformidadeID AS id,
+                r.recebimentompID, 
+                rn.fabricacao,
+                rn.lote,
+                IF(MONTH(rn.dataEmissao) > 0, DATE_FORMAT(rn.dataEmissao, "%d/%m/%Y"), '--') AS data, 
+                IF(f.nome <> '', f.nome, '--') AS fornecedor, 
+                IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,            
+                rn.status 
+            FROM recebimentomp_naoconformidade AS rn 
+                JOIN recebimentomp AS r ON (rn.recebimentompID = r.recebimentompID)    
+                LEFT JOIN fornecedor AS f ON (r.fornecedorID = f.fornecedorID)        
+            WHERE rn.unidadeID = ?
+            ORDER BY rn.recebimentompNaoconformidadeID DESC, rn.status ASC`
+            const [result] = await db.promise().query(sql, [unidadeID])
+            return res.status(200).json(result)
+        } else if (papelID === 2) { //* Fornecedor
+            const sql = `
+            SELECT 
+                rn.recebimentompNaoconformidadeID AS id,
+                r.recebimentompID, 
+                rn.fabricacao,
+                rn.lote,
+                IF(MONTH(rn.dataEmissao) > 0, DATE_FORMAT(rn.dataEmissao, "%d/%m/%Y"), '--') AS data, 
+                IF(f.nome <> '', f.nome, '--') AS fornecedor, 
+                IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,      
+                u.nomeFantasia AS fabrica,      
+                rn.status 
+            FROM recebimentomp_naoconformidade AS rn 
+                JOIN recebimentomp AS r ON (rn.recebimentompID = r.recebimentompID)    
+                JOIN fornecedor AS f ON (r.fornecedorID = f.fornecedorID)        
+                JOIN unidade AS u ON (rn.unidadeID = u.unidadeID)
+            WHERE f.cnpj = "${cnpjFornecedor}"
+            ORDER BY rn.recebimentompNaoconformidadeID DESC, rn.status ASC`
+            const [result] = await db.promise().query(sql)
+            return res.status(200).json(result)
+        }
     }
 
     async getNewData(req, res) {
@@ -56,9 +77,21 @@ class NaoConformidadeController {
 
     async getData(req, res) {
         const { id } = req.params;
-        const { type, unidadeID } = req.body;
+        let { type, unidadeID, papelID } = req.body;
 
         if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar recebimento' }) }
+
+        //* Logado como fornecedor, obtém unidadeID da fábrica, pra montar o formulário nos padrões da fábrica
+        if (papelID === 2) {
+            const sql = `
+            SELECT unidadeID 
+            FROM recebimentomp_naoconformidade
+            WHERE recebimentompNaoconformidadeID = ?`
+            const [result] = await db.promise().query(sql, [id])
+            unidadeID = result[0].unidadeID
+        }
+
+        if (!unidadeID) { return res.status(400).json({ message: 'ID da unidade não recebido!' }) }
 
         //? Fields do header
         const resultFields = await getFields(unidadeID)
@@ -112,8 +145,6 @@ class NaoConformidadeController {
             }
         }
 
-        ///////////////////////////////////////////////////////////////////////////////////////////////////
-
         if (type == 'edit') {
             //? Blocos 
             const resultBlocos = await getBlocks(id, unidadeID)
@@ -121,6 +152,7 @@ class NaoConformidadeController {
             // Observação e status
             let resultOtherInformations = null
             if (type == 'edit') {
+                // OBS e Status
                 const sqlOtherInformations = `
                 SELECT obs, status
                 FROM recebimentomp_naoconformidade
@@ -129,12 +161,31 @@ class NaoConformidadeController {
                 resultOtherInformations = temp[0]
             }
 
+            // Informações do fornecedor
+            const sqlRecebimento = `
+            SELECT recebimentompID
+            FROM recebimentomp_naoconformidade 
+            WHERE recebimentompNaoconformidadeID = ?`
+            const [resultRecebimento] = await db.promise().query(sqlRecebimento, [id])
+
+            const sqlFornecedor = `
+            SELECT f.fornecedorID AS id, f.nome, f.razaoSocial, f.cnpj, f.telefone, f.email
+            FROM fornecedor AS f 
+            WHERE f.fornecedorID = (
+                SELECT r.fornecedorID 
+                FROM recebimentomp AS r 
+                WHERE r.recebimentompID = ?
+                LIMIT 1
+            )`
+            const [resultFornecedor] = await db.promise().query(sqlFornecedor, [resultRecebimento[0]?.recebimentompID])
+
             const data = {
                 fields: resultFields,
                 blocos: resultBlocos,
                 info: {
                     obs: resultOtherInformations?.obs,
                     status: resultOtherInformations?.status,
+                    fornecedor: resultFornecedor[0],
                 }
             }
 
@@ -236,6 +287,7 @@ class NaoConformidadeController {
         const { id } = req.params
         const data = req.body.form
         const { usuarioID, papelID, unidadeID } = req.body.auth
+        const sendToFornecedor = req.body.sendToFornecedor
 
         if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
 
@@ -316,14 +368,14 @@ class NaoConformidadeController {
 
         //* Status
         //? 10->Pendente (ainda não concluiu) 50->Reprovado 60->Aprovado Parcial 70->Aprovado	
-        const newStatus = data.status > 30 ? data.status : 30
+        const newStatus = sendToFornecedor ? 40 : data.status > 30 ? data.status : 30
 
         const sqlUpdateStatus = `UPDATE recebimentomp_naoconformidade SET status = ? WHERE recebimentompNaoconformidadeID = ? `
         const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])
 
         //? Gera histórico de alteração de status (se houve alteração)
         if (resultStatus[0]['status'] != newStatus) {
-            const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, resultStatus[0]['status'] ?? '0', newStatus, data?.obsConclusao)
+            const movimentation = await addFormStatusMovimentation(3, id, usuarioID, unidadeID, papelID, resultStatus[0]['status'] ?? '0', newStatus, data?.obsConclusao)
             if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
         }
 

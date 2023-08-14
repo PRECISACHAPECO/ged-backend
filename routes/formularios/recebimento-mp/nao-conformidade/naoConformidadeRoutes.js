@@ -6,7 +6,7 @@ const naoConformidadeController = new NaoConformidadeController();
 
 const route = '/formularios/recebimento-mp/nao-conformidade';
 
-naoConformidadeRoutes.get(`${route}/getList/:unidadeID`, naoConformidadeController.getList);
+naoConformidadeRoutes.post(`${route}/getList`, naoConformidadeController.getList);
 naoConformidadeRoutes.post(`${route}/getData/:id`, naoConformidadeController.getData);
 naoConformidadeRoutes.post(`${route}/new/getData`, naoConformidadeController.getNewData);
 
