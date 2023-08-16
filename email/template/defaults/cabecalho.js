@@ -1,7 +1,7 @@
 const cabecalho = (titulo) => {
     let html = `
     <div class="cabecalho">
-        <img src="https://gedagro.com.br/images/logoEmail.png" alt="GED - Gestão Eletrônica de Documentos" class="logo">
+        <img src="https://gedagro.com.br/images/logoBranca.png" alt="GED - Gestão Eletrônica de Documentos" class="logo">
         <h1 class="titulo">
             ${titulo}
         </h1>
