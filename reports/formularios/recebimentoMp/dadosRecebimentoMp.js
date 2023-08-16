@@ -3,14 +3,13 @@ const db = require('../../../config/db');
 const { arraysIguais } = require('../../configs/config');
 
 const dadosRecebimentoMp = async (req, res) => {
-    const { id } = req.body.data;
-    // const fornecedorID = id
-    const recebimentoMpID = 27
+    const { id, unidadeID } = req.body.data;
+    const recebimentoMpID = id
 
-    //? Obtém unidadeID da fábrica (quem define o padrão do formulário)
-    const sqlUnity = `SELECT *, recebimentompID FROM recebimentomp WHERE recebimentompID = ? LIMIT 1`;
-    const [resultUnidade] = await db.promise().query(sqlUnity, [recebimentoMpID]);
-    const { unidadeID } = resultUnidade[0] //? unidadeID da fábrica
+    // //? Obtém unidadeID da fábrica (quem define o padrão do formulário)
+    // const sqlUnity = `SELECT *, recebimentompID FROM recebimentomp WHERE recebimentompID = ? LIMIT 1`;
+    // const [resultUnidade] = await db.promise().query(sqlUnity, [recebimentoMpID]);
+    // const { unidadeID } = resultUnidade[0] //? unidadeID da fábrica
 
     const sqlRecebimentoMp = `
     SELECT * 
