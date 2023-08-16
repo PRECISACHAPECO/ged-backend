@@ -3,6 +3,7 @@ const db = require('../../config/db');
 
 const headerReport = async (req, res) => {
     let { id, unidadeID, isFornecedor } = req.body
+    console.log("🚀 ~ id, unidadeID, isFornecedor:", id, unidadeID, isFornecedor)
 
     //? Se fornecedor: Obtém unidadeID da fábrica (quem define o padrão do formulário)
     if (isFornecedor) {
