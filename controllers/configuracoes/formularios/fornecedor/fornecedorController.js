@@ -220,7 +220,7 @@ class FornecedorController {
                             (block.dados.status ? 1 : 0)
                         ])
                         if (resultNewBlock.length === 0) { return res.json(err); }
-                        block.parFornecedorBlocoID = resultNewBlock.insertId //? parFornecedorBlocoID que acabou de ser gerado
+                        block.dados.parFornecedorBlocoID = resultNewBlock.insertId //? parFornecedorBlocoID que acabou de ser gerado
                     }
 
                     //? Categoria (Fabricante / Importador)
