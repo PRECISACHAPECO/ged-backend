@@ -278,9 +278,10 @@ class RecebimentoMpController {
         const [resultStatus] = await db.promise().query(sqlStatus, [id])
 
         // Header         
+        let dataHeader
         if (data.fields) {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
-            let dataHeader = await formatFieldsToTable('par_recebimentomp', data.fields)
+            dataHeader = await formatFieldsToTable('par_recebimentomp', data.fields)
             const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentompID = ${id}`;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
@@ -297,8 +298,6 @@ class RecebimentoMpController {
                         dataProduct[field.nomeColuna] = product[field.nomeColuna] ?? null
                     }
                 }
-
-                console.log("🚀 ~ product:", product)
 
                 if (product['recebimentompProdutoID'] > 0) { // UPDATE
                     const sqlUpdateProduto = `UPDATE recebimentomp_produto SET ? WHERE recebimentompProdutoID = ?`
@@ -392,6 +391,22 @@ class RecebimentoMpController {
         if (resultStatus[0]['status'] != newStatus) {
             const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, resultStatus[0]['status'] ?? '0', newStatus, data?.obsConclusao)
             if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+        }
+
+        //* Verifica se está concluindo e se irá gerar uma não conformidade
+        if ((newStatus == 50 || newStatus == 60) && data.naoConformidade && dataHeader.fornecedorID > 0) {
+            const sqlNC = `INSERT INTO recebimentomp_naoconformidade (recebimentompID, fornecedorID, unidadeID, status, dataCadastro) VALUES (?, ?, ?, ?, ?)`
+            const [resultNC] = await db.promise().query(sqlNC, [id, dataHeader.fornecedorID, unidadeID, 10, new Date()])
+            const recebimentompNaoconformidadeID = resultNC.insertId //? ID da não conformidade gerada
+
+            const movimentation = await addFormStatusMovimentation(3, recebimentompNaoconformidadeID, usuarioID, unidadeID, papelID, '0', '30', data?.obsConclusao)
+            if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+
+            //? Retorna com o id da não conformidade pra já redirecionar pra não conformidade gerada
+            return res.status(200).json({
+                naoConformidade: true,
+                id: recebimentompNaoconformidadeID
+            })
         }
 
         res.status(200).json({})
