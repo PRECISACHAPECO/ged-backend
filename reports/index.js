@@ -7,7 +7,7 @@ routerReports.post(`${urlBase}/fornecedor/dadosFornecedor`, dadosFornecedor);
 
 
 const dadosRecebimentoMp = require('./formularios/recebimentoMp/dadosRecebimentoMp');
-routerReports.post(`${urlBase}/fornecedor/dadosRecebimentoMp`, dadosRecebimentoMp);
+routerReports.post(`${urlBase}/recebimentoMp/dadosRecebimentoMp`, dadosRecebimentoMp);
 
 
 
