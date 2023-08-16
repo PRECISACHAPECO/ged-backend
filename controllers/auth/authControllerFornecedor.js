@@ -144,6 +144,7 @@ class AuthControllerFornecedor {
     //? Quando o fornecedor acessa o link de acesso enviado por email / Muda o stado de 10 para 20 na tabela de fornecedor e salva na tabela de movimentaçãoFornecedor
     async setAcessLink(req, res) {
         const { data } = req.body;
+        console.log("🚀 ~ data:", data)
 
         //? Verificar se o link é válido
         const sqlGet = `
@@ -157,6 +158,7 @@ class AuthControllerFornecedor {
         WHERE MD5(REGEXP_REPLACE(cnpj, '[^0-9]', '')) = "${data.cnpj}" AND MD5(unidadeID) = "${data.unidadeID}" `;
 
         const [resultCnpj] = await db.promise().query(sqlGetCnpj);
+        console.log("🚀 ~ resultCnpj:", resultCnpj)
 
         const [result] = await db.promise().query(sqlGet);
 

@@ -7,7 +7,6 @@ class RecebimentoMpController {
             const { unidadeID } = req.body;
 
             if (!unidadeID || unidadeID == 'undefined') { return res.json({ message: 'Sem unidadeID recebida!' }) }
-
             //? Header 
             const sqlHeader = `
             SELECT pr.*, 
@@ -54,6 +53,7 @@ class RecebimentoMpController {
                 alternativas: resultAlternativa
             };
 
+
             //? Blocos 
             const blocks = [];
             const sqlBloco = `SELECT * FROM par_recebimentomp_bloco WHERE unidadeID = ? ORDER BY ordem ASC`;
@@ -95,8 +95,6 @@ class RecebimentoMpController {
 
                 blocks.push(objData);
             }
-
-
 
             //? Orientações
             const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 2`
