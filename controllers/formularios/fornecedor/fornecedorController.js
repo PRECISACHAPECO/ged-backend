@@ -178,7 +178,7 @@ class FornecedorController {
                 } else {
                     const sqlFieldData = `SELECT ${field.nomeColuna} AS coluna FROM fornecedor WHERE fornecedorID = ? `;
                     let [resultFieldData] = await db.promise().query(sqlFieldData, [id])
-                    field[field.nomeColuna] = resultFieldData[0].coluna
+                    field[field.nomeColuna] = resultFieldData[0].coluna ?? ''
                 }
             }
 
@@ -927,23 +927,23 @@ const getSqlBloco = () => {
     const sql = `
     SELECT pfbi.*, i.*, a.nome AS alternativa,
 
-                (SELECT fr.respostaID
+        (SELECT fr.respostaID
         FROM fornecedor_resposta AS fr 
         WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS respostaID,
 
-                (SELECT fr.resposta
+        (SELECT fr.resposta
         FROM fornecedor_resposta AS fr 
         WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS resposta,
 
-                (SELECT fr.obs
+        (SELECT fr.obs
         FROM fornecedor_resposta AS fr 
         WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS observacao
 
     FROM par_fornecedor_bloco_item AS pfbi 
         LEFT JOIN item AS i ON(pfbi.itemID = i.itemID)
         LEFT JOIN alternativa AS a ON(pfbi.alternativaID = a.alternativaID)
-    WHERE pfbi.parFornecedorBlocoID = ?
-                ORDER BY pfbi.ordem ASC`
+    WHERE pfbi.parFornecedorBlocoID = ? AND pfbi.status = 1
+    ORDER BY pfbi.ordem ASC`
     return sql
 }
 

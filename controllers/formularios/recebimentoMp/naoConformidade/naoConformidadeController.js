@@ -510,7 +510,7 @@ const getBlocks = async (id, unidadeID) => {
     FROM par_recebimentomp_naoconformidade_bloco_item AS prbi 
         LEFT JOIN item AS i ON (prbi.itemID = i.itemID)
         LEFT JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
-    WHERE prbi.parRecebimentompNaoconformidadeBlocoID = ?
+    WHERE prbi.parRecebimentompNaoconformidadeBlocoID = ? AND prbi.status = 1
     ORDER BY prbi.ordem ASC`
     for (const item of resultBlocos) {
         const [resultItem] = await db.promise().query(sqlItem, [id, id, id, item.parRecebimentompNaoconformidadeBlocoID])
