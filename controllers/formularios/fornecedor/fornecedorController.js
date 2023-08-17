@@ -786,9 +786,13 @@ class FornecedorController {
     //? Função que envia email para o fornecedor
     async sendMail(req, res) {
         const { data } = req.body;
-        console.log("🚀 ~ data sen email:", data)
         const destinatario = data.destinatario
         let haveLogin = false
+
+        // Obtem dados da fabrica
+        const sqlGetDataFactory = `SELECT * FROM unidade WHERE unidadeID = "?" `
+        const [resultSqlGetDataFactory] = await db.promise().query(sqlGetDataFactory, [data.unidadeID])
+        console.log("🚀 ~ resultSqlGetDataFactory:", resultSqlGetDataFactory)
 
 
         // Verifica se o fornecedor já possui login
@@ -798,8 +802,22 @@ class FornecedorController {
             haveLogin = true
         }
 
-        let assunto = 'Solicitação de Cadastro de Fornecedor'
-        const html = await instructionsNewFornecedor(criptoMd5(onlyNumbers(data.cnpj.toString())), criptoMd5(data.unidadeID.toString()), haveLogin, data.nomeFornecedor, data.destinatario);
+        const values = {
+            cnpj: criptoMd5(onlyNumbers(data.cnpj.toString())),
+            unidadeID: criptoMd5(data.unidadeID.toString()),
+            haveLogin,
+            nomeFornecedor: data.nomeFornecedor,
+            destinatario: data.destinatario,
+            nomeFabricaSolicitante: resultSqlGetDataFactory[0].nomeFantasia,
+            emailFabricaSolicitante: resultSqlGetDataFactory[0].email,
+            cnpjFabricaSolicitante: resultSqlGetDataFactory[0].cnpj,
+            enderecoFabricaSolicitante: `${resultSqlGetDataFactory[0].cidade}/${resultSqlGetDataFactory[0].uf}`
+
+        }
+        console.log("🚀 ~ values:", values)
+
+        let assunto = 'Avaliação de fornecedor '
+        const html = await instructionsNewFornecedor(values);
         res.status(200).json(sendMailConfig(destinatario, assunto, html))
     }
 

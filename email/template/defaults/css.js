@@ -21,6 +21,12 @@ const css = () => {
                 border: 1px solid #f1f1f1;
                 background-color: #fff;
             }
+            .boxBorderOff{
+                box-sizing: border-box;
+                width: min(800px, 100%);
+                margin: 0 auto;
+                background-color: #fff;
+            }
             .cabecalho {
                 background-color: #4A8B57;
                 padding: 25px;
@@ -31,10 +37,36 @@ const css = () => {
                 font-weight: bold;
                 color: #E5E5E5;
             }
+            .subTitulo{
+                font-size: 18px;
+                font-weight: bold;
+                color: #4c4e64de;
+            }
             .logo{
                 width: 120px;
                 height: auto;
                 z-index: 9999;  
+            }
+            .button{
+                padding: 10px;
+                border-radius: 5px;
+                background-color: #4A8B57;
+                border: none;
+                cursor: pointer;
+                color: #fff;
+                font-weight: bold;
+                font-size: 16px;
+            }
+            a {
+                text-decoration: none;
+                color: #fff;
+                transition: 0.5s;
+            }
+            .button:hover{
+                background-color: #4A8B57;
+                color: #fff;
+                box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+                transition: 0.5s;
             }
             .content{
                 padding: 25px;
@@ -42,7 +74,7 @@ const css = () => {
             }`;
     // Texto tamanho padrão
     css += `
-            p, ul, text{
+            p, ul, text, td{
                 font-size: 16px;
                 line-height: 1.5;
                 color: #4c4e64de;
