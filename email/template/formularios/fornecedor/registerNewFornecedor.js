@@ -5,7 +5,7 @@ require('dotenv/config');
 const urlBase = process.env.BASE_URL;
 
 
-async function instructionsNewFornecedor(values) {
+async function registerNewFornecedor(values) {
     // link login e registro enviando cnpj e unidade como parâmetros
     const linkLogin = `${urlBase}/fornecedor/?c=${values.cnpj}&u=${values.unidadeID}`;
     const linkRegistro = `${urlBase}/registro/?c=${values.cnpj}&u=${values.unidadeID}&n=${encodeURIComponent(values.nomeFornecedor)}&e=${values.destinatario}`;
@@ -49,4 +49,4 @@ async function instructionsNewFornecedor(values) {
     return html;
 }
 
-module.exports = instructionsNewFornecedor;
+module.exports = registerNewFornecedor;

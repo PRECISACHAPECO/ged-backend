@@ -802,6 +802,21 @@ class FornecedorController {
             haveLogin = true
         }
 
+        const endereco = {
+            logradouro: resultSqlGetDataFactory[0].logradouro,
+            numero: resultSqlGetDataFactory[0].numero,
+            complemento: resultSqlGetDataFactory[0].complemento,
+            bairro: resultSqlGetDataFactory[0].bairro,
+            cidade: resultSqlGetDataFactory[0].cidade,
+            uf: resultSqlGetDataFactory[0].uf,
+        }
+
+        const enderecoCompleto = Object.entries(endereco).map(([key, value]) => {
+            if (value) {
+                return `${value}, `;
+            }
+        }).join('').slice(0, -2) + '.'; // Remove a última vírgula e adiciona um ponto final
+
         const values = {
             cnpj: criptoMd5(onlyNumbers(data.cnpj.toString())),
             unidadeID: criptoMd5(data.unidadeID.toString()),
@@ -811,10 +826,10 @@ class FornecedorController {
             nomeFabricaSolicitante: resultSqlGetDataFactory[0].nomeFantasia,
             emailFabricaSolicitante: resultSqlGetDataFactory[0].email,
             cnpjFabricaSolicitante: resultSqlGetDataFactory[0].cnpj,
-            enderecoFabricaSolicitante: `${resultSqlGetDataFactory[0].cidade}/${resultSqlGetDataFactory[0].uf}`
-
+            enderecoSimplificadoFabricaSolicitante: `${resultSqlGetDataFactory[0].cidade}/${resultSqlGetDataFactory[0].uf}`,
+            enderecoCompletoFabricaSolicitante: enderecoCompleto,
+            stage: 's1'
         }
-        console.log("🚀 ~ values:", values)
 
         let assunto = 'Avaliação de fornecedor '
         const html = await instructionsNewFornecedor(values);
