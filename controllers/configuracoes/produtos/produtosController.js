@@ -101,9 +101,26 @@ class ProdutosController {
             WHERE unidadeID = ? AND produtoID NOT IN (?)`
             await db.promise().query(sqlDelete, [unidadeID, productsLinked])
 
-            const sqlInsert = `INSERT INTO produto_unidade (unidadeID, produtoID) VALUES (?, ?)`
+            //? Verifica se já existe registro na tabela produto_unidade pra não inserir novamente
+            const sqlGetProducts = `
+            SELECT produtoID
+            FROM produto_unidade
+            WHERE unidadeID = ?`
+            const [resultSqlGetProducts] = await db.promise().query(sqlGetProducts, [unidadeID])
+
+            const productsLinkedInTable = []
+            for (let i = 0; i < resultSqlGetProducts.length; i++) {
+                productsLinkedInTable.push(resultSqlGetProducts[i].produtoID)
+            }
+
+            //? Insere produtos que não contem os id de productsLinkedInTable
+            const sqlInsert = `
+            INSERT INTO produto_unidade (produtoID, unidadeID)
+            VALUES (?, ?)`
             for (let i = 0; i < products.length; i++) {
-                await db.promise().query(sqlInsert, [unidadeID, products[i]])
+                if (!productsLinkedInTable.includes(products[i])) {
+                    await db.promise().query(sqlInsert, [products[i], unidadeID])
+                }
             }
 
             return res.status(200).json({ message: 'Dados atualizados com sucesso' })
@@ -114,29 +131,29 @@ class ProdutosController {
     }
 
     deleteData(req, res) {
-        const { id } = req.params
-        const objModule = {
-            table: ['produto'],
-            column: 'produtoID'
-        }
-        const tablesPending = ['recebimentomp_produto'] // Tabelas que possuem relacionamento com a tabela atual
+        // const { id } = req.params
+        // const objModule = {
+        //     table: ['produto'],
+        //     column: 'produtoID'
+        // }
+        // const tablesPending = ['recebimentomp_produto'] // Tabelas que possuem relacionamento com a tabela atual
 
-        if (!tablesPending || tablesPending.length === 0) {
-            return deleteItem(id, objModule.table, objModule.column, res)
-        }
+        // if (!tablesPending || tablesPending.length === 0) {
+        //     return deleteItem(id, objModule.table, objModule.column, res)
+        // }
 
-        hasPending(id, objModule.column, tablesPending)
-            .then((hasPending) => {
-                if (hasPending) {
-                    res.status(409).json({ message: "Dado possui pendência." });
-                } else {
-                    return deleteItem(id, objModule.table, objModule.column, res)
-                }
-            })
-            .catch((err) => {
-                console.log(err);
-                res.status(500).json(err);
-            });
+        // hasPending(id, objModule.column, tablesPending)
+        //     .then((hasPending) => {
+        //         if (hasPending) {
+        //             res.status(409).json({ message: "Dado possui pendência." });
+        //         } else {
+        //             return deleteItem(id, objModule.table, objModule.column, res)
+        //         }
+        //     })
+        //     .catch((err) => {
+        //         console.log(err);
+        //         res.status(500).json(err);
+        //     });
     }
 }
 

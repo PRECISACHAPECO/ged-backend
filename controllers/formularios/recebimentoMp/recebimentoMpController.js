@@ -51,8 +51,6 @@ class RecebimentoMpController {
     async getData(req, res) {
         const { id } = req.params;
         const { type, unidadeID } = req.body;
-        // console.log("🚀 ~ type, unidadeID:", type, unidadeID)
-        // return
 
         if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar recebimento' }) }
 
@@ -155,9 +153,9 @@ class RecebimentoMpController {
             let resultOtherInformations = null
             if (type == 'edit') {
                 const sqlOtherInformations = `
-            SELECT obs, status
-            FROM recebimentomp
-            WHERE recebimentompID = ?`
+                SELECT obs, status
+                FROM recebimentomp
+                WHERE recebimentompID = ?`
                 const [temp] = await db.promise().query(sqlOtherInformations, [id])
                 resultOtherInformations = temp[0]
             }
@@ -217,11 +215,6 @@ class RecebimentoMpController {
                     const sqlInsertProduto = `INSERT INTO recebimentomp_produto SET ?`
                     const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [dataProduct])
                     if (resultInsertProduto.length === 0) { return res.status(500).json('Error'); }
-
-                    // dataProduto['recebimentompID'] = id
-                    // const sqlInsertProduto = `INSERT INTO recebimentomp_produto SET ?`
-                    // const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [dataProduto])
-                    // if (resultInsertProduto.length === 0) { return res.json('Error'); }
                 }
             }
         }
@@ -532,11 +525,24 @@ const getFieldsProduct = async (unidadeID) => {
     for (const alternatives of resultFieldsProducts) {
         if (alternatives.tipo === 'int' && alternatives.tabela) {
             // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
-            let sqlProductsOptions = `
+
+            let sqlProductsOptions = ``
+            if (alternatives.tabela == 'produto') {
+                sqlProductsOptions = `
+                SELECT p.produtoID AS id, p.nome
+                FROM produto AS p 
+                    JOIN produto_unidade AS pu ON (p.produtoID = pu.produtoID)
+                WHERE p.status = 1 AND pu.unidadeID = ${unidadeID}
+                GROUP BY p.produtoID
+                ORDER BY p.nome ASC`
+            } else {
+                sqlProductsOptions = `
                 SELECT ${alternatives.tabela}ID AS id, nome
                 FROM ${alternatives.tabela} 
                 WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
                 ORDER BY nome ASC`
+            }
+            console.log("🚀 ~ sqlProductsOptions:", sqlProductsOptions)
 
             // Executar select e inserir no objeto alternatives
             const [resultProductsOptions] = await db.promise().query(sqlProductsOptions)
