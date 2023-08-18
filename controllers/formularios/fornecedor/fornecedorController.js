@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv/config')
 const { hasPending, deleteItem, criptoMd5, onlyNumbers } = require('../../../config/defaultConfig');
-const instructionsNewFornecedor = require('../../../email/template/formularios/fornecedor/instructionsNewFornecedor');
-const conclusionFormFornecedor = require('../../../email/template/formularios/fornecedor/conclusionFormFornecedor');
+const instructionsNewFornecedor = require('../../../email/template/fornecedor/instructionsNewFornecedor');
+const conclusionFormFornecedor = require('../../../email/template/fornecedor/conclusionFormFornecedor');
 const sendMailConfig = require('../../../config/email');
 const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
 
@@ -517,7 +517,6 @@ class FornecedorController {
                                 observacao
                             ])
                             if (resultInsert.length === 0) { return res.json('Error'); }
-                            // console.log("🚀 ~~~~~~~~~~~ INSERT:", id, bloco.parFornecedorBlocoID, item.itemID, resposta, respostaID, observacao)
                         } else if (resposta && resultVerificaResposta.length > 0) {
                             const sqlUpdate = `
                             UPDATE fornecedor_resposta 
@@ -533,12 +532,10 @@ class FornecedorController {
                                 item.itemID
                             ])
                             if (resultUpdate.length === 0) { return res.json('Error'); }
-                            // console.log("🚀 ~~~~~~~~~~~ UPDATE:", resposta, respostaID, observacao, id, bloco.parFornecedorBlocoID, item.itemID)
                         }
                         else if (!resposta) {
                             const sqlDelete = `DELETE FROM fornecedor_resposta WHERE fornecedorID = ? AND parFornecedorBlocoID = ? AND itemID = ? `
                             const [resultDelete] = await db.promise().query(sqlDelete, [id, bloco.parFornecedorBlocoID, item.itemID])
-                            // console.log("🚀 ~~~~~~~~~~~ DELETE:", id, bloco.parFornecedorBlocoID, item.itemID)
                         }
 
                     }
@@ -792,8 +789,6 @@ class FornecedorController {
         // Obtem dados da fabrica
         const sqlGetDataFactory = `SELECT * FROM unidade WHERE unidadeID = "?" `
         const [resultSqlGetDataFactory] = await db.promise().query(sqlGetDataFactory, [data.unidadeID])
-        console.log("🚀 ~ resultSqlGetDataFactory:", resultSqlGetDataFactory)
-
 
         // Verifica se o fornecedor já possui login
         const sql = `SELECT * FROM usuario WHERE cnpj = "${data.cnpj}" `
@@ -828,8 +823,10 @@ class FornecedorController {
             cnpjFabricaSolicitante: resultSqlGetDataFactory[0].cnpj,
             enderecoSimplificadoFabricaSolicitante: `${resultSqlGetDataFactory[0].cidade}/${resultSqlGetDataFactory[0].uf}`,
             enderecoCompletoFabricaSolicitante: enderecoCompleto,
-            stage: 's1'
+            stage: 's1',
+            noBaseboard: false
         }
+        // noBaseboard => Se falso mostra o rodapé com os dados da fabrica solicitante senão um padrão
 
         let assunto = 'Avaliação de fornecedor '
         const html = await instructionsNewFornecedor(values);

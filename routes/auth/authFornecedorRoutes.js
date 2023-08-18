@@ -18,5 +18,6 @@ const routeRegister = '/registro-fornecedor';
 authFornecedorRoutes.post(`${routeRegister}/getData`, authControllerFornecedor.getData);
 // authFornecedorRoutes.post(`${routeRegister}/verifyCnpj`, authControllerFornecedor.verifyCnpj);
 authFornecedorRoutes.post(`${routeRegister}/registerNew`, authControllerFornecedor.registerNew);
+authFornecedorRoutes.post(`${routeRegister}/sendMailNewFornecedor`, authControllerFornecedor.sendMailNewFornecedor);
 
 module.exports = authFornecedorRoutes;
