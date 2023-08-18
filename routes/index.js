@@ -26,7 +26,6 @@ const itemRouter = require("./cadastros/item/itemRoutes");
 const sistemaQualidadeRouter = require("./cadastros/sistemaQualidade/sistemaQualidadeRoutes");
 const tipoVeiculoRouter = require("./cadastros/tipoVeiculo/tipoVeiculoRoutes");
 const transportadorRouter = require("./cadastros/transportador/transportadorRoutes");
-const ProdutosRouter = require("./cadastros/produtos/produtosRoutes");
 const ApresentacaoRouter = require("./cadastros/apresentacao/apresentacaoRoutes");
 const ProfissaoRouter = require("./cadastros/profissao/profissaoRoutes");
 const CargoRouter = require("./cadastros/cargo/cargoRoutes");
@@ -37,7 +36,6 @@ routes.use(urlBase + '/cadastros', itemRouter);
 routes.use(urlBase + '/cadastros', sistemaQualidadeRouter);
 routes.use(urlBase + '/cadastros', tipoVeiculoRouter);
 routes.use(urlBase + '/cadastros', transportadorRouter);
-routes.use(urlBase + '/cadastros', ProdutosRouter);
 routes.use(urlBase + '/cadastros', ApresentacaoRouter);
 routes.use(urlBase + '/cadastros', ProfissaoRouter);
 routes.use(urlBase + '/cadastros', CargoRouter);
@@ -49,11 +47,13 @@ const formularioFornecedor = require("./configuracoes/formularios/fornecedor/for
 const formularioRecebimentoMp = require("./configuracoes/formularios/recebimentoMp/recebimentoMpRoutes");
 const unidade = require("./configuracoes/unidade/unidadeRoutes");
 const UsuarioRouter = require("./configuracoes/usuario/usuarioRoutes");
+const ProdutosRouter = require("./configuracoes/produtos/produtosRoutes");
 
 routes.use(urlBase + '/configuracoes', formularios);
 routes.use(urlBase + '/configuracoes', formularioFornecedor);
 routes.use(urlBase + '/configuracoes', formularioRecebimentoMp);
 routes.use(urlBase + '/configuracoes', unidade);
 routes.use(urlBase + '/configuracoes', UsuarioRouter);
+routes.use(urlBase + '/configuracoes', ProdutosRouter);
 
 module.exports = routes;
