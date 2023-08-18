@@ -1,4 +1,4 @@
-const rodape = () => {
+const rodapeNoFactory = () => {
     let html = `
     <div class="box rodape">
         <p class="textSmall">Este é um e-mail automático, não responda.</p>
@@ -10,4 +10,4 @@ const rodape = () => {
     return html;
 };
 
-module.exports = rodape;
+module.exports = rodapeNoFactory;

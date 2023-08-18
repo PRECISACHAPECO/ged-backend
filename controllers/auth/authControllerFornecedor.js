@@ -1,5 +1,9 @@
 const db = require('../../config/db');
+const fs = require('fs');
+const path = require('path');
 const { getMenu, criptoMd5 } = require('../../config/defaultConfig');
+const sendMailConfig = require('../../config/email');
+const registerNewFornecedor = require('../../email/template/fornecedor/registerNewFornecedor')
 
 // ** JWT import
 const jwt = require('jsonwebtoken');
@@ -114,7 +118,6 @@ class AuthControllerFornecedor {
         if (resultUnitySave && resultUnitySave.existsFornecedor > 0) {
             return res.status(202).json({ message: 'Esse CNPJ já cadastrado como um fornecedor, faça login pou recupere sua senha' });
         }
-        console.log("passou aki")
 
         // //? Salvar o usuário no banco de dados
         const sqlInsertUsuario = `
@@ -137,14 +140,27 @@ class AuthControllerFornecedor {
                 INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID, status) VALUES (?, ?, ?, ?)`;
         const resultInsertUsuarioUnidade = await db.promise().query(sqlInsertUsuarioUnidade, [usuarioID, unidadeID, 2, 1]);
 
-        console.log("tudo certo")
         res.status(200).json({ message: 'Fornecedor cadastrado com sucesso!' });
+    }
+
+    //? Envia email quando fornecedor se cadastrar com sucesso
+    async sendMailNewFornecedor(req, res) {
+        const { data } = req.body;
+        const values = {
+            data,
+            noBaseboard: true,
+            stage: 's2'
+        }
+        // noBaseboard => Se falso mostra o rodapé com os dados da fabrica solicitante senão um padrão
+
+        let assunto = 'Avaliação de fornecedor '
+        const html = await registerNewFornecedor(values);
+        res.status(200).json(sendMailConfig(data.destinatario, assunto, html))
     }
 
     //? Quando o fornecedor acessa o link de acesso enviado por email / Muda o stado de 10 para 20 na tabela de fornecedor e salva na tabela de movimentaçãoFornecedor
     async setAcessLink(req, res) {
         const { data } = req.body;
-        console.log("🚀 ~ data:", data)
 
         //? Verificar se o link é válido
         const sqlGet = `
@@ -158,7 +174,6 @@ class AuthControllerFornecedor {
         WHERE MD5(REGEXP_REPLACE(cnpj, '[^0-9]', '')) = "${data.cnpj}" AND MD5(unidadeID) = "${data.unidadeID}" `;
 
         const [resultCnpj] = await db.promise().query(sqlGetCnpj);
-        console.log("🚀 ~ resultCnpj:", resultCnpj)
 
         const [result] = await db.promise().query(sqlGet);
 

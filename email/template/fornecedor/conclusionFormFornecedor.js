@@ -1,6 +1,6 @@
-const cabecalho = require('../../defaults/cabecalho');
-const rodape = require('../../defaults/rodape');
-const css = require('../../defaults/css');
+const cabecalho = require('../defaults/cabecalho');
+const rodape = require('../defaults/rodape');
+const css = require('../defaults/css');
 require('dotenv/config');
 const urlBase = process.env.BASE_URL;
 
