@@ -1,15 +1,17 @@
 const { Router } = require('express');
+
 const fornecedorRoutes = Router();
+const { configureMulterMiddleware } = require('../../../config/uploads/multerConfigFile');
 
 const FornecedorController = require('../../../controllers/formularios/fornecedor/fornecedorController');
 const fornecedorController = new FornecedorController();
 
 const route = '/formularios/fornecedor';
-const { upload } = require('../../../config/uploads/multerConfigPDF');
+// const { upload } = require('../../../config/uploads/multerConfigPDF');
 
 // Padrões
 fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
-fornecedorRoutes.post(`${route}/saveAnexo/:id`, upload.array('pdfFiles'), fornecedorController.saveAnexo);
+// fornecedorRoutes.post(`${route}/saveAnexo/:id`, upload.array('pdfFiles'), fornecedorController.saveAnexo);
 
 fornecedorRoutes.post(`${route}/getData/:id`, fornecedorController.getData);
 fornecedorRoutes.put(`${route}/updateData/:id`, fornecedorController.updateData);
@@ -31,5 +33,12 @@ fornecedorRoutes.post(`${route}/getMovementHistory/:id`, fornecedorController.ge
 fornecedorRoutes.post(`${route}/verifyFormPending/:id`, fornecedorController.verifyFormPending);
 fornecedorRoutes.post(`${route}/changeFormStatus/:id`, fornecedorController.changeFormStatus);
 fornecedorRoutes.post(`${route}/getGruposAnexo`, fornecedorController.getGruposAnexo);
+
+//? MULTER: Upload de arquivo
+fornecedorRoutes.post(`${route}/saveAnexo/:id/:unidadeID`, (req, res, next) => {
+    const pathDestination = 'uploads/anexos/';
+    console.log("🚀 ~ req.params.unidadeID:", req.params.unidadeID)
+    configureMulterMiddleware(req, res, next, req.params.unidadeID, pathDestination);
+}, fornecedorController.saveAnexo);
 
 module.exports = fornecedorRoutes;
