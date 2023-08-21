@@ -16,9 +16,7 @@ usuarioRoutes.delete(`${route}/photo-profile/:id`, usuarioController.handleDelet
 usuarioRoutes.delete(`${route}/:id`, usuarioController.deleteData);
 usuarioRoutes.post(`${route}/new/insertData`, usuarioController.insertData);
 
-
 //* Upload de imagem com multer e mensagem de validação de arquivo maior que 5mb e extensão não permitida
-
 const getExtensions = async () => {
     const sql = `
     SELECT * 
@@ -47,41 +45,44 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({
-    storage,
-    limits: {
-        fileSize: async () => {
-            const size = await getFileMaxSize()
-            console.log("🚀 ~ size:", size)
-            return size * 1024 * 1024
+// Middleware para configurar o multer com o tamanho máximo do arquivo
+const configureMulterMiddleware = async (req, res, next) => {
+    const size = await getFileMaxSize();
+    const upload = multer({
+        storage,
+        limits: {
+            fileSize: size * 1024 * 1024
+        },
+        fileFilter: async (req, file, cb) => {
+            const allowedUnityExtensions = await getExtensions()
+            const isValidExtension = allowedUnityExtensions.some(ext => file.mimetype.startsWith(ext.mimetype));
+            if (isValidExtension) {
+                cb(null, true);
+            } else {
+                const error = new Error('Extensão não permitida (apenas: ' + allowedUnityExtensions.map(ext => ext.nome).join(', ') + ')');
+                error.code = 'EXTENSION';
+                return cb(error);
+            }
         }
-    },
+    });
+    req.upload = upload; // Anexa o middleware multer ao objeto de solicitação para uso posterior
+    next();
+};
 
-    fileFilter: async (req, file, cb) => {
-        const allowedUnityExtensions = await getExtensions()
-        const isValidExtension = allowedUnityExtensions.some(ext => file.mimetype.startsWith(ext.mimetype));
-        console.log("🚀 ~ isValidExtension:", file.mimetype, isValidExtension)
-        if (isValidExtension) {
-            cb(null, true);
-        } else {
-            const error = new Error('Extensão não permitida (apenas: ' + allowedUnityExtensions.map(ext => ext.nome).join(', ') + ')');
-            error.code = 'EXTENSION';
-            return cb(error);
+// Use o middleware configureMulterMiddleware antes de manipular o upload de arquivo
+usuarioRoutes.post(`${route}/photo-profile/:id`, configureMulterMiddleware, (req, res, next) => {
+    req.upload.single('file')(req, res, function (err) {
+        if (err) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                const { fileSize } = req.upload.limits
+                const size = fileSize / 1024 / 1024
+                return res.status(400).send({ message: `O arquivo enviado é muito grande. Tamanho máximo permitido: ${size}MB` });
+            } else if (err.code === 'EXTENSION') {
+                return res.status(400).send({ message: err.message });
+            }
         }
-    }
-});
-
-//? middleware para upload de imagem e mensagem de validação de arquivo maior que 5mb e extensão não permitida
-usuarioRoutes.post(`${route}/photo-profile/:id`, upload.single('file'), usuarioController.updatePhotoProfile, (error, req, res, next) => {
-    if (error) {
-        if (error.code === 'LIMIT_FILE_SIZE') {
-            const { fileSize } = upload.limits
-            const size = fileSize / 1024 / 1024
-            return res.status(400).send({ message: `O arquivo enviado é muito grande. Tamanho máximo permitido: ${size}MB` });
-        } else if (error.code === 'EXTENSION') {
-            return res.status(400).send({ message: error.message });
-        }
-    }
-});
+        next();
+    });
+}, usuarioController.updatePhotoProfile);
 
 module.exports = usuarioRoutes;
