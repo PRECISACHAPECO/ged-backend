@@ -21,15 +21,6 @@ const getFileMaxSize = async (unidadeID) => {
     return result[0].anexosTamanhoMaximo ?? 5
 }
 
-// const storage = multer.diskStorage({
-//     destination: function (req, file, cb) {
-//         cb(null, 'uploads/profile');
-//     },
-//     filename: function (req, file, cb) {
-//         cb(null, `${Date.now()}-${file.originalname}`);
-//     }
-// });
-
 // Middleware para configurar o multer com o tamanho máximo do arquivo
 const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestination) => {
     const size = await getFileMaxSize(unidadeID);
