@@ -16,7 +16,9 @@ usuarioRoutes.delete(`${route}/photo-profile/:id`, usuarioController.handleDelet
 usuarioRoutes.delete(`${route}/:id`, usuarioController.deleteData);
 usuarioRoutes.post(`${route}/new/insertData`, usuarioController.insertData);
 
-//! Arquivos com multer aqui
+
+//* Upload de imagem com multer e mensagem de validação de arquivo maior que 5mb e extensão não permitida
+
 const getExtensions = async () => {
     const sql = `
     SELECT * 
@@ -27,55 +29,59 @@ const getExtensions = async () => {
     return result
 }
 
-// Multer: tratar diretorio pra salvar arquivos, extensões permitidas e tamanho máximo do arquivo, após isso, se estiver tudo ok, enviar pra usuarioController.updatePhotoProfile
+const getFileMaxSize = async () => {
+    const sql = `
+    SELECT anexosTamanhoMaximo
+    FROM unidade 
+    WHERE unidadeID = ?`
+    const [result] = await db.promise().query(sql, [1])
+    return result[0].anexosTamanhoMaximo ?? 5
+}
+
 const storage = multer.diskStorage({
-    destination: async (req, file, cb) => {
-        const allowedUnityExtensions = await getExtensions()
-        const isValidExtension = allowedUnityExtensions.some(ext => file.mimetype.startsWith(ext.mimetype));
-        if (isValidExtension) {
-            cb(null, 'uploads/profile')
-        } else {
-            cb(new Error('Extensão não permitida (Apenas: ' + allowedUnityExtensions.map(ext => ext.nome).join(', ') + ')'))
-        }
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/profile');
     },
-    filename: (req, file, cb) => {
-        // const extensao = path.extname(file.originalname).toLowerCase()
-        const nomeArquivo = `${Date.now()}-${file.originalname}`
-        cb(null, nomeArquivo)
+    filename: function (req, file, cb) {
+        cb(null, `${Date.now()}-${file.originalname}`);
     }
-})
+});
 
 const upload = multer({
     storage,
     limits: {
-        fileSize: 1024 * 1024 * 5 // 5MB
-    }
-})
-
-//? middleware pra tratar erros do multer, como tamanho máximo do arquivo e extensão não permitida
-const uploadMiddleware = (req, res, next) => {
-    upload.single('file')(req, res, (err) => {
-        // console.log("🚀 ~ err:", err)
-        // if (err instanceof multer.MulterError) {
-        //     if (err.code === 'LIMIT_FILE_SIZE') {
-        //         console.log('erro tamanho')
-        //         return res.status(400).json({ error: 'Tamanho máximo do arquivo excedido.' });
-        //     }
-        //     if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-        //         console.log('erro extensaooo')
-        //         return res.status(400).json({ error: 'Tipo de arquivo não permitido.' });
-        //     }
-        // }
-        if (err) {
-            console.log('erro nao sei: ', err.message)
-            return res.status(401).json({ message: err.message });
+        fileSize: async () => {
+            const size = await getFileMaxSize()
+            console.log("🚀 ~ size:", size)
+            return size * 1024 * 1024
         }
-        return next();
-    });
-}
+    },
 
-usuarioRoutes.post(`${route}/photo-profile/:id`, uploadMiddleware, usuarioController.updatePhotoProfile)
-// usuarioRoutes.post(`${route}/photo-profile/:id`, upload.single('file'), usuarioController.updatePhotoProfile)
-//! Arquivos com multer aqui
+    fileFilter: async (req, file, cb) => {
+        const allowedUnityExtensions = await getExtensions()
+        const isValidExtension = allowedUnityExtensions.some(ext => file.mimetype.startsWith(ext.mimetype));
+        console.log("🚀 ~ isValidExtension:", file.mimetype, isValidExtension)
+        if (isValidExtension) {
+            cb(null, true);
+        } else {
+            const error = new Error('Extensão não permitida (apenas: ' + allowedUnityExtensions.map(ext => ext.nome).join(', ') + ')');
+            error.code = 'EXTENSION';
+            return cb(error);
+        }
+    }
+});
+
+//? middleware para upload de imagem e mensagem de validação de arquivo maior que 5mb e extensão não permitida
+usuarioRoutes.post(`${route}/photo-profile/:id`, upload.single('file'), usuarioController.updatePhotoProfile, (error, req, res, next) => {
+    if (error) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+            const { fileSize } = upload.limits
+            const size = fileSize / 1024 / 1024
+            return res.status(400).send({ message: `O arquivo enviado é muito grande. Tamanho máximo permitido: ${size}MB` });
+        } else if (error.code === 'EXTENSION') {
+            return res.status(400).send({ message: error.message });
+        }
+    }
+});
 
 module.exports = usuarioRoutes;

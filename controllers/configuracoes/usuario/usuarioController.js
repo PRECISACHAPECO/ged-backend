@@ -194,7 +194,6 @@ class UsuarioController {
             const { id } = req.params;
             const sqlSelectPreviousPhoto = `SELECT imagem FROM usuario WHERE usuarioID = ?`;
             const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuarioID = ?`;
-            console.log('CONTROLLERRRRRR: ', req.file)
 
             // Verificar se um arquivo foi enviado
             if (!photoProfile) {
