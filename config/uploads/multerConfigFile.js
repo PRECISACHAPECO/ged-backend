@@ -2,44 +2,54 @@ const db = require('../db');
 const multer = require('multer');
 const path = require('path');
 
-const getExtensions = async () => {
+const getExtensions = async (unidadeID) => {
     const sql = `
     SELECT * 
     FROM unidade_extensao AS ue 
         JOIN extensao AS e ON (ue.extensaoID = e.extensaoID)
     WHERE ue.unidadeID = ?`
-    const [result] = await db.promise().query(sql, [1])
+    const [result] = await db.promise().query(sql, [unidadeID])
     return result
 }
 
-const getFileMaxSize = async () => {
+const getFileMaxSize = async (unidadeID) => {
     const sql = `
     SELECT anexosTamanhoMaximo
     FROM unidade 
     WHERE unidadeID = ?`
-    const [result] = await db.promise().query(sql, [1])
+    const [result] = await db.promise().query(sql, [unidadeID])
     return result[0].anexosTamanhoMaximo ?? 5
 }
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/profile');
-    },
-    filename: function (req, file, cb) {
-        cb(null, `${Date.now()}-${file.originalname}`);
-    }
-});
+// const storage = multer.diskStorage({
+//     destination: function (req, file, cb) {
+//         cb(null, 'uploads/profile');
+//     },
+//     filename: function (req, file, cb) {
+//         cb(null, `${Date.now()}-${file.originalname}`);
+//     }
+// });
 
 // Middleware para configurar o multer com o tamanho máximo do arquivo
-const configureMulterMiddleware = async (req, res, next) => {
-    const size = await getFileMaxSize();
+const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestination) => {
+    const size = await getFileMaxSize(unidadeID);
+
+    const customStorage = multer.diskStorage({
+        destination: function (req, file, cb) {
+            cb(null, pathDestination);
+        },
+        filename: function (req, file, cb) {
+            cb(null, `${Date.now()}-${file.originalname}`);
+        }
+    });
+
     const upload = multer({
-        storage,
+        storage: customStorage,
         limits: {
             fileSize: size * 1024 * 1024
         },
         fileFilter: async (req, file, cb) => {
-            const allowedUnityExtensions = await getExtensions()
+            const allowedUnityExtensions = await getExtensions(unidadeID)
             const isValidExtension = allowedUnityExtensions.some(ext => file.mimetype.startsWith(ext.mimetype));
             if (isValidExtension) {
                 cb(null, true);

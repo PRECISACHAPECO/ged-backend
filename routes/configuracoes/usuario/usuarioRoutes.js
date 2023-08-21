@@ -18,8 +18,13 @@ usuarioRoutes.delete(`${route}/photo-profile/:id`, usuarioController.handleDelet
 usuarioRoutes.delete(`${route}/:id`, usuarioController.deleteData);
 usuarioRoutes.post(`${route}/new/insertData`, usuarioController.insertData);
 
+const pathDestination = 'uploads/profile';
+const unidadeID = 1
 
-usuarioRoutes.post(`${route}/photo-profile/:id`, configureMulterMiddleware, usuarioController.updatePhotoProfile);
+usuarioRoutes.post(`${route}/photo-profile/:id`, (req, res, next) => {
+    configureMulterMiddleware(req, res, next, unidadeID, pathDestination);
+}, usuarioController.updatePhotoProfile);
+// usuarioRoutes.post(`${route}/photo-profile/:id`, configureMulterMiddleware, usuarioController.updatePhotoProfile);
 
 
 module.exports = usuarioRoutes;
