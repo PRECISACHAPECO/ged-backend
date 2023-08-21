@@ -183,8 +183,6 @@ class UsuarioController {
         } catch (error) {
             console.log("🚀 ~ error:", error)
         }
-
-
     }
 
     //! Atualiza a foto do perfil do usuário

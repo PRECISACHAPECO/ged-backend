@@ -1,6 +1,3 @@
-const db = require('../../../config/db');
-const multer = require('multer');
-const path = require('path');
 const { Router } = require('express');
 const UsuarioController = require('../../../controllers/configuracoes/usuario/usuarioController');
 
@@ -18,6 +15,7 @@ usuarioRoutes.delete(`${route}/photo-profile/:id`, usuarioController.handleDelet
 usuarioRoutes.delete(`${route}/:id`, usuarioController.deleteData);
 usuarioRoutes.post(`${route}/new/insertData`, usuarioController.insertData);
 
+//? MULTER: Upload de arquivo
 usuarioRoutes.post(`${route}/photo-profile/:id/:unidadeID`, (req, res, next) => {
     const pathDestination = 'uploads/profile';
     configureMulterMiddleware(req, res, next, req.params.unidadeID, pathDestination);
