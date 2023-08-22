@@ -16,6 +16,7 @@ fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
 fornecedorRoutes.post(`${route}/getData/:id`, fornecedorController.getData);
 fornecedorRoutes.put(`${route}/updateData/:id`, fornecedorController.updateData);
 fornecedorRoutes.delete(`${route}/:id`, fornecedorController.deleteData);
+fornecedorRoutes.delete(`${route}/deleteAnexo/:grupoanexoitemID/:id/:unidadeID/:usuarioID`, fornecedorController.deleteAnexo);
 fornecedorRoutes.post(`${route}/novo`, fornecedorController.insertData);
 
 // Específicos

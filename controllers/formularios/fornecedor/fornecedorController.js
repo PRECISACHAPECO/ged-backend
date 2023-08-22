@@ -66,10 +66,46 @@ class FornecedorController {
                 ])
             }
 
-            res.status(200).json({ message: 'Anexos salvos com sucesso!' })
+            const result = {
+                path: `${process.env.BASE_URL_UPLOADS}anexos/${file.filename}`,
+                nome: titulo,
+                tipo: file.mimetype,
+                size: file.size,
+                time: new Date(),
+            }
+
+            res.status(200).json(result);
+
         } catch (error) {
             console.log(error)
         }
+    }
+
+    async deleteAnexo(req, res) {
+        const { grupoanexoitemID, id, unidadeID, usuarioID } = req.params;
+
+        //? Obtém o caminho do anexo atual
+        const sqlCurrentFile = `SELECT arquivo FROM anexo WHERE grupoAnexoItemID = ? AND unidadeID = ? AND fornecedorID = ?`;
+        const [tempResultCurrentFile] = await db.promise().query(sqlCurrentFile, [grupoanexoitemID, unidadeID, id])
+        const resultCurrentFile = tempResultCurrentFile[0]?.arquivo;
+
+        //? Remover arquivo do diretório
+        if (resultCurrentFile) {
+            const previousFile = path.resolve('uploads/anexos', resultCurrentFile);
+            fs.unlink(previousFile, (error) => {
+                if (error) {
+                    return console.error('Erro ao remover o anexo:', error);
+                } else {
+                    return console.log('Anexo removido com sucesso!');
+                }
+            });
+        }
+
+        //? Remove anexo do BD
+        const sqlDelete = `DELETE FROM anexo WHERE grupoAnexoItemID = ? AND unidadeID = ? AND fornecedorID = ?`;
+        const [resultDelete] = await db.promise().query(sqlDelete, [grupoanexoitemID, unidadeID, id])
+
+        res.status(200).json(resultDelete);
     }
 
     async getList(req, res) {
@@ -121,7 +157,6 @@ class FornecedorController {
     async getData(req, res) {
         try {
             const { id } = req.params; // id do formulário
-            const { unidadeLogadaID } = req.body;
 
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar formulário!' }) }
 
