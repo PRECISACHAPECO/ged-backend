@@ -60,17 +60,16 @@ const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestinat
 const validateFileMiddleware = (req, res, next) => {
     req.upload.single('file')(req, res, function (err) {
         if (err) {
-            if (err.code === 'LIMIT_FILE_SIZE') {
+            if (err.code === 'EXTENSION') {
+                return res.status(400).send({ message: err.message });
+            } else if (err.code === 'LIMIT_FILE_SIZE') {
                 const { fileSize } = req.upload.limits
                 const size = fileSize / 1024 / 1024
                 return res.status(400).send({ message: `O arquivo enviado é muito grande. Tamanho máximo permitido: ${size}MB` });
-            } else if (err.code === 'EXTENSION') {
-                return res.status(400).send({ message: err.message });
             }
         }
         next();
     });
 }
-
 
 module.exports = { configureMulterMiddleware }
