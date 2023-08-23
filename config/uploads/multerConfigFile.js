@@ -1,6 +1,8 @@
 const db = require('../db');
 const multer = require('multer');
 const path = require('path');
+const sharp = require('sharp');
+
 
 const getExtensions = async (unidadeID) => {
     const sql = `
@@ -21,6 +23,12 @@ const getFileMaxSize = async (unidadeID) => {
     return result[0].anexosTamanhoMaximo ?? 5
 }
 
+const timeNow = Date.now();
+const defineFileName = (originalName) => {
+    return `${timeNow}-${originalName}`
+}
+
+
 const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestination) => {
     const maxSize = await getFileMaxSize(unidadeID);
 
@@ -29,7 +37,7 @@ const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestinat
             cb(null, pathDestination);
         },
         filename: function (req, file, cb) {
-            cb(null, `${Date.now()}-${file.originalname}`);
+            cb(null, defineFileName(`original-${file.originalname}`));
         }
     });
 
@@ -58,6 +66,21 @@ const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestinat
             const isValidExtension = allowedUnityExtensions.some(ext => req.file.mimetype.startsWith(ext.mimetype));
             if (!isValidExtension) {
                 return res.status(400).send({ message: 'Extensão não permitida (apenas: ' + allowedUnityExtensions.map(ext => ext.nome).join(', ') + ')' });
+            }
+
+            // Se for imagem, redimensione
+            if (req.file.mimetype.startsWith('image')) {
+
+                // Use o Sharp para redimensionar a imagem
+
+                sharp(req.file.path)
+                    .resize({ width: 300, height: 200 }) // Defina as dimensões desejadas
+                    .toFile(path.join(pathDestination, defineFileName(req.file.originalname)), (err, info) => {
+                        if (err) {
+                            return res.status(400).send({ message: 'Erro ao redimensionar a imagem!' });
+                        }
+                        // res.send({ message: 'Imagem redimensionada com sucesso!' });
+                    });
             }
         }
 
