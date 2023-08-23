@@ -24,10 +24,10 @@ const getFileMaxSize = async (unidadeID) => {
 }
 
 const timeNow = Date.now();
-const defineFileName = (originalName) => {
-    return `${timeNow}-${originalName}`
+const defineFileName = (tempFolder, originalName) => {
+    const fileName = tempFolder ? `temp/${timeNow}-${originalName}` : `${timeNow}-${originalName}`;
+    return fileName;
 }
-
 
 const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestination) => {
     const maxSize = await getFileMaxSize(unidadeID);
@@ -37,7 +37,7 @@ const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestinat
             cb(null, pathDestination);
         },
         filename: function (req, file, cb) {
-            cb(null, defineFileName(`original-${file.originalname}`));
+            cb(null, defineFileName(true, file.originalname));
         }
     });
 
@@ -70,16 +70,13 @@ const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestinat
 
             // Se for imagem, redimensione
             if (req.file.mimetype.startsWith('image')) {
-
                 // Use o Sharp para redimensionar a imagem
-
                 sharp(req.file.path)
                     .resize({ width: 300, height: 200 }) // Defina as dimensões desejadas
-                    .toFile(path.join(pathDestination, defineFileName(req.file.originalname)), (err, info) => {
+                    .toFile(path.join(pathDestination, defineFileName(false, req.file.originalname)), (err, info) => {
                         if (err) {
                             return res.status(400).send({ message: 'Erro ao redimensionar a imagem!' });
                         }
-                        // res.send({ message: 'Imagem redimensionada com sucesso!' });
                     });
             }
         }
