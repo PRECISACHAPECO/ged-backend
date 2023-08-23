@@ -50,17 +50,29 @@ const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestinat
         storage: customStorage,
         limits: {
             fileSize: maxSize * 1024 * 1024
+        },
+        fileFilter: async function (req, file, cb) {
+            const allowedUnityExtensions = await getExtensions(unidadeID);
+            const isValidExtension = allowedUnityExtensions.some(ext => file.mimetype.startsWith(ext.mimetype));
+            if (!isValidExtension) {
+                return cb(new multer.MulterError('EXTENSION', 'Extensão não permitida (apenas: ' + allowedUnityExtensions.map(ext => ext.nome).join(', ') + ')'));
+            }
+            cb(null, true);
         }
     });
 
     // Use um middleware de tratamento de erros do Multer
     upload.single('file')(req, res, async function (err) {
-
         if (err instanceof multer.MulterError) {
+            console.log("🚀 ~ err.code:", err.code, err)
             //? Valida tamanho do arquivo
             if (err.code === 'LIMIT_FILE_SIZE') {
                 const maxSize = await getFileMaxSize(unidadeID);
                 return res.status(400).send({ message: `O arquivo enviado é muito grande. Tamanho máximo permitido: ${maxSize}MB` });
+            }
+            //? Valida extensões permitidas
+            else if (err.code === 'EXTENSION') {
+                return res.status(400).send({ message: err.field });
             }
         } else {
             const allowedUnityExtensions = await getExtensions(unidadeID);
