@@ -14,13 +14,14 @@ class FornecedorController {
         try {
             const { id } = req.params;
             let file = req.file;
-            console.log("🚀 ~ file:", file)
             const { titulo, grupoanexoitemID, usuarioID, unidadeID, arrAnexoRemoved } = req.body;
 
             //? Verificar se há arquivo enviado
             if (!file) {
                 return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
             }
+
+            console.log("🚀 ~ saveAnexo file:", file)
 
             //? Anexo atual
             const sqlCurrentFile = `SELECT arquivo FROM anexo WHERE grupoAnexoItemID = ? AND unidadeID = ? AND fornecedorID = ?`;

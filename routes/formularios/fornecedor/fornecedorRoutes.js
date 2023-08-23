@@ -38,7 +38,6 @@ fornecedorRoutes.post(`${route}/getGruposAnexo`, fornecedorController.getGruposA
 //? MULTER: Upload de arquivo
 fornecedorRoutes.post(`${route}/saveAnexo/:id/:unidadeID`, (req, res, next) => {
     const pathDestination = 'uploads/anexos/';
-    console.log("🚀 ~ req.params.unidadeID:", req.params.unidadeID)
     configureMulterMiddleware(req, res, next, req.params.unidadeID, pathDestination);
 }, fornecedorController.saveAnexo);
 
