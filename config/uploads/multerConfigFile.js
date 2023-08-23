@@ -37,7 +37,12 @@ const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestinat
             cb(null, pathDestination);
         },
         filename: function (req, file, cb) {
-            cb(null, defineFileName(true, file.originalname));
+            //* Se arquivo for imagem, insere imagem original na pasta temp pra criar uma cópia redimensionada
+            if (file.mimetype.startsWith('image')) {
+                cb(null, defineFileName(true, file.originalname)); //? params: tempFolder, originalName
+            } else {
+                cb(null, defineFileName(false, file.originalname)); //? params: tempFolder, originalName
+            }
         }
     });
 
@@ -50,6 +55,7 @@ const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestinat
 
     // Use um middleware de tratamento de erros do Multer
     upload.single('file')(req, res, async function (err) {
+
         if (err instanceof multer.MulterError) {
             //? Valida tamanho do arquivo
             if (err.code === 'LIMIT_FILE_SIZE') {
@@ -70,20 +76,33 @@ const configureMulterMiddleware = async (req, res, next, unidadeID, pathDestinat
 
             // Se for imagem, redimensione
             if (req.file.mimetype.startsWith('image')) {
+                const fileName = defineFileName(false, req.file.originalname); //? params: tempFolder, originalName
                 // Use o Sharp para redimensionar a imagem
                 sharp(req.file.path)
                     .resize({ width: 300, height: 200 }) // Defina as dimensões desejadas
-                    .toFile(path.join(pathDestination, defineFileName(false, req.file.originalname)), (err, info) => {
+                    .toFile(path.join(pathDestination, fileName), (err, info) => {
                         if (err) {
                             return res.status(400).send({ message: 'Erro ao redimensionar a imagem!' });
                         }
+
+                        // Exclui todos os arquivos da pasta uploads/anexos/temp 
+                        const fs = require('fs');
+                        fs.readdirSync(path.join(pathDestination, 'temp')).forEach(file => {
+                            fs.unlinkSync(path.join(pathDestination, 'temp', file));
+                        });
+
+                        //? Atualiza informações do arquivo para ser enviado pro middleware
+                        req.file.filename = fileName;
+                        req.file.path = pathDestination + fileName;
+                        req.file.size = info.size;
+                        next();
                     });
+            } else {
+                next();
             }
         }
-
-        //* Se não houver erro, avance para o próximo middleware
-        next();
     });
+
 };
 
 module.exports = { configureMulterMiddleware }
