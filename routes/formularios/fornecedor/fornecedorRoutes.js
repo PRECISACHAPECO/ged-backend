@@ -36,9 +36,9 @@ fornecedorRoutes.post(`${route}/changeFormStatus/:id`, fornecedorController.chan
 fornecedorRoutes.post(`${route}/getGruposAnexo`, fornecedorController.getGruposAnexo);
 
 //? MULTER: Upload de arquivo
-fornecedorRoutes.post(`${route}/saveAnexo/:id/:unidadeID`, (req, res, next) => {
+fornecedorRoutes.post(`${route}/saveAnexo/:id/:unidadeID/:isImage`, (req, res, next) => {
     const pathDestination = 'uploads/anexos/';
-    configureMulterMiddleware(req, res, next, req.params.unidadeID, pathDestination);
+    configureMulterMiddleware(req, res, next, req.params.unidadeID, pathDestination, req.params.isImage)
 }, fornecedorController.saveAnexo);
 
 module.exports = fornecedorRoutes;
