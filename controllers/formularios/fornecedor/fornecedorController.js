@@ -21,8 +21,6 @@ class FornecedorController {
                 return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
             }
 
-            console.log("🚀 ~ saveAnexo file:", file)
-
             //? Anexo atual
             const sqlCurrentFile = `SELECT arquivo FROM anexo WHERE grupoAnexoItemID = ? AND unidadeID = ? AND fornecedorID = ?`;
             const [tempResultCurrentFile] = await db.promise().query(sqlCurrentFile, [grupoanexoitemID, unidadeID, id])

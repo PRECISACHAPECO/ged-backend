@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const UsuarioController = require('../../../controllers/configuracoes/usuario/usuarioController');
 
-const { configureMulterMiddleware } = require('../../../config/uploads/multerConfigFile');
+const { configureMulterMiddleware } = require('../../../config/uploads');
 
 const usuarioRoutes = Router();
 const usuarioController = new UsuarioController();
@@ -17,8 +17,8 @@ usuarioRoutes.post(`${route}/new/insertData`, usuarioController.insertData);
 
 //? MULTER: Upload de arquivo
 usuarioRoutes.post(`${route}/photo-profile/:id/:unidadeID`, (req, res, next) => {
-    const pathDestination = 'uploads/profile';
-    configureMulterMiddleware(req, res, next, req.params.unidadeID, pathDestination);
+    const isImage = 'true'
+    configureMulterMiddleware(req, res, next, req.params.unidadeID, 'uploads/profile', isImage)
 }, usuarioController.updatePhotoProfile);
 
 module.exports = usuarioRoutes;
