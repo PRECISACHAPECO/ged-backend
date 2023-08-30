@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const unidadeRoutes = Router();
-const { configureMulterMiddleware } = require('../../../config/uploads/multerConfigFile');
+const { configureMulterMiddleware } = require('../../../config/uploads');
 
 const UnidadeController = require('../../../controllers/configuracoes/unidade/unidadeController');
 const unidadeController = new UnidadeController();
@@ -16,8 +16,8 @@ unidadeRoutes.post(`${route}/new/insertData`, unidadeController.insertData);
 
 //? MULTER: Upload de arquivo
 unidadeRoutes.post(`${route}/updateData/report/:id`, (req, res, next) => {
-    const pathDestination = 'uploads/report';
-    configureMulterMiddleware(req, res, next, req.params.id, pathDestination);
+    const isImage = 'true'
+    configureMulterMiddleware(req, res, next, req.params.id, 'uploads/report', isImage);
 }, unidadeController.updateDataReport);
 
 module.exports = unidadeRoutes;

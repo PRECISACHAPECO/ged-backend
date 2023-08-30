@@ -96,10 +96,12 @@ class ProdutosController {
             }
 
             //? Deleta produtos que não contem os id de productsLinked
-            const sqlDelete = `
-            DELETE FROM produto_unidade
-            WHERE unidadeID = ? AND produtoID NOT IN (?)`
-            await db.promise().query(sqlDelete, [unidadeID, productsLinked])
+            if (productsLinked && productsLinked.length > 0) {
+                const sqlDelete = `
+                DELETE FROM produto_unidade
+                WHERE unidadeID = ? AND produtoID NOT IN (?)`
+                await db.promise().query(sqlDelete, [unidadeID, productsLinked])
+            }
 
             //? Verifica se já existe registro na tabela produto_unidade pra não inserir novamente
             const sqlGetProducts = `
