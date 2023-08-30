@@ -44,8 +44,6 @@ class AuthController {
 
             // +1 UNIDADE, SELECIONA UNIDADE ANTES DE LOGAR
 
-
-            console.log("resyult do usuario", result[0])
             if (result.length > 1) {
                 const response = {
                     accessToken,

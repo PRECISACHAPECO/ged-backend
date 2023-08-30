@@ -56,4 +56,10 @@ routes.use(urlBase + '/configuracoes', unidade);
 routes.use(urlBase + '/configuracoes', UsuarioRouter);
 routes.use(urlBase + '/configuracoes', ProdutosRouter);
 
+
+// Notificação
+
+const notificacao = require('./notificacao/notificacaoRoutes');
+routes.use(urlBase + '/notificacao', notificacao);
+
 module.exports = routes;
