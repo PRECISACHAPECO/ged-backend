@@ -6,6 +6,10 @@ const dadosFornecedor = async (req, res) => {
     const { id } = req.body.data;
     const fornecedorID = id
 
+    if (!id) {
+        return res.json({ error: 'ID não informado!' })
+    }
+
     //? Obtém unidadeID da fábrica (quem define o padrão do formulário)
     const sqlUnity = `SELECT *, unidadeID FROM fornecedor WHERE fornecedorID = ? LIMIT 1`;
     const [resultUnidade] = await db.promise().query(sqlUnity, [fornecedorID]);
