@@ -100,11 +100,21 @@ class NaoConformidadeController {
         for (const alternatives of resultFields) {
             if (alternatives.tipo === 'int' && alternatives.tabela) {
                 // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
-                const sqlOptions = `
-                SELECT ${alternatives.tabela}ID AS id, nome
-                FROM ${alternatives.tabela} 
-                WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
-                ORDER BY nome ASC`
+                let sqlOptions = ``
+                if (alternatives.tabela == 'fornecedor') { //? Fornecedor: busca aprovados e com a avaliação mais recente
+                    sqlOptions = `
+                    SELECT MAX(fornecedorID) AS id, nome, cnpj
+                    FROM fornecedor
+                    WHERE status >= 60 AND unidadeID = ${unidadeID}
+                    GROUP BY cnpj
+                    ORDER BY nome ASC`
+                } else {                                   //? Não é fornecedor: busca ativos e da unidade
+                    sqlOptions = `
+                    SELECT ${alternatives.tabela}ID AS id, nome
+                    FROM ${alternatives.tabela} 
+                    WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                    ORDER BY nome ASC`
+                }
 
                 // Executar select e inserir no objeto alternatives
                 const [resultOptions] = await db.promise().query(sqlOptions)
@@ -129,7 +139,7 @@ class NaoConformidadeController {
                     //     nome: 'Fulano'
                     // }
                     sqlData = `
-                    SELECT t.${field.nomeColuna} AS id, t.nome
+                    SELECT t.${field.nomeColuna} AS id, t.nome ${field.tabela == 'fornecedor' ? `, t.cnpj` : ``}
                     FROM recebimentomp_naoconformidade AS rn 
                         JOIN ${field.tabela} AS t ON (rn.${field.nomeColuna} = t.${field.nomeColuna}) 
                     WHERE rn.recebimentompNaoconformidadeID = ${id}`
@@ -464,11 +474,21 @@ const getFields = async (unidadeID) => {
     for (const alternatives of resultFields) {
         if (alternatives.tipo === 'int' && alternatives.tabela) {
             // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
-            const sqlOptions = `
-            SELECT ${alternatives.tabela}ID AS id, nome
-            FROM ${alternatives.tabela} 
-            WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
-            ORDER BY nome ASC`
+            let sqlOptions = ``
+            if (alternatives.tabela == 'fornecedor') {
+                sqlOptions = `
+                SELECT MAX(fornecedorID) AS id, nome, cnpj
+                FROM fornecedor
+                WHERE status >= 60 AND unidadeID = ${unidadeID}
+                GROUP BY cnpj
+                ORDER BY nome ASC`
+            } else {
+                sqlOptions = `
+                SELECT ${alternatives.tabela}ID AS id, nome
+                FROM ${alternatives.tabela} 
+                WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                ORDER BY nome ASC`
+            }
 
             // Executar select e inserir no objeto alternatives
             const [resultOptions] = await db.promise().query(sqlOptions)

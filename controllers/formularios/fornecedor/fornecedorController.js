@@ -117,7 +117,7 @@ class FornecedorController {
             SELECT
             f.fornecedorID AS id,
                     IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
-                    IF(f.razaoSocial <> '', f.razaoSocial, '--') AS fornecedor,
+                    IF(f.nome <> '', f.nome, '--') AS fornecedor,
                     IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,
                     IF(f.cidade <> '', CONCAT(f.cidade, '/', f.estado), '--') AS cidade,
                     IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,

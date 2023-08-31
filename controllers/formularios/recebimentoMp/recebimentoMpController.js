@@ -61,12 +61,21 @@ class RecebimentoMpController {
         for (const alternatives of resultFields) {
             if (alternatives.tipo === 'int' && alternatives.tabela) {
                 // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
-                const sqlOptions = `
-                SELECT ${alternatives.tabela}ID AS id, nome
-                FROM ${alternatives.tabela} 
-                WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
-                ORDER BY nome ASC`
-
+                let sqlOptions = ``
+                if (alternatives.tabela == 'fornecedor') { //? Fornecedor: busca aprovados e com a avaliação mais recente
+                    sqlOptions = `
+                    SELECT MAX(fornecedorID) AS id, nome, cnpj
+                    FROM fornecedor
+                    WHERE status >= 60 AND unidadeID = ${unidadeID}
+                    GROUP BY cnpj
+                    ORDER BY nome ASC`
+                } else {                                   //? Não é fornecedor: busca ativos e da unidade
+                    sqlOptions = `
+                    SELECT ${alternatives.tabela}ID AS id, nome
+                    FROM ${alternatives.tabela} 
+                    WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                    ORDER BY nome ASC`
+                }
                 // Executar select e inserir no objeto alternatives
                 const [resultOptions] = await db.promise().query(sqlOptions)
                 alternatives.options = resultOptions
@@ -90,10 +99,11 @@ class RecebimentoMpController {
                     //     nome: 'Fulano'
                     // }
                     sqlData = `
-                    SELECT t.${field.nomeColuna} AS id, t.nome
+                    SELECT t.${field.nomeColuna} AS id, t.nome ${field.tabela == 'fornecedor' ? `, t.cnpj` : ``}
                     FROM recebimentomp AS rm 
                         JOIN ${field.tabela} AS t ON (rm.${field.nomeColuna} = t.${field.nomeColuna}) 
                     WHERE rm.recebimentompID = ${id}`
+
                     let [temp] = await db.promise().query(sqlData)
                     if (temp) {
                         field[field.tabela] = temp[0]
@@ -208,8 +218,6 @@ class RecebimentoMpController {
                             dataProduct[field.nomeColuna] = product[field.nomeColuna] ?? null
                         }
                     }
-
-                    console.log("🚀 ~ product:", product)
 
                     dataProduct['recebimentompID'] = id
                     const sqlInsertProduto = `INSERT INTO recebimentomp_produto SET ?`
@@ -490,9 +498,10 @@ const getFields = async (unidadeID) => {
             let sqlOptions = ``
             if (alternatives.tabela == 'fornecedor') {
                 sqlOptions = `
-                SELECT fornecedorID AS id, nome AS nome
-                FROM fornecedor 
-                WHERE atual = 1 AND status = 70 AND unidadeID = ${unidadeID} 
+                SELECT MAX(fornecedorID) AS id, nome, cnpj
+                FROM fornecedor
+                WHERE status >= 60 AND unidadeID = ${unidadeID}
+                GROUP BY cnpj
                 ORDER BY nome ASC`
             } else {
                 sqlOptions = `
@@ -542,7 +551,6 @@ const getFieldsProduct = async (unidadeID) => {
                 WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
                 ORDER BY nome ASC`
             }
-            console.log("🚀 ~ sqlProductsOptions:", sqlProductsOptions)
 
             // Executar select e inserir no objeto alternatives
             const [resultProductsOptions] = await db.promise().query(sqlProductsOptions)
