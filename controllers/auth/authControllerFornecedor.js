@@ -140,7 +140,12 @@ class AuthControllerFornecedor {
                 INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID, status) VALUES (?, ?, ?, ?)`;
         const resultInsertUsuarioUnidade = await db.promise().query(sqlInsertUsuarioUnidade, [usuarioID, unidadeID, 2, 1]);
 
-        res.status(200).json({ message: 'Fornecedor cadastrado com sucesso!' });
+        const values = {
+            usuarioID,
+            unidadeID
+        }
+
+        res.status(200).json(values);
     }
 
     //? Envia email quando fornecedor se cadastrar com sucesso

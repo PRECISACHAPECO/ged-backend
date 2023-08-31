@@ -7,7 +7,8 @@ const notificacaoController = new NotificacaoController();
 
 
 NotificacaoRoutes.post(`/getData`, notificacaoController.getData);
-NotificacaoRoutes.put(`/update`, notificacaoController.update);
+NotificacaoRoutes.put(`/updateData`, notificacaoController.updateData);
+NotificacaoRoutes.post(`/insertData`, notificacaoController.insertData);
 
 
 
