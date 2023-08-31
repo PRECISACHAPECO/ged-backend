@@ -71,7 +71,7 @@ class NotificacaoController {
                     const notificacaoID = resultInsert.insertId
 
                     //? Grava em notificacao_usuario
-                    const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID) VALUES ?'
+                    const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID) VALUES (?, ?)'
                     const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [
                         resultUsers.map((item) => [notificacaoID, item.usuarioID])
                     ])
@@ -90,8 +90,8 @@ class NotificacaoController {
                 const notificacaoID = resultInsert.insertId
 
                 //? Grava em notificacao_usuario
-                const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID) VALUES ?'
-                const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [[notificacaoID, data.usuarioID]])
+                const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID) VALUES (?, ?)'
+                const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [notificacaoID, data.usuarioID])
             }
 
             res.status(200).json({ message: 'Notificações criada com sucesso!' })
