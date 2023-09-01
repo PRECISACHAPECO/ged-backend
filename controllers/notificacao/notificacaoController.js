@@ -54,6 +54,7 @@ class NotificacaoController {
                 const sqlUsers = `
                 SELECT usuarioID FROM usuario_unidade WHERE unidadeID = ? AND papelID = ?`
                 const [resultUsers] = await db.promise().query(sqlUsers, [data.unidadeID, data.papelID])
+
                 if (resultUsers.length > 0) {
                     const sqlInsert = 'INSERT INTO notificacao (titulo, descricao, url, urlID, tipoNotificacaoID, usuarioGeradorID, unidadeID) VALUES (?,?,?,?,?,?,?)'
                     const [resultInsert] = await db.promise().query(sqlInsert, [
@@ -69,9 +70,11 @@ class NotificacaoController {
 
                     //? Grava em notificacao_usuario
                     const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID) VALUES (?, ?)'
-                    const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [
-                        resultUsers.map((item) => [notificacaoID, item.usuarioID])
-                    ])
+                    for (let i = 0; i < resultUsers.length; i++) {
+                        const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [notificacaoID, resultUsers[i].usuarioID])
+                    }
+
+                    return res.status(200).json({ message: 'Notificação cadastrada com sucesso!' })
                 }
             } else {
                 //? Gera notificação pra um usuário específico
@@ -100,7 +103,7 @@ class NotificacaoController {
                 //? Grava em notificacao_usuario
                 const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID) VALUES (?, ?)'
                 const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [notificacaoID, data.usuarioID])
-                res.status(200).json({ message: 'Notificação cadastrada com sucesso!' })
+                return res.status(200).json({ message: 'Notificação cadastrada com sucesso!' })
             }
         } catch (err) {
             console.log(err)
