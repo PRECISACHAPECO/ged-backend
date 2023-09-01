@@ -102,7 +102,7 @@ class NotificacaoController {
                 const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [notificacaoID, data.usuarioID])
                 res.status(200).json({ message: 'Notificação cadastrada com sucesso!' })
             }
-        } catch (e) {
+        } catch (err) {
             console.log(err)
         }
     }

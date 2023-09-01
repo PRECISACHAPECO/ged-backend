@@ -58,7 +58,6 @@ routes.use(urlBase + '/configuracoes', ProdutosRouter);
 
 
 // Notificação
-
 const notificacao = require('./notificacao/notificacaoRoutes');
 routes.use(urlBase + '/notificacao', notificacao);
 
