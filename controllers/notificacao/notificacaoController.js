@@ -50,13 +50,10 @@ class NotificacaoController {
     async insertData(req, res) {
         const data = req.body
         try {
-            console.log("🚀 ~ data:", data)
-
             if (data.usuarioID == 0) { //? Gera notificação pra todos os usuários da unidade
                 const sqlUsers = `
                 SELECT usuarioID FROM usuario_unidade WHERE unidadeID = ? AND papelID = ?`
                 const [resultUsers] = await db.promise().query(sqlUsers, [data.unidadeID, data.papelID])
-
                 if (resultUsers.length > 0) {
                     const sqlInsert = 'INSERT INTO notificacao (titulo, descricao, url, urlID, tipoNotificacaoID, usuarioGeradorID, unidadeID) VALUES (?,?,?,?,?,?,?)'
                     const [resultInsert] = await db.promise().query(sqlInsert, [
@@ -71,12 +68,23 @@ class NotificacaoController {
                     const notificacaoID = resultInsert.insertId
 
                     //? Grava em notificacao_usuario
-                    const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID) VALUES ?'
+                    const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID) VALUES (?, ?)'
                     const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [
                         resultUsers.map((item) => [notificacaoID, item.usuarioID])
                     ])
                 }
-            } else {                   //? Gera notificação pra um usuário específico
+            } else {
+                //? Gera notificação pra um usuário específico
+
+                //? Se não tiver unidadeID no data faz um select nas unidades do usuário e seta o indice 0 como unidadeID
+                let unidadeID = data.unidadeID;
+                if (!data.unidadeID) {
+                    const sqlGetUnity = 'SELECT * FROM usuario_unidade WHERE usuarioID = ?'
+                    const [resultGetUnity] = await db.promise().query(sqlGetUnity, [data.usuarioID])
+                    if (resultGetUnity.length > 0) {
+                        unidadeID = resultGetUnity[0].unidadeID;
+                    }
+                }
                 const sqlInsert = 'INSERT INTO notificacao (titulo, descricao, url, urlID, tipoNotificacaoID, usuarioGeradorID, unidadeID) VALUES (?,?,?,?,?,?,?)'
                 const [resultInsert] = await db.promise().query(sqlInsert, [
                     data.titulo,
@@ -85,17 +93,16 @@ class NotificacaoController {
                     data.urlID,
                     data.tipoNotificacaoID,
                     data.usuarioGeradorID,
-                    data.unidadeID
+                    unidadeID
                 ])
                 const notificacaoID = resultInsert.insertId
 
                 //? Grava em notificacao_usuario
-                const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID) VALUES ?'
-                const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [[notificacaoID, data.usuarioID]])
+                const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID) VALUES (?, ?)'
+                const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [notificacaoID, data.usuarioID])
+                res.status(200).json({ message: 'Notificação cadastrada com sucesso!' })
             }
-
-            res.status(200).json({ message: 'Notificações criada com sucesso!' })
-        } catch (err) {
+        } catch (e) {
             console.log(err)
         }
     }
