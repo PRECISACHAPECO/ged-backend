@@ -168,6 +168,14 @@ class FornecedorController {
             const [resultFornecedor] = await db.promise().query(sqlUnidade, [id])
             const unidade = resultFornecedor[0]
 
+            //? obtém os dados da unidade do fornecedor (controle de notificações)
+            const sqlUnidadeFornecedor = `
+            SELECT u.unidadeID, u.nomeFantasia, u.cnpj
+            FROM unidade AS u
+            WHERE u.cnpj = ? `
+            const [resultUnidadeFornecedor] = await db.promise().query(sqlUnidadeFornecedor, [unidade.cnpj])
+            unidade['fornecedor'] = resultUnidadeFornecedor[0]
+
             // Fields do header
             const sqlFields = `
             SELECT *
