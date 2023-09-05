@@ -873,9 +873,9 @@ class FornecedorController {
             enderecoSimplificadoFabricaSolicitante: `${resultSqlGetDataFactory[0].cidade}/${resultSqlGetDataFactory[0].uf}`,
             enderecoCompletoFabricaSolicitante: enderecoCompleto,
             stage: 's1',
-            noBaseboard: false
+            noBaseboard: true
         }
-        // noBaseboard => Se falso mostra o rodapé com os dados da fabrica solicitante senão um padrão
+        //! noBaseboard => Se True mostra o rodapé com os dados da fabrica solicitante com dados da mesma, senão mostra com os dados da precisa
 
         let assunto = 'Avaliação de fornecedor '
         const html = await instructionsNewFornecedor(values);

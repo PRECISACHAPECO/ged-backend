@@ -107,6 +107,10 @@ class AuthControllerFornecedor {
         const { data } = req.body
         let unidadeID = ''
 
+        //? Busca o nome da unida fabrica para enviar notificação após o fornecedor concluir o cadastro
+        const sqlGetFactoryUnit = 'SELECT nomeFantasia, unidadeID FROM unidade WHERE unidadeID = ?'
+        const [resultSqlGetFactoryUnit] = await db.promise().query(sqlGetFactoryUnit, [data.unidadeID])
+
         // //? Verificar se o CNPJ já existe na tabela de usuário
         const resultUserSave = await hasUser(data.sectionOne.cnpj)
         if (resultUserSave) {
@@ -141,8 +145,11 @@ class AuthControllerFornecedor {
         const resultInsertUsuarioUnidade = await db.promise().query(sqlInsertUsuarioUnidade, [usuarioID, unidadeID, 2, 1]);
 
         const values = {
-            usuarioID,
-            unidadeID
+            factory: resultSqlGetFactoryUnit[0],
+            supplier: {
+                unidadeID,
+                usuarioID
+            }
         }
 
         res.status(200).json(values);
