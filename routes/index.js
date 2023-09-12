@@ -41,12 +41,13 @@ routes.use(urlBase + '/cadastros', ProfissaoRouter);
 routes.use(urlBase + '/cadastros', CargoRouter);
 routes.use(urlBase + '/cadastros', GrupoAnexosRouter);
 
-// // Confifuracoes
+//? Configuracoes
 const formularios = require("./configuracoes/formularios/formulariosRoutes");
 const formularioFornecedor = require("./configuracoes/formularios/fornecedor/fornecedorRoutes");
 const formularioRecebimentoMp = require("./configuracoes/formularios/recebimentoMp/recebimentoMpRoutes");
 const unidade = require("./configuracoes/unidade/unidadeRoutes");
 const UsuarioRouter = require("./configuracoes/usuario/usuarioRoutes");
+const NotificacaoRouter = require("./configuracoes/notificacao/notificacaoRoutes");
 const ProdutosRouter = require("./configuracoes/produtos/produtosRoutes");
 
 routes.use(urlBase + '/configuracoes', formularios);
@@ -54,8 +55,10 @@ routes.use(urlBase + '/configuracoes', formularioFornecedor);
 routes.use(urlBase + '/configuracoes', formularioRecebimentoMp);
 routes.use(urlBase + '/configuracoes', unidade);
 routes.use(urlBase + '/configuracoes', UsuarioRouter);
+routes.use(urlBase + '/configuracoes', NotificacaoRouter);
 routes.use(urlBase + '/configuracoes', ProdutosRouter);
 
+console.log('index: ', urlBase)
 
 // Notificação
 const notificacao = require('./notificacao/notificacaoRoutes');
