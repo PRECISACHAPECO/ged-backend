@@ -66,7 +66,6 @@ const dadosRecebimentoMp = async (req, res) => {
     //? Blocos
     const sqlAllBlocks = `SELECT * FROM par_recebimentomp_bloco a WHERE a.unidadeID = ? `
     const [resulAllBlocks] = await db.promise().query(sqlAllBlocks, [unidadeID]);
-    console.log("🚀 ~ resulAllBlocks:", resulAllBlocks)
 
     const resultBlocos = []
     for (let i = 0; i < resulAllBlocks.length; i++) {
