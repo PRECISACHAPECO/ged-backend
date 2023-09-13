@@ -2,7 +2,6 @@ const db = require('../../../config/db');
 
 class NotificacaoController {
     async getData(req, res) {
-        console.log('getData')
         try {
             const { usuarioID, unidadeID } = req.params
 

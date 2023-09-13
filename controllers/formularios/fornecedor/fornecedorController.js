@@ -9,6 +9,25 @@ const sendMailConfig = require('../../../config/email');
 const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
 
 class FornecedorController {
+
+    async sendNotification(req, res) {
+        try {
+            const { id, usuarioID, papelID, unidadeID } = req.body.auth;
+            const values = req.body.values;
+
+            if (!values || !id) { return res.status(400).json({ message: 'Erro ao enviar notificação!' }) }
+
+            //* Envia email
+            if (values.email) {
+
+            }
+
+            res.status(200).json({ message: 'Notificação enviada com sucesso!' })
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
     //* Salva os anexos do formulário na pasta uploads/anexo e insere os dados na tabela anexo
     async saveAnexo(req, res) {
         try {

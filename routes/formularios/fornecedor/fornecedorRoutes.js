@@ -30,6 +30,7 @@ fornecedorRoutes.post(`${route}/getMovementHistory/:id`, fornecedorController.ge
 fornecedorRoutes.post(`${route}/verifyFormPending/:id`, fornecedorController.verifyFormPending);
 fornecedorRoutes.post(`${route}/changeFormStatus/:id`, fornecedorController.changeFormStatus);
 fornecedorRoutes.post(`${route}/getGruposAnexo`, fornecedorController.getGruposAnexo);
+fornecedorRoutes.post(`${route}/sendNotification`, fornecedorController.sendNotification);
 
 //? MULTER: Upload de arquivo
 fornecedorRoutes.post(`${route}/saveAnexo/:id/:unidadeID/:isImage`, (req, res, next) => {

@@ -6,8 +6,6 @@ const notificacaoController = new NotificacaoController();
 
 const route = '/notificacao';
 
-console.log('routes: ', route)
-
 notificacaoRoutes.get(`${route}/getData/:usuarioID/:unidadeID`, notificacaoController.getData);
 notificacaoRoutes.post(`${route}/updateData/:usuarioID/:unidadeID`, notificacaoController.updateData);
 
