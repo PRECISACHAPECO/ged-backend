@@ -25,7 +25,7 @@ class NotificacaoController {
             FROM notificacao AS a
                 JOIN tiponotificacao AS b ON (a.tipoNotificacaoID = b.tipoNotificacaoID)
                 JOIN notificacao_usuario AS c ON (a.notificacaoID = c.notificacaoID)
-            WHERE c.usuarioID = ? AND a.unidadeID = ? AND c.lido = 0
+            WHERE c.usuarioID = ? AND a.unidadeID = ? AND c.alerta = 1 AND c.lido = 0
             ORDER BY a.dataHora DESC`
             const [resultSqlGet] = await db.promise().query(sqlGet, [usuarioID, unidadeID])
             res.status(200).json(resultSqlGet)
@@ -49,6 +49,7 @@ class NotificacaoController {
 
     async insertData(req, res) {
         const data = req.body
+        console.log("🚀 ~ data:", data)
         try {
             if (data.usuarioID == 0) { //? Gera notificação pra todos os usuários da unidade
                 const sqlUsers = `
@@ -69,9 +70,14 @@ class NotificacaoController {
                     const notificacaoID = resultInsert.insertId
 
                     //? Grava em notificacao_usuario
-                    const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID) VALUES (?, ?)'
+                    const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID, email, alerta) VALUES (?, ?, ?, ?)'
                     for (let i = 0; i < resultUsers.length; i++) {
-                        const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [notificacaoID, resultUsers[i].usuarioID])
+                        const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [
+                            notificacaoID,
+                            resultUsers[i].usuarioID,
+                            data.email ? '1' : '0',
+                            data.alerta ? '1' : '0'
+                        ])
                     }
 
                     return res.status(200).json({ message: 'Notificação cadastrada com sucesso!' })
@@ -101,8 +107,13 @@ class NotificacaoController {
                 const notificacaoID = resultInsert.insertId
 
                 //? Grava em notificacao_usuario
-                const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID) VALUES (?, ?)'
-                const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [notificacaoID, data.usuarioID])
+                const sqlInsertNotificacaoUsuario = 'INSERT INTO notificacao_usuario (notificacaoID, usuarioID, email, alerta) VALUES (?, ?, ?, ?)'
+                const [resultInsertNotificacaoUsuario] = await db.promise().query(sqlInsertNotificacaoUsuario, [
+                    notificacaoID,
+                    data.usuarioID,
+                    data.email ? '1' : '0',
+                    data.alerta ? '1' : '0'
+                ])
                 return res.status(200).json({ message: 'Notificação cadastrada com sucesso!' })
             }
         } catch (err) {

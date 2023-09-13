@@ -8,6 +8,9 @@ const conclusionFormFornecedor = require('../../../email/template/fornecedor/con
 const sendMailConfig = require('../../../config/email');
 const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
 
+//? Email
+const layoutNotification = require('../../../email/template/notificacao');
+
 class FornecedorController {
 
     async sendNotification(req, res) {
@@ -19,10 +22,11 @@ class FornecedorController {
 
             //* Envia email
             if (values.email) {
-
+                const html = await layoutNotification(values);
+                res.status(200).json(sendMailConfig(values.emailDestinatario, 'Notificação do sistema', html))
             }
 
-            res.status(200).json({ message: 'Notificação enviada com sucesso!' })
+            return res.status(200).json({ message: 'Notificação enviada com sucesso!' })
         } catch (error) {
             console.log(error)
         }

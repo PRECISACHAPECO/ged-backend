@@ -58,8 +58,6 @@ routes.use(urlBase + '/configuracoes', UsuarioRouter);
 routes.use(urlBase + '/configuracoes', NotificacaoRouter);
 routes.use(urlBase + '/configuracoes', ProdutosRouter);
 
-console.log('index: ', urlBase)
-
 // Notificação
 const notificacao = require('./notificacao/notificacaoRoutes');
 routes.use(urlBase + '/notificacao', notificacao);
