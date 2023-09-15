@@ -8,6 +8,11 @@ const authFornecedor = require("./auth/authFornecedorRoutes");
 routes.use(urlBase + '/', authFornecedor);
 routes.use(urlBase + '/', auth);
 
+
+// Dashborards
+const fabricaRouter = require("./dashboard/fabricaRoutes")
+routes.use(urlBase + '/dashboard', fabricaRouter);
+
 // Fornecedor
 const fornecedorRouter = require("./formularios/fornecedor/fornecedorRoutes");
 routes.use(urlBase, fornecedorRouter);
