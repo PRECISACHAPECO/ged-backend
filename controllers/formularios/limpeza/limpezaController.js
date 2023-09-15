@@ -24,6 +24,13 @@ class LimpezaController {
         try {
             if (!id || id == 'undefined') { return res.json({ message: 'Sem ID recebido!' }) }
 
+            //? Model
+            const sql = `
+            SELECT * 
+            FROM par_limpeza_modelo
+            WHERE parLimpezaModeloID = ?`
+            const [resultModel] = await db.promise().query(sql, [id])
+
             //? Header
             const sqlHeader = `
             SELECT pl.*, 
@@ -107,6 +114,7 @@ class LimpezaController {
             const [resultOrientacoes] = await db.promise().query(sqlOrientacoes)
 
             const result = {
+                model: resultModel[0],
                 header: resultHeader,
                 blocks: blocks,
                 options: objOptions,
@@ -121,9 +129,16 @@ class LimpezaController {
 
     async updateData(req, res) {
         try {
-            const { id, unidadeID, header, blocks, arrRemovedBlocks, arrRemovedItems, orientacoes } = req.body
+            const { id, unidadeID, model, header, blocks, arrRemovedBlocks, arrRemovedItems, orientacoes } = req.body
 
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao receber ID!' }) }
+
+            //? Model
+            const sqlModel = `
+            UPDATE par_limpeza_modelo
+            SET nome = ?, ciclo = ?, status = ?
+            WHERE parLimpezaModeloID = ?`
+            const [resultModel] = await db.promise().query(sqlModel, [model.nome, model.ciclo, (model.status ? 1 : 0), id])
 
             //? Header
             header && header.forEach(async (item) => {
