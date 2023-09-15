@@ -61,10 +61,8 @@ class LimpezaController {
             ORDER BY plmbi.ordem ASC`
 
             //? Options
-            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 1 AND status = 1 ORDER BY nome ASC`;
+            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 4 AND status = 1 ORDER BY nome ASC`;
             const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
-            const [resultAllCategories] = await db.promise().query(sqlAllCategories);
-            const [resultAllActivities] = await db.promise().query(sqlAllActivities);
             const [resultItem] = await db.promise().query(sqlOptionsItem);
             const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
             const objOptionsBlock = {
@@ -73,23 +71,7 @@ class LimpezaController {
             };
 
             for (const item of resultBlock) {
-                const sqlBlockCategories = `
-                SELECT pfbc.categoriaID AS id, c.nome
-                FROM par_fornecedor_bloco_categoria AS pfbc
-                    JOIN categoria AS c ON (pfbc.categoriaID = c.categoriaID)
-                WHERE pfbc.parFornecedorBlocoID = ? AND pfbc.unidadeID = ?
-                ORDER BY c.nome ASC`;
-
-                const sqlBlockActivities = `
-                SELECT pfba.atividadeID AS id, a.nome
-                FROM par_fornecedor_bloco_atividade AS pfba 
-                    JOIN atividade AS a ON (pfba.atividadeID = a.atividadeID)
-                WHERE pfba.parFornecedorBlocoID = ? AND pfba.unidadeID = ?
-                ORDER BY a.nome ASC`;
-
-                const [resultCategoria] = await db.promise().query(sqlBlockCategories, [item.parFornecedorBlocoID, unidadeID]);
-                const [resultAtividade] = await db.promise().query(sqlBlockActivities, [item.parFornecedorBlocoID, unidadeID]);
-                const [resultItem] = await db.promise().query(sqlItem, [item.parFornecedorBlocoID]);
+                const [resultItem] = await db.promise().query(sqlItem, [item.parLimpezaModeloBlocoID])
 
                 for (const item of resultItem) {
                     if (item) {
@@ -107,8 +89,6 @@ class LimpezaController {
 
                 const objData = {
                     dados: item,
-                    categorias: resultCategoria ? resultCategoria : [],
-                    atividades: resultAtividade ? resultAtividade : [],
                     itens: resultItem,
                     optionsBlock: objOptionsBlock
                 };
@@ -118,14 +98,12 @@ class LimpezaController {
 
             //? Options
             const objOptions = {
-                categorias: resultAllCategories,
-                atividades: resultAllActivities,
                 itens: resultItem,
                 alternativas: resultAlternativa
             };
 
             //? Orientações
-            const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 1`;
+            const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 4`;
             const [resultOrientacoes] = await db.promise().query(sqlOrientacoes)
 
             const result = {
@@ -136,6 +114,155 @@ class LimpezaController {
             }
 
             return res.json(result)
+        } catch (error) {
+            return res.json({ message: 'Erro ao receber dados!' })
+        }
+    }
+
+    async updateData(req, res) {
+        try {
+            const { id, unidadeID, header, blocks, arrRemovedBlocks, arrRemovedItems, orientacoes } = req.body
+
+            if (!id || id == 'undefined') { return res.json({ message: 'Erro ao receber ID!' }) }
+
+            //? Header
+            header && header.forEach(async (item) => {
+                if (item && item.mostra) {
+                    // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
+                    const sqlHeader = `
+                    SELECT COUNT(*) AS count
+                    FROM par_limpeza_modelo_cabecalho AS plmc
+                    WHERE plmc.parLimpezaModeloID = ? AND plmc.parLimpezaID = ?`
+                    // Verifica numero de linhas do sql 
+                    const [resultHeader] = await db.promise().query(sqlHeader, [id, item.parLimpezaID])
+                    if (resultHeader[0].count === 0) { // Insert
+                        const sqlInsert = `
+                        INSERT INTO par_limpeza_modelo_cabecalho (parLimpezaModeloID, parLimpezaID, obrigatorio)
+                        VALUES (?, ?, ?)`
+                        const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parLimpezaID, (item.obrigatorio ? 1 : 0)]);
+                    } else {                            // Update
+                        const sqlUpdate = `
+                        UPDATE par_limpeza_modelo_cabecalho
+                        SET obrigatorio = ?
+                        WHERE parLimpezaModeloID = ? AND parLimpezaID = ?`
+                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? 1 : 0), id, item.parLimpezaID]);
+                    }
+                } else if (item) { // Deleta
+                    const sqlDelete = `
+                    DELETE FROM par_limpeza_modelo_cabecalho
+                    WHERE parLimpezaModeloID = ? AND parLimpezaID = ?`
+                    const [resultDelete] = await db.promise().query(sqlDelete, [id, item.parLimpezaID])
+                }
+            })
+
+            //? Blocos removidos
+            arrRemovedBlocks && arrRemovedBlocks.forEach(async (block) => {
+                if (block && block > 0) {
+                    // Blocos
+                    const sqlDeleteBlock = `DELETE FROM par_limpeza_modelo_bloco WHERE parLimpezaModeloBlocoID = ?`
+                    const [resultDeleteBlock] = await db.promise().query(sqlDeleteBlock, [block])
+
+                    // Itens do bloco
+                    const sqlDeleteBlockItems = `DELETE FROM par_limpeza_modelo_bloco_item WHERE parLimpezaModeloBlocoID = ?`
+                    const [resultDeleteBlockItems] = await db.promise().query(sqlDeleteBlockItems, [block])
+                }
+            })
+
+            //? Itens removidos dos blocos 
+            arrRemovedItems && arrRemovedItems.forEach(async (item) => {
+                if (item) {
+                    const sqlDelete = `DELETE FROM par_limpeza_modelo_bloco_item WHERE parLimpezaModeloBlocoItemID = ?`
+                    const [resultDelete] = await db.promise().query(sqlDelete, [item.parLimpezaModeloBlocoItemID])
+                }
+            })
+
+            //? Blocos 
+            blocks && blocks.forEach(async (block, index) => {
+                if (block) {
+                    if (block.dados.parLimpezaModeloBlocoID && parseInt(block.dados.parLimpezaModeloBlocoID) > 0) {
+                        //? Bloco já existe, Update
+                        const sqlUpdateBlock = `
+                        UPDATE par_limpeza_modelo_bloco
+                        SET ordem = ?, nome = ?, obs = ?, status = ?
+                        WHERE parLimpezaModeloBlocoID = ?`
+                        const [resultUpdateBlock] = await db.promise().query(sqlUpdateBlock, [
+                            block.dados.ordem,
+                            block.dados.nome,
+                            (block.dados.obs ? 1 : 0),
+                            (block.dados.status ? 1 : 0),
+                            block.dados.parLimpezaModeloBlocoID
+                        ])
+                        if (resultUpdateBlock.length === 0) { return res.json(err); }
+                    } else {
+                        //? Bloco novo, Insert
+                        const sqlNewBlock = `
+                        INSERT INTO par_limpeza_modelo_bloco(parLimpezaModeloID, ordem, nome, obs, unidadeID, status) 
+                        VALUES (?, ?, ?, ?, ?, ?)`
+                        const [resultNewBlock] = await db.promise().query(sqlNewBlock, [
+                            id,
+                            block.dados.ordem,
+                            block.dados.nome,
+                            (block.dados.obs ? 1 : 0),
+                            unidadeID,
+                            (block.dados.status ? 1 : 0)
+                        ])
+                        if (resultNewBlock.length === 0) { return res.json(err); }
+                        block.dados.parLimpezaModeloBlocoID = resultNewBlock.insertId //? parLimpezaModeloBlocoID que acabou de ser gerado
+                    }
+
+                    //? Itens 
+                    block.itens && block.itens.forEach(async (item, indexItem) => {
+                        if (item && item.parLimpezaModeloBlocoItemID && item.parLimpezaModeloBlocoItemID > 0) { //? Update                                
+                            console.log('update item: ', item.item.id, item.item.nome)
+                            const sqlUpdate = `
+                            UPDATE par_limpeza_modelo_bloco_item
+                            SET ordem = ?, ${item.item.id ? 'itemID = ?, ' : ''} ${item.alternativa.id ? 'alternativaID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
+                            WHERE parLimpezaModeloBlocoItemID = ?`
+                            const [resultUpdate] = await db.promise().query(sqlUpdate, [
+                                item.ordem,
+                                ...(item.item.id ? [item.item.id] : []),
+                                ...(item.alternativa.id ? [item.alternativa.id] : []),
+                                (item.obs ? 1 : 0),
+                                (item.obrigatorio ? 1 : 0),
+                                (item.status ? 1 : 0),
+                                item.parLimpezaModeloBlocoItemID
+                            ])
+                        } else if (item && item.new && !item.parLimpezaModeloBlocoItemID) { //? Insert                            
+                            console.log('insert new item: ', item.item.id, item.item.nome)
+                            // Valida duplicidade do item 
+                            const sqlItem = `
+                            SELECT COUNT(*) AS count
+                            FROM par_limpeza_modelo_bloco_item AS plmbi
+                            WHERE plmbi.parLimpezaModeloBlocoID = ? AND plmbi.itemID = ? AND plmbi.alternativaID = ?`
+                            const [resultItem] = await db.promise().query(sqlItem, [block.dados.parLimpezaModeloBlocoID, item.item.id, item.alternativa.id])
+                            if (resultItem[0].count === 0) {  // Pode inserir
+                                const sqlInsert = `
+                                INSERT INTO par_limpeza_modelo_bloco_item (parLimpezaModeloBlocoID, ordem, itemID, alternativaID, obs, obrigatorio, status)
+                                VALUES (?, ?, ?, ?, ?, ?, ?)`
+                                const [resultInsert] = await db.promise().query(sqlInsert, [
+                                    block.dados.parLimpezaModeloBlocoID,
+                                    item.ordem,
+                                    item.item.id,
+                                    item.alternativa.id,
+                                    (item.obs ? 1 : 0),
+                                    (item.obrigatorio ? 1 : 0),
+                                    (item.status ? 1 : 0)
+                                ])
+                            }
+                        }
+                    })
+                }
+            })
+
+            //? Orientações
+            const sqlOrientacoes = `
+            UPDATE par_formulario
+            SET obs = ? 
+            WHERE parFormularioID = 4`
+            const [resultOrientacoes] = await db.promise().query(sqlOrientacoes, [orientacoes?.obs])
+
+            res.status(200).json({ message: "Dados atualizados com sucesso." });
+
         } catch (error) {
             return res.json({ message: 'Erro ao receber dados!' })
         }
