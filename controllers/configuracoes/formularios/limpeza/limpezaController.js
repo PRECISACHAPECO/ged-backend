@@ -1,4 +1,4 @@
-const db = require('../../../config/db');
+const db = require('../../../../config/db');
 const fs = require('fs');
 const path = require('path');
 require('dotenv/config')
@@ -10,15 +10,10 @@ class LimpezaController {
         if (!unidadeID) return res.status(400).json({ error: 'unidadeID não informado!' })
 
         const sql = `
-        SELECT 
-            l.limpezaID AS id, 
-            IF(MONTH(l.data) > 0, DATE_FORMAT(l.data, "%d/%m/%Y"), '--') AS data, 
-            p.nome AS profissional, 
-            l.status
-        FROM limpeza AS l
-            LEFT JOIN pessoa AS p ON (l.profissionalID = p.pessoaID)
-        WHERE l.unidadeID = ?
-        ORDER BY l.limpezaID DESC, l.status ASC`
+        SELECT parLimpezaModeloID AS id, nome, ciclo, status
+        FROM par_limpeza_modelo 
+        WHERE unidadeID = ?
+        ORDER BY nome ASC`
         const [result] = await db.promise().query(sql, [unidadeID])
 
         return res.json(result);
