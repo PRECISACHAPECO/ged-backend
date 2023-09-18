@@ -14,7 +14,7 @@ class FabricaController {
                     WHEN 10 THEN 'Pendente'
                     WHEN 20 THEN 'Acessou o link'
                     WHEN 30 THEN 'Em preenchimento'
-                    WHEN 40 THEN 'Fornecedor concluiu preenchimento'
+                    WHEN 40 THEN 'Finalizou preenchimento'
                 END AS nome_status,
                 COUNT(DISTINCT cnpj) AS total
             FROM

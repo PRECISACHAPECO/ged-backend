@@ -144,9 +144,11 @@ class FornecedorController {
                     IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,
                     IF(f.cidade <> '', CONCAT(f.cidade, '/', f.estado), '--') AS cidade,
                     IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,
-                    f.status
+                    e.nome AS status,
+                    e.cor
                 FROM fornecedor AS f
                     LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
+                    LEFT JOIN status AS e  ON(f.status = e.statusID)
                 WHERE f.unidadeID = ${unidadeID}
             ORDER BY f.fornecedorID DESC, f.status ASC`
             const [result] = await db.promise().query(sql)
