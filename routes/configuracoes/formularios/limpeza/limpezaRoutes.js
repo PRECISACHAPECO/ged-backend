@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const limpezaRoutes = Router();
 
-const LimpezaController = require('../../../../controllers/formularios/limpeza/limpezaController');
+const LimpezaController = require('../../../../controllers/configuracoes/formularios/limpeza/limpezaController');
 const limpezaController = new LimpezaController();
 
 const route = '/formularios/limpeza';

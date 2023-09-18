@@ -25,6 +25,10 @@ routes.use(urlBase, recebimentoMpRouter);
 const naoConformidadeRouter = require("./formularios/recebimento-mp/nao-conformidade/naoConformidadeRoutes");
 routes.use(urlBase, naoConformidadeRouter);
 
+// Limpeza
+const limpezaRouter = require("./formularios/limpeza/limpezaRoutes");
+routes.use(urlBase, limpezaRouter);
+
 // Cadastros 
 const atividadeRouter = require("./cadastros/atividade/atividadeRoutes");
 const itemRouter = require("./cadastros/item/itemRoutes");
