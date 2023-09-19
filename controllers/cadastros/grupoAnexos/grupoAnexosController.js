@@ -12,10 +12,17 @@ class GrupoAnexosController {
             }
 
             const sqlGetGrupoAnexos = `
-            SELECT grupoanexoID AS id, a.nome, a.status, a.descricao
+            SELECT 
+                grupoanexoID AS id, 
+                a.nome, 
+                e.nome AS status,
+                e.cor,
+                a.descricao
             FROM grupoanexo AS a 
+                LEFT JOIN status AS e ON (a.status = e.statusID)
             WHERE a.unidadeID = ?
-            ORDER BY a.nome ASC`
+            ORDER BY a.nome ASC
+            `
             const [resultSqlGetGrupoAnexos] = await db.promise().query(sqlGetGrupoAnexos, [unidadeID]);
             return res.status(200).json(resultSqlGetGrupoAnexos)
         }

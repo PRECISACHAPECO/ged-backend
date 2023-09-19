@@ -6,13 +6,16 @@ class ItemController {
         try {
             const sqlGetList = `
             SELECT 
-                itemID AS id, 
-                a.nome, 
-                a.status, 
-            b.nome AS formulario 
-            FROM item AS a 
-            LEFT JOIN par_formulario b ON (a.parFormularioID = b.parFormularioID) 
-            ORDER BY b.parFormularioID ASC, a.itemID ASC`
+            itemID AS id, 
+            a.nome, 
+            e.nome AS status,
+            e.cor,
+        b.nome AS formulario 
+        FROM item AS a 
+        LEFT JOIN par_formulario b ON (a.parFormularioID = b.parFormularioID) 
+        JOIN status e ON (a.status = e.statusID)
+        ORDER BY b.parFormularioID ASC, a.itemID ASC
+            `
             const resultSqlGetList = await db.promise().query(sqlGetList)
             return res.status(200).json(resultSqlGetList[0])
         } catch (error) {

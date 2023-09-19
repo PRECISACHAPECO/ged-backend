@@ -14,11 +14,13 @@ class RecebimentoMpController {
             (SELECT COUNT(*)
             FROM recebimentomp_produto AS rp 
             WHERE rp.recebimentompID = rm.recebimentompID) AS totalProdutos,
-            rm.status 
+            e.nome AS status,
+            e.cor
         FROM recebimentomp AS rm
             LEFT JOIN fornecedor AS f ON (rm.fornecedorID = f.fornecedorID)
+            LEFT JOIN status as e ON (rm.status = e.statusID)
         WHERE rm.unidadeID = ?
-        ORDER BY rm.recebimentompID DESC, rm.status ASC`
+        ORDER BY rm.recebimentompID DESC, e.nome ASC`
         const [result] = await db.promise().query(sql, [unidadeID])
 
         res.status(200).json(result)

@@ -20,12 +20,14 @@ class NaoConformidadeController {
                 IF(MONTH(rn.dataEmissao) > 0, DATE_FORMAT(rn.dataEmissao, "%d/%m/%Y"), '--') AS data, 
                 IF(f.nome <> '', f.nome, '--') AS fornecedor, 
                 IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,            
-                rn.status 
+                e.nome AS status,
+                e.cor
             FROM recebimentomp_naoconformidade AS rn 
                 JOIN recebimentomp AS r ON (rn.recebimentompID = r.recebimentompID)    
-                LEFT JOIN fornecedor AS f ON (r.fornecedorID = f.fornecedorID)        
+                LEFT JOIN fornecedor AS f ON (r.fornecedorID = f.fornecedorID)      
+                LEFT JOIN status as e ON (rn.status = e.statusID)  
             WHERE rn.unidadeID = ?
-            ORDER BY rn.recebimentompNaoconformidadeID DESC, rn.status ASC`
+            ORDER BY rn.recebimentompNaoconformidadeID DESC, e.nome ASC`
             const [result] = await db.promise().query(sql, [unidadeID])
             return res.status(200).json(result)
         } else if (papelID === 2) { //* Fornecedor

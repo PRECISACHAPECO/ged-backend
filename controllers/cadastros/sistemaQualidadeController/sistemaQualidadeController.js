@@ -4,7 +4,15 @@ const { hasConflict, hasPending, deleteItem } = require('../../../config/default
 class SistemaQualidadeController {
     async getList(req, res) {
         try {
-            const getList = 'SELECT sistemaqualidadeID AS id, nome, status FROM sistemaqualidade'
+            const getList = `
+            SELECT 
+            a.sistemaqualidadeID AS id, 
+            a.nome, 
+            e.nome AS status,
+            e.cor
+            FROM sistemaqualidade AS a
+            LEFT JOIN status AS e ON (a.status = e.statusID)
+            `
             const [resultGetList] = await db.promise().query(getList);
             res.status(200).json(resultGetList);
         } catch (error) {
