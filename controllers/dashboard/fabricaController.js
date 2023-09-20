@@ -16,13 +16,10 @@ class FabricaController {
                 COUNT(DISTINCT b.cnpj) AS stats
             FROM
                 status AS a 
-                LEFT JOIN fornecedor AS b ON (a.statusID = b.status)
-            WHERE
-                b.unidadeID = ?
-                AND b.status IN (10, 20, 30, 40)
-                GROUP BY a.nome
-                ORDER BY a.statusID ASC
-            `
+                LEFT JOIN fornecedor AS b ON (a.statusID = b.status AND b.unidadeID = ?)
+            WHERE a.statusID IN (10, 20, 30, 40)
+            GROUP BY a.nome
+            ORDER BY a.statusID ASC`
             const [resultSqlTotalSupplier] = await db.promise().query(sqlTotalSupplier, [unidadeID])
 
             //? Traz o total de recebimentoBP agrupado por status
@@ -44,7 +41,7 @@ class FabricaController {
                         WHEN MONTH(r.data) = 12 THEN 'Dez'
                     END,
                     '/',
-                    YEAR(r.data)
+                    DATE_FORMAT(r.data, '%y')
                 ) AS month,
                 COUNT(*) AS mp,
                 (SELECT COUNT(*) 
