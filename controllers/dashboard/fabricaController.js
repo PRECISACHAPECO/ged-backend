@@ -55,16 +55,29 @@ class FabricaController {
             GROUP BY 
                 MONTH(r.data), YEAR(r.data)
             ORDER BY 
-                r.data ASC
-             `
+                r.data ASC`
             const [resultSqlTotalRecebimentoNC] = await db.promise().query(sqlTotalRecebimentoNC, [unidadeID])
 
-
-
+            //? Limpeza
+            const sqlLimpeza = `
+            SELECT 
+                lm.nome, 
+                lm.ciclo, 
+                DATE_FORMAT(MAX(l.data), '%d/%m/%Y') AS ultimo,	
+                DATE_FORMAT(DATE_ADD(MAX(l.data), INTERVAL lm.ciclo DAY), '%d/%m/%Y') AS limite,
+                DATEDIFF(DATE_ADD(MAX(l.data), INTERVAL lm.ciclo DAY), CURDATE()) AS diasRestantes,
+                (100 - ((DATEDIFF(DATE_ADD(MAX(l.data), INTERVAL lm.ciclo DAY), CURDATE()) * 100) / lm.ciclo)) AS porcentagem
+            FROM limpeza AS l 
+                JOIN par_limpeza_modelo AS lm ON (l.parLimpezaModeloID = lm.parLimpezaModeloID)
+            WHERE l.unidadeID = ? AND lm.status = 1
+            GROUP BY lm.parLimpezaModeloID
+            ORDER BY DATEDIFF(DATE_ADD(MAX(l.data), INTERVAL lm.ciclo DAY), CURDATE()) ASC`
+            const [resultSqlLimpeza] = await db.promise().query(sqlLimpeza, [unidadeID])
 
             const values = {
                 fornecedorPorStatus: resultSqlTotalSupplier,
-                totalRecebimentoNC: resultSqlTotalRecebimentoNC
+                totalRecebimentoNC: resultSqlTotalRecebimentoNC,
+                limpeza: resultSqlLimpeza
             }
             res.status(200).json(values)
         } catch (e) {
