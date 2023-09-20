@@ -15,9 +15,10 @@ class UsuarioController {
 
         //? Busca usuários da unidade e papel atual 
         const sql = `
-        SELECT u.usuarioID AS id, u.nome, u.cpf, u.dataNascimento, u.status 
+        SELECT u.usuarioID AS id, u.nome, u.cpf, u.dataNascimento, e.nome AS status , e.cor
         FROM usuario AS u
             JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
+            JOIN status AS e ON (u.status = e.statusID)
         WHERE uu.unidadeID = ? AND uu.papelID = ?
         ORDER BY u.status DESC, u.nome ASC`
         const [result] = await db.promise().query(sql, [unidadeID, papelID])

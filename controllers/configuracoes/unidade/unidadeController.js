@@ -8,9 +8,11 @@ class UnidadeController {
         try {
             const { admin, unidadeID, usuarioID } = req.query;
             const sqlGetList = `
-            SELECT unidadeID AS id, nomeFantasia AS nome, status
-            FROM unidade 
-            WHERE unidadeID > 0 `
+            SELECT 
+            a.unidadeID AS id, a.nomeFantasia AS nome, e.nome AS status, e.cor
+            FROM unidade AS a
+            JOIN status AS e ON (a.status = e.statusID)
+            WHERE unidadeID > 0`
             const [resultGetList] = await db.promise().query(sqlGetList)
             res.status(200).json(resultGetList);
         } catch (error) {
