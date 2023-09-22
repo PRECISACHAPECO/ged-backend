@@ -3,6 +3,7 @@ const { hasConflict, hasPending, deleteItem } = require('../../../config/default
 
 class ItemController {
     async getList(req, res) {
+        const { unidadeID } = req.params
         try {
             const sqlGetList = `
             SELECT 
@@ -14,9 +15,10 @@ class ItemController {
         FROM item AS a 
         LEFT JOIN par_formulario b ON (a.parFormularioID = b.parFormularioID) 
         JOIN status e ON (a.status = e.statusID)
+        WHERE a.unidadeID = ?
         ORDER BY b.parFormularioID ASC, a.itemID ASC
             `
-            const resultSqlGetList = await db.promise().query(sqlGetList)
+            const resultSqlGetList = await db.promise().query(sqlGetList, [unidadeID])
             return res.status(200).json(resultSqlGetList[0])
         } catch (error) {
             console.log(error)
@@ -101,8 +103,8 @@ class ItemController {
             }
 
             // //? Insere novo item
-            const sqlInsert = `INSERT INTO item (nome, status, parFormularioID) VALUES (?, ?, ?)`
-            const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, (values.fields.status ? '1' : '0'), values.formulario.fields.id])
+            const sqlInsert = `INSERT INTO item (nome, status, parFormularioID, unidadeID) VALUES (?, ?, ?, ?)`
+            const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, (values.fields.status ? '1' : '0'), values.formulario.fields.id, values.unidadeID])
             const id = resultInsert.insertId
 
             return res.status(200).json(id)
