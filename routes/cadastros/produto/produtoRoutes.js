@@ -6,7 +6,7 @@ const produtoController = new ProdutoController();
 
 const route = '/produto';
 
-produtoRoutes.get(`${route}`, produtoController.getList);
+produtoRoutes.get(`${route}/:unidadeID`, produtoController.getList);
 
 produtoRoutes.post(`${route}/getData/:id`, produtoController.getData);
 produtoRoutes.post(`${route}/updateData/:id`, produtoController.updateData);
