@@ -6,7 +6,7 @@ const itemController = new ItemController();
 
 const route = '/item';
 
-itemRoutes.get(`${route}`, itemController.getList);
+itemRoutes.get(`${route}/:unidadeID`, itemController.getList);
 
 itemRoutes.post(`${route}/getData/:id`, itemController.getData);
 itemRoutes.post(`${route}/updateData/:id`, itemController.updateData);

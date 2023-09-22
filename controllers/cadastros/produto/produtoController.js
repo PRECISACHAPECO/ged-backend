@@ -1,7 +1,7 @@
 const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
 
-class ItemController {
+class ProdutoController {
     async getList(req, res) {
         const { unidadeID } = req.params
         try {
@@ -171,4 +171,4 @@ class ItemController {
 
 }
 
-module.exports = ItemController;
+module.exports = ProdutoController;
