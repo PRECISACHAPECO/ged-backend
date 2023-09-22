@@ -5,14 +5,13 @@ require('dotenv/config')
 
 class FornecedorController {
     async getList(req, res) {
-        console.log('getlist....')
         const { unidadeID } = req.params;
 
         if (!unidadeID) return res.status(400).json({ error: 'unidadeID não informado!' })
 
         const sql = `
-        SELECT parLimpezaModeloID AS id, nome, ciclo, status
-        FROM par_limpeza_modelo 
+        SELECT parFornecedorModeloID AS id, nome, ciclo, status
+        FROM par_fornecedor_modelo 
         WHERE unidadeID = ?
         ORDER BY nome ASC`
         const [result] = await db.promise().query(sql, [unidadeID])
@@ -21,65 +20,65 @@ class FornecedorController {
     }
 
     async getData(req, res) {
-        const { id } = req.body;
+        const { id, unidadeID } = req.body;
         try {
             if (!id || id == 'undefined') { return res.json({ message: 'Sem ID recebido!' }) }
 
             //? Model
             const sql = `
             SELECT * 
-            FROM par_limpeza_modelo
-            WHERE parLimpezaModeloID = ?`
+            FROM par_fornecedor_modelo
+            WHERE parFornecedorModeloID = ?`
             const [resultModel] = await db.promise().query(sql, [id])
 
             //? Header
             const sqlHeader = `
-            SELECT pl.*, 
+            SELECT pf.*, 
                 (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM par_limpeza_modelo AS plm 
-                    JOIN par_limpeza_modelo_cabecalho AS plmc ON (plmc.parLimpezaID = pl.parLimpezaID AND plm.parLimpezaModeloID = plmc.parLimpezaModeloID)
-                WHERE plm.parLimpezaModeloID = ?
+                FROM par_fornecedor_modelo AS pfm 
+                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
+                WHERE pfm.parFornecedorModeloID = ?
                 LIMIT 1
                 ) AS mostra, 
                 
-                COALESCE((SELECT plmc.obrigatorio
-                FROM par_limpeza_modelo AS plm 
-                    JOIN par_limpeza_modelo_cabecalho AS plmc ON (plmc.parLimpezaID = pl.parLimpezaID AND plm.parLimpezaModeloID = plmc.parLimpezaModeloID)
-                WHERE plm.parLimpezaModeloID = ?
+                COALESCE((SELECT pfmc.obrigatorio
+                FROM par_fornecedor_modelo AS pfm 
+                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
+                WHERE pfm.parFornecedorModeloID = ?
                 LIMIT 1
                 ), 0) AS obrigatorio
 
-            FROM par_limpeza AS pl`;
+            FROM par_fornecedor AS pf`;
             const [resultHeader] = await db.promise().query(sqlHeader, [id, id]);
 
             //? Blocks
             const blocks = [];
-            const sqlBlock = `SELECT * FROM par_limpeza_modelo_bloco WHERE parLimpezaModeloID = ? ORDER BY ordem ASC`;
+            const sqlBlock = `SELECT * FROM par_fornecedor_modelo_bloco WHERE parFornecedorModeloID = ? ORDER BY ordem ASC`;
             const [resultBlock] = await db.promise().query(sqlBlock, [id]);
 
             const sqlItem = `
-            SELECT i.*, plmbi.*, a.nome AS alternativa, 
+            SELECT i.*, pfmbi.*, a.nome AS alternativa, 
                 (SELECT IF(COUNT(*) > 0, 1, 0)
                 FROM fornecedor_resposta AS fr 
-                WHERE fr.parFornecedorBlocoID = plmbi.parLimpezaModeloBlocoID AND fr.itemID = plmbi.itemID) AS hasPending
-            FROM par_limpeza_modelo_bloco_item AS plmbi 
-                LEFT JOIN item AS i ON (plmbi.itemID = i.itemID)
-                LEFT JOIN alternativa AS a ON (plmbi.alternativaID = a.alternativaID)
-            WHERE plmbi.parLimpezaModeloBlocoID = ?
-            ORDER BY plmbi.ordem ASC`
+                WHERE fr.parFornecedorBlocoID = pfmbi.parFornecedorModeloBlocoID AND fr.itemID = pfmbi.itemID) AS hasPending
+            FROM par_fornecedor_modelo_bloco_item AS pfmbi 
+                LEFT JOIN item AS i ON (pfmbi.itemID = i.itemID)
+                LEFT JOIN alternativa AS a ON (pfmbi.alternativaID = a.alternativaID)
+            WHERE pfmbi.parFornecedorModeloBlocoID = ?
+            ORDER BY pfmbi.ordem ASC`
 
             //? Options
-            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 4 AND status = 1 ORDER BY nome ASC`;
+            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 1 AND unidadeID = ? AND status = 1 ORDER BY nome ASC`;
             const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
-            const [resultItem] = await db.promise().query(sqlOptionsItem);
+            const [resultItem] = await db.promise().query(sqlOptionsItem, [unidadeID]);
             const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
             const objOptionsBlock = {
-                itens: resultItem,
+                itens: resultItem ?? [],
                 alternativas: resultAlternativa
             };
 
             for (const item of resultBlock) {
-                const [resultItem] = await db.promise().query(sqlItem, [item.parLimpezaModeloBlocoID])
+                const [resultItem] = await db.promise().query(sqlItem, [item.parFornecedorModeloBlocoID])
 
                 for (const item of resultItem) {
                     if (item) {
@@ -97,7 +96,7 @@ class FornecedorController {
 
                 const objData = {
                     dados: item,
-                    itens: resultItem,
+                    itens: resultItem ?? [],
                     optionsBlock: objOptionsBlock
                 };
 
@@ -106,12 +105,12 @@ class FornecedorController {
 
             //? Options
             const objOptions = {
-                itens: resultItem,
+                itens: resultItem ?? [],
                 alternativas: resultAlternativa
             };
 
             //? Orientações
-            const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 4`;
+            const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 1`;
             const [resultOrientacoes] = await db.promise().query(sqlOrientacoes)
 
             const result = {
@@ -136,9 +135,9 @@ class FornecedorController {
 
             //? Model
             const sqlModel = `
-            UPDATE par_limpeza_modelo
+            UPDATE par_fornecedor_modelo
             SET nome = ?, ciclo = ?, status = ?
-            WHERE parLimpezaModeloID = ?`
+            WHERE parFornecedorModeloID = ?`
             const [resultModel] = await db.promise().query(sqlModel, [model.nome, model.ciclo, (model.status ? 1 : 0), id])
 
             //? Header
@@ -147,27 +146,27 @@ class FornecedorController {
                     // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
                     const sqlHeader = `
                     SELECT COUNT(*) AS count
-                    FROM par_limpeza_modelo_cabecalho AS plmc
-                    WHERE plmc.parLimpezaModeloID = ? AND plmc.parLimpezaID = ?`
+                    FROM par_fornecedor_modelo_cabecalho AS plmc
+                    WHERE plmc.parFornecedorModeloID = ? AND plmc.parFornecedorID = ?`
                     // Verifica numero de linhas do sql 
-                    const [resultHeader] = await db.promise().query(sqlHeader, [id, item.parLimpezaID])
+                    const [resultHeader] = await db.promise().query(sqlHeader, [id, item.parFornecedorID])
                     if (resultHeader[0].count === 0) { // Insert
                         const sqlInsert = `
-                        INSERT INTO par_limpeza_modelo_cabecalho (parLimpezaModeloID, parLimpezaID, obrigatorio)
+                        INSERT INTO par_fornecedor_modelo_cabecalho (parFornecedorModeloID, parFornecedorID, obrigatorio)
                         VALUES (?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parLimpezaID, (item.obrigatorio ? 1 : 0)]);
+                        const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parFornecedorID, (item.obrigatorio ? 1 : 0)]);
                     } else {                            // Update
                         const sqlUpdate = `
-                        UPDATE par_limpeza_modelo_cabecalho
+                        UPDATE par_fornecedor_modelo_cabecalho
                         SET obrigatorio = ?
-                        WHERE parLimpezaModeloID = ? AND parLimpezaID = ?`
-                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? 1 : 0), id, item.parLimpezaID]);
+                        WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
+                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? 1 : 0), id, item.parFornecedorID]);
                     }
                 } else if (item) { // Deleta
                     const sqlDelete = `
-                    DELETE FROM par_limpeza_modelo_cabecalho
-                    WHERE parLimpezaModeloID = ? AND parLimpezaID = ?`
-                    const [resultDelete] = await db.promise().query(sqlDelete, [id, item.parLimpezaID])
+                    DELETE FROM par_fornecedor_modelo_cabecalho
+                    WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
+                    const [resultDelete] = await db.promise().query(sqlDelete, [id, item.parFornecedorID])
                 }
             })
 
@@ -175,11 +174,11 @@ class FornecedorController {
             arrRemovedBlocks && arrRemovedBlocks.forEach(async (block) => {
                 if (block && block > 0) {
                     // Blocos
-                    const sqlDeleteBlock = `DELETE FROM par_limpeza_modelo_bloco WHERE parLimpezaModeloBlocoID = ?`
+                    const sqlDeleteBlock = `DELETE FROM par_fornecedor_modelo_bloco WHERE parFornecedorModeloBlocoID = ?`
                     const [resultDeleteBlock] = await db.promise().query(sqlDeleteBlock, [block])
 
                     // Itens do bloco
-                    const sqlDeleteBlockItems = `DELETE FROM par_limpeza_modelo_bloco_item WHERE parLimpezaModeloBlocoID = ?`
+                    const sqlDeleteBlockItems = `DELETE FROM par_fornecedor_modelo_bloco_item WHERE parFornecedorModeloBlocoID = ?`
                     const [resultDeleteBlockItems] = await db.promise().query(sqlDeleteBlockItems, [block])
                 }
             })
@@ -187,32 +186,32 @@ class FornecedorController {
             //? Itens removidos dos blocos 
             arrRemovedItems && arrRemovedItems.forEach(async (item) => {
                 if (item) {
-                    const sqlDelete = `DELETE FROM par_limpeza_modelo_bloco_item WHERE parLimpezaModeloBlocoItemID = ?`
-                    const [resultDelete] = await db.promise().query(sqlDelete, [item.parLimpezaModeloBlocoItemID])
+                    const sqlDelete = `DELETE FROM par_fornecedor_modelo_bloco_item WHERE parFornecedorModeloBlocoItemID = ?`
+                    const [resultDelete] = await db.promise().query(sqlDelete, [item.parFornecedorModeloBlocoItemID])
                 }
             })
 
             //? Blocos 
             blocks && blocks.forEach(async (block, index) => {
                 if (block) {
-                    if (block.dados.parLimpezaModeloBlocoID && parseInt(block.dados.parLimpezaModeloBlocoID) > 0) {
+                    if (block.dados.parFornecedorModeloBlocoID && parseInt(block.dados.parFornecedorModeloBlocoID) > 0) {
                         //? Bloco já existe, Update
                         const sqlUpdateBlock = `
-                        UPDATE par_limpeza_modelo_bloco
+                        UPDATE par_fornecedor_modelo_bloco
                         SET ordem = ?, nome = ?, obs = ?, status = ?
-                        WHERE parLimpezaModeloBlocoID = ?`
+                        WHERE parFornecedorModeloBlocoID = ?`
                         const [resultUpdateBlock] = await db.promise().query(sqlUpdateBlock, [
                             block.dados.ordem,
                             block.dados.nome,
                             (block.dados.obs ? 1 : 0),
                             (block.dados.status ? 1 : 0),
-                            block.dados.parLimpezaModeloBlocoID
+                            block.dados.parFornecedorModeloBlocoID
                         ])
                         if (resultUpdateBlock.length === 0) { return res.json(err); }
                     } else {
                         //? Bloco novo, Insert
                         const sqlNewBlock = `
-                        INSERT INTO par_limpeza_modelo_bloco(parLimpezaModeloID, ordem, nome, obs, unidadeID, status) 
+                        INSERT INTO par_fornecedor_modelo_bloco(parFornecedorModeloID, ordem, nome, obs, unidadeID, status) 
                         VALUES (?, ?, ?, ?, ?, ?)`
                         const [resultNewBlock] = await db.promise().query(sqlNewBlock, [
                             id,
@@ -223,17 +222,16 @@ class FornecedorController {
                             (block.dados.status ? 1 : 0)
                         ])
                         if (resultNewBlock.length === 0) { return res.json(err); }
-                        block.dados.parLimpezaModeloBlocoID = resultNewBlock.insertId //? parLimpezaModeloBlocoID que acabou de ser gerado
+                        block.dados.parFornecedorModeloBlocoID = resultNewBlock.insertId //? parFornecedorModeloBlocoID que acabou de ser gerado
                     }
 
                     //? Itens 
                     block.itens && block.itens.forEach(async (item, indexItem) => {
-                        if (item && item.parLimpezaModeloBlocoItemID && item.parLimpezaModeloBlocoItemID > 0) { //? Update                                
-                            console.log('update item: ', item.item.id, item.item.nome)
+                        if (item && item.parFornecedorModeloBlocoItemID && item.parFornecedorModeloBlocoItemID > 0) { //? Update                                
                             const sqlUpdate = `
-                            UPDATE par_limpeza_modelo_bloco_item
+                            UPDATE par_fornecedor_modelo_bloco_item
                             SET ordem = ?, ${item.item.id ? 'itemID = ?, ' : ''} ${item.alternativa.id ? 'alternativaID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
-                            WHERE parLimpezaModeloBlocoItemID = ?`
+                            WHERE parFornecedorModeloBlocoItemID = ?`
                             const [resultUpdate] = await db.promise().query(sqlUpdate, [
                                 item.ordem,
                                 ...(item.item.id ? [item.item.id] : []),
@@ -241,22 +239,21 @@ class FornecedorController {
                                 (item.obs ? 1 : 0),
                                 (item.obrigatorio ? 1 : 0),
                                 (item.status ? 1 : 0),
-                                item.parLimpezaModeloBlocoItemID
+                                item.parFornecedorModeloBlocoItemID
                             ])
-                        } else if (item && item.new && !item.parLimpezaModeloBlocoItemID) { //? Insert                            
-                            console.log('insert new item: ', item.item.id, item.item.nome)
+                        } else if (item && item.new && !item.parFornecedorModeloBlocoItemID) { //? Insert                            
                             // Valida duplicidade do item 
                             const sqlItem = `
                             SELECT COUNT(*) AS count
-                            FROM par_limpeza_modelo_bloco_item AS plmbi
-                            WHERE plmbi.parLimpezaModeloBlocoID = ? AND plmbi.itemID = ? AND plmbi.alternativaID = ?`
-                            const [resultItem] = await db.promise().query(sqlItem, [block.dados.parLimpezaModeloBlocoID, item.item.id, item.alternativa.id])
+                            FROM par_fornecedor_modelo_bloco_item AS plmbi
+                            WHERE plmbi.parFornecedorModeloBlocoID = ? AND plmbi.itemID = ? AND plmbi.alternativaID = ?`
+                            const [resultItem] = await db.promise().query(sqlItem, [block.dados.parFornecedorModeloBlocoID, item.item.id, item.alternativa.id])
                             if (resultItem[0].count === 0) {  // Pode inserir
                                 const sqlInsert = `
-                                INSERT INTO par_limpeza_modelo_bloco_item (parLimpezaModeloBlocoID, ordem, itemID, alternativaID, obs, obrigatorio, status)
+                                INSERT INTO par_fornecedor_modelo_bloco_item (parFornecedorModeloBlocoID, ordem, itemID, alternativaID, obs, obrigatorio, status)
                                 VALUES (?, ?, ?, ?, ?, ?, ?)`
                                 const [resultInsert] = await db.promise().query(sqlInsert, [
-                                    block.dados.parLimpezaModeloBlocoID,
+                                    block.dados.parFornecedorModeloBlocoID,
                                     item.ordem,
                                     item.item.id,
                                     item.alternativa.id,
@@ -274,7 +271,7 @@ class FornecedorController {
             const sqlOrientacoes = `
             UPDATE par_formulario
             SET obs = ? 
-            WHERE parFormularioID = 4`
+            WHERE parFormularioID = 1`
             const [resultOrientacoes] = await db.promise().query(sqlOrientacoes, [orientacoes?.obs])
 
             res.status(200).json({ message: "Dados atualizados com sucesso." });

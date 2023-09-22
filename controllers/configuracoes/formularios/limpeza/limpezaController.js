@@ -20,7 +20,7 @@ class LimpezaController {
     }
 
     async getData(req, res) {
-        const { id } = req.body;
+        const { id, unidadeID } = req.body;
         try {
             if (!id || id == 'undefined') { return res.json({ message: 'Sem ID recebido!' }) }
 
@@ -68,9 +68,9 @@ class LimpezaController {
             ORDER BY plmbi.ordem ASC`
 
             //? Options
-            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 4 AND status = 1 ORDER BY nome ASC`;
+            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 4 AND unidadeID = ? AND status = 1 ORDER BY nome ASC`;
             const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
-            const [resultItem] = await db.promise().query(sqlOptionsItem);
+            const [resultItem] = await db.promise().query(sqlOptionsItem, [unidadeID]);
             const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
             const objOptionsBlock = {
                 itens: resultItem,
