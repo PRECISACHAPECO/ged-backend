@@ -7,16 +7,15 @@ class ProdutoController {
         try {
             const sqlGetList = `
             SELECT 
-            itemID AS id, 
-            a.nome, 
-            e.nome AS status,
-            e.cor,
-        b.nome AS formulario 
-        FROM item AS a 
-        LEFT JOIN par_formulario b ON (a.parFormularioID = b.parFormularioID) 
-        JOIN status e ON (a.status = e.statusID)
-        WHERE a.unidadeID = ?
-        ORDER BY b.parFormularioID ASC, a.itemID ASC
+            a.produtoID AS id,
+            a.nome,
+            b.nome AS unidadeMedida,
+            c.nome as status,
+            c.cor
+            FROM produto AS a 
+            JOIN unidademedida AS b ON (a.unidadeMedidaID = b.unidadeMedidaID)
+            JOIN status AS c ON (a.status =  c.statusID)
+            WHERE a.unidadeID = ?
             `
             const resultSqlGetList = await db.promise().query(sqlGetList, [unidadeID])
             return res.status(200).json(resultSqlGetList[0])
@@ -28,35 +27,29 @@ class ProdutoController {
     async getData(req, res) {
         try {
             const { id } = req.params;
-            const sqlData = `SELECT * FROM item WHERE itemID = ?`
+            const sqlData = `SELECT * FROM produto WHERE produtoID = ?`
             const [resultData] = await db.promise().query(sqlData, id);
 
             if (!resultData || resultData.length === 0) return res.status(404).json({ error: "Nenhum dado encontrado." })
 
-            const sqlFormulario = `
-            SELECT pf.nome, pf.parFormularioID AS id
-            FROM item AS gp 
-                JOIN par_formulario AS pf ON (gp.parFormularioID = pf.parFormularioID)
-            WHERE gp.itemID = ?`
-            const [resultFormulario] = await db.promise().query(sqlFormulario, [id]);
+            const sqlUnidadeMedida = `
+            SELECT 
+                pf.nome, 
+                pf.unidadeMedidaID AS id
+            FROM produto AS gp 
+            JOIN unidademedida AS pf ON (gp.unidadeMedidaID  = pf.unidadeMedidaID )
+                WHERE gp.produtoID = ?;
+            `
+            const [resultUnidadeMedida] = await db.promise().query(sqlUnidadeMedida, [id]);
 
-            const sqlOptionsFormulario = `SELECT nome, parFormularioID AS id FROM par_formulario`
-            const [resultOptionsFormulario] = await db.promise().query(sqlOptionsFormulario);
-
-            const sqlItens = `
-            SELECT grupoanexoitemID AS id, nome, descricao, obrigatorio, status,
-                (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM anexo AS a 
-                WHERE a.grupoAnexoItemID = grupoanexo_item.grupoanexoitemID) AS hasPending
-            FROM grupoanexo_item 
-            WHERE grupoanexoID = ?`
-            const [resultItens] = await db.promise().query(sqlItens, [id]);
+            const sqlOptionsUnidadeMedida = `SELECT nome, unidadeMedidaID AS id FROM unidademedida`
+            const [resultOptionsUnidadeMedida] = await db.promise().query(sqlOptionsUnidadeMedida);
 
             const result = {
                 fields: resultData[0],
-                formulario: {
-                    fields: resultFormulario[0],
-                    options: resultOptionsFormulario
+                unidadeMedida: {
+                    fields: resultUnidadeMedida[0],
+                    options: resultOptionsUnidadeMedida
                 },
             };
             res.status(200).json(result);
@@ -68,14 +61,14 @@ class ProdutoController {
 
     async getNewData(req, res) {
         try {
-            const sqlForms = 'SELECT parFormularioID AS id, nome FROM par_formulario'
+            const sqlForms = 'SELECT nome, unidadeMedidaID AS id FROM unidademedida'
             const [resultForms] = await db.promise().query(sqlForms)
 
             const result = {
                 fields: {
                     status: true
                 },
-                formulario: {
+                unidadeMedida: {
                     fields: null,
                     options: resultForms
                 },
@@ -91,11 +84,11 @@ class ProdutoController {
         try {
             const values = req.body
 
-            //* Valida conflito
+            // //* Valida conflito
             const validateConflicts = {
-                columns: ['nome', 'parFormularioID'],
-                values: [values.fields.nome, values.formulario.fields.id],
-                table: 'item',
+                columns: ['nome'],
+                values: [values.fields.nome],
+                table: 'produto',
                 id: null
             }
             if (await hasConflict(validateConflicts)) {
@@ -103,8 +96,8 @@ class ProdutoController {
             }
 
             // //? Insere novo item
-            const sqlInsert = `INSERT INTO item (nome, status, parFormularioID, unidadeID) VALUES (?, ?, ?, ?)`
-            const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, (values.fields.status ? '1' : '0'), values.formulario.fields.id, values.unidadeID])
+            const sqlInsert = `INSERT INTO produto (nome, status, unidadeMedidaID, unidadeID) VALUES (?, ?, ?, ?)`
+            const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, (values.fields.status ? '1' : '0'), values.unidadeMedida.fields.id, values.unidadeID])
             const id = resultInsert.insertId
 
             return res.status(200).json(id)
@@ -122,9 +115,9 @@ class ProdutoController {
 
             //* Valida conflito
             const validateConflicts = {
-                columns: ['itemID', 'nome', 'parFormularioID'],
-                values: [id, values.fields.nome, values.formulario.fields.id],
-                table: 'item',
+                columns: ['nome'],
+                values: [values.fields.nome],
+                table: 'produto',
                 id: id
             }
             if (await hasConflict(validateConflicts)) {
@@ -132,9 +125,7 @@ class ProdutoController {
             }
 
             //? Atualiza item
-            console.log("🚀 ~ values:", values)
-            console.log("🚀 ~ id:", id)
-            const sqlUpdate = `UPDATE item SET nome = ?, parFormularioID = ?,  status = ? WHERE itemID = ?`;
+            const sqlUpdate = `UPDATE produto SET nome = ?, unidadeMedidaID = ?,  status = ? WHERE produtoID = ?`;
             const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.formulario.fields.id, (values.fields.status ? '1' : '0'), id]);
 
             return res.status(200).json({ message: 'Dados atualizados com sucesso!' })
@@ -146,10 +137,10 @@ class ProdutoController {
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: ['item'],
-            column: 'itemID'
+            table: ['produto'],
+            column: 'produtoID'
         }
-        const tablesPending = ['fornecedor_resposta', 'par_fornecedor_bloco_item', 'par_recebimentomp_bloco_item', 'recebimentomp_resposta'] // Tabelas que possuem relacionamento com a tabela atual
+        const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
 
         if (!tablesPending || tablesPending.length === 0) {
             return deleteItem(id, objModule.table, objModule.column, res)
