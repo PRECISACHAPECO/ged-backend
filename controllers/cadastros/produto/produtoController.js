@@ -42,11 +42,17 @@ class ProdutoController {
             `
             const [resultUnidadeMedida] = await db.promise().query(sqlUnidadeMedida, [id]);
 
+            const sqlAnexos = 'SELECT * FROM produto_anexo WHERE produtoID = ?'
+
+            const [resulAnexos] = await db.promise().query(sqlAnexos, [id]);
+
+
             const sqlOptionsUnidadeMedida = `SELECT nome, unidadeMedidaID AS id FROM unidademedida`
             const [resultOptionsUnidadeMedida] = await db.promise().query(sqlOptionsUnidadeMedida);
 
             const result = {
                 fields: resultData[0],
+                anexos: resulAnexos,
                 unidadeMedida: {
                     fields: resultUnidadeMedida[0],
                     options: resultOptionsUnidadeMedida
@@ -68,6 +74,7 @@ class ProdutoController {
                 fields: {
                     status: true
                 },
+                anexos: [{}],
                 unidadeMedida: {
                     fields: null,
                     options: resultForms
@@ -84,10 +91,10 @@ class ProdutoController {
         try {
             const values = req.body
 
-            // //* Valida conflito
+            //* Valida conflito
             const validateConflicts = {
-                columns: ['nome'],
-                values: [values.fields.nome],
+                columns: ['nome', 'unidadeID', 'unidadeMedidaID'],
+                values: [values.fields.nome, values.unidadeID, values.unidadeMedida.fields.id],
                 table: 'produto',
                 id: null
             }
@@ -115,8 +122,8 @@ class ProdutoController {
 
             //* Valida conflito
             const validateConflicts = {
-                columns: ['nome'],
-                values: [values.fields.nome],
+                columns: ['produtoID', 'nome', 'unidadeID', 'unidadeMedidaID'],
+                values: [id, values.fields.nome, values.unidadeID, values.unidadeMedida.fields.id],
                 table: 'produto',
                 id: id
             }
@@ -125,8 +132,8 @@ class ProdutoController {
             }
 
             //? Atualiza item
-            const sqlUpdate = `UPDATE produto SET nome = ?, unidadeMedidaID = ?,  status = ? WHERE produtoID = ?`;
-            const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.formulario.fields.id, (values.fields.status ? '1' : '0'), id]);
+            const sqlUpdate = `UPDATE produto SET nome = ?, unidadeMedidaID = ?, status = ? WHERE produtoID = ?`;
+            const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.unidadeMedida.fields.id, (values.fields.status ? '1' : '0'), id]);
 
             return res.status(200).json({ message: 'Dados atualizados com sucesso!' })
         } catch (error) {
