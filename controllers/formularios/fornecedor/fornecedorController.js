@@ -751,16 +751,14 @@ class FornecedorController {
 
         // Verifica se já possui formulário preenchido pra minha empresa
         const sqlFormulario = `
-        SELECT nome, email
+        SELECT *
         FROM fornecedor
         WHERE unidadeID = ? AND cnpj = ? `
         const [resultFormulario] = await db.promise().query(sqlFormulario, [unidadeID, cnpj])
 
         const result = {
             isFornecedor: resultFornecedor.length > 0 ? true : false,
-            hasFormulario: resultFormulario.length > 0 ? true : false,
-            nomeFornecedor: resultFormulario[0]?.nome,
-            email: resultFormulario[0]?.email
+            fornecedor: resultFormulario[0]
         }
 
         res.status(200).json(result);
