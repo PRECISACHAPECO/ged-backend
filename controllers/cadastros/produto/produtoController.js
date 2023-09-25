@@ -44,7 +44,7 @@ class ProdutoController {
 
             const sqlAnexos = 'SELECT * FROM produto_anexo WHERE produtoID = ?'
 
-            const [resulAnexos] = await db.promise().query(sqlAnexos, [id]);
+            const [resultAnexos] = await db.promise().query(sqlAnexos, [id]);
 
 
             const sqlOptionsUnidadeMedida = `SELECT nome, unidadeMedidaID AS id FROM unidademedida`
@@ -52,7 +52,7 @@ class ProdutoController {
 
             const result = {
                 fields: resultData[0],
-                anexos: resulAnexos,
+                anexos: resultAnexos,
                 unidadeMedida: {
                     fields: resultUnidadeMedida[0],
                     options: resultOptionsUnidadeMedida
@@ -74,7 +74,7 @@ class ProdutoController {
                 fields: {
                     status: true
                 },
-                anexos: [{}],
+                anexos: [],
                 unidadeMedida: {
                     fields: null,
                     options: resultForms
@@ -107,6 +107,14 @@ class ProdutoController {
             const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, (values.fields.status ? '1' : '0'), values.unidadeMedida.fields.id, values.unidadeID])
             const id = resultInsert.insertId
 
+            //? Adiciona anexos
+            if (values.anexos.length > 0) {
+                const sqlInsertAnexo = 'INSERT INTO produto_anexo (nome, descricao, obrigatorio, status, produtoID) VALUES (?, ?, ?, ?, ?)'
+                values.anexos.map(async (item) => {
+                    const [resultInsertAnexo] = await db.promise().query(sqlInsertAnexo, [item.nome, item.descricao, item.obrigatorio ? '1' : '0', item.status ? '1' : '0', id])
+                })
+            }
+
             return res.status(200).json(id)
         } catch (error) {
             console.log(error)
@@ -131,9 +139,32 @@ class ProdutoController {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
-            //? Atualiza item
+            //? Atualiza produto
             const sqlUpdate = `UPDATE produto SET nome = ?, unidadeMedidaID = ?, status = ? WHERE produtoID = ?`;
             const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.unidadeMedida.fields.id, (values.fields.status ? '1' : '0'), id]);
+
+
+            //? Insere ou atualiza anexos
+            if (values.anexos.length > 0) {
+                values.anexos.map(async (item) => {
+                    if (item && item.produtoAnexoID > 0) { //? Já existe, atualiza
+                        console.log("ja exisate", item.produtoAnexoID)
+                        const sqlUpdateItem = `UPDATE produto_anexo SET nome = ?, descricao = ?, status = ?, obrigatorio = ? WHERE produtoAnexoID = ?`
+                        const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [item.nome, item.descricao, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0'), item.produtoAnexoID])
+                    } else if (item && !item.produtoAnexoID) {                   //? Novo, insere
+                        console.log("ainda não existe", item.produtoAnexoID)
+                        const sqlInsertItem = `INSERT INTO produto_anexo (nome, descricao, produtoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?)`
+                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [item.nome, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')])
+                    }
+                })
+            }
+
+
+            if (values.removedItems.length > 0) {
+                const sqlDeleteAnexos = `DELETE FROM produto_anexo WHERE produtoAnexoID IN (${values.removedItems.join(',')})`
+                const [resultDeleteAnexos] = await db.promise().query(sqlDeleteAnexos)
+
+            }
 
             return res.status(200).json({ message: 'Dados atualizados com sucesso!' })
         } catch (error) {
@@ -144,7 +175,7 @@ class ProdutoController {
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
-            table: ['produto'],
+            table: ['produto', 'produto_anexo'],
             column: 'produtoID'
         }
         const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
