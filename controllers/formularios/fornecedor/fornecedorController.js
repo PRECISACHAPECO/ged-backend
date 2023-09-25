@@ -188,12 +188,13 @@ class FornecedorController {
 
             //? obtém a unidadeID (fábrica) do formulário, pro formulário ter os campos de preenchimento de acordo com o configurado pra aquela fábrica.
             const sqlUnidade = `
-            SELECT f.unidadeID, u.nomeFantasia, f.cnpj
+            SELECT f.parFornecedorModeloID, f.unidadeID, u.nomeFantasia, f.cnpj
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
             WHERE f.fornecedorID = ? `
             const [resultFornecedor] = await db.promise().query(sqlUnidade, [id])
             const unidade = resultFornecedor[0]
+            const modeloID = resultFornecedor[0].parFornecedorModeloID
 
             //? obtém os dados da unidade do fornecedor (controle de notificações)
             const sqlUnidadeFornecedor = `
@@ -207,10 +208,10 @@ class FornecedorController {
             const sqlFields = `
             SELECT *
             FROM par_fornecedor AS pf 
-                LEFT JOIN par_fornecedor_unidade AS pfu ON(pf.parFornecedorID = pfu.parFornecedorID) 
-            WHERE pfu.unidadeID = ?
-            ORDER BY pf.ordem ASC`
-            const [resultFields] = await db.promise().query(sqlFields, [unidade.unidadeID])
+                LEFT JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pf.parFornecedorID = pfmc.parFornecedorID)
+            WHERE pfmc.parFornecedorModeloID = ? 
+            ORDER BY pfmc.ordem ASC`
+            const [resultFields] = await db.promise().query(sqlFields, [modeloID])
 
             // Varre fields, verificando se há tipo == 'int', se sim, busca opções pra selecionar no select 
             for (const alternatives of resultFields) {
@@ -258,48 +259,17 @@ class FornecedorController {
                 }
             }
 
-            // Categorias 
-            const sqlCategoria = `
-            SELECT c.categoriaID AS id, c.nome, c.status,
-                (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM fornecedor_categoria AS fc 
-                WHERE fc.categoriaID = c.categoriaID AND fc.fornecedorID = ?) AS checked
-            FROM categoria AS c
-            ORDER BY c.nome ASC`
-            const [resultCategoria] = await db.promise().query(sqlCategoria, [id])
-
-            // Atividades 
-            const sqlAtividade = `
-            SELECT a.atividadeID AS id, a.nome, a.status,
-                (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM fornecedor_atividade AS fa 
-                WHERE fa.atividadeID = a.atividadeID AND fa.fornecedorID = ?) AS checked
-            FROM atividade AS a 
-            ORDER BY a.nome ASC `
-            const [resultAtividade] = await db.promise().query(sqlAtividade, [id])
-
-            // Sistemas de qualidade 
-            const sqlSistemaQualidade = `
-            SELECT s.sistemaQualidadeID AS id, s.nome, s.status,
-                (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM fornecedor_sistemaqualidade AS fs
-                WHERE fs.sistemaQualidadeID = s.sistemaQualidadeID AND fs.fornecedorID = ?) AS checked
-            FROM sistemaqualidade AS s
-            ORDER BY s.nome ASC; `
-            const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id])
-            if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
-
             //* GRUPO DE ANEXOS
             const sqlFabricaFornecedorId = `
             SELECT *
-                FROM fabrica_fornecedor AS ff
+            FROM fabrica_fornecedor AS ff
             WHERE ff.unidadeID = ? AND ff.fornecedorCnpj = "${resultFornecedor[0].cnpj}" `;
             const [resultFabricaFornecedorId] = await db.promise().query(sqlFabricaFornecedorId, [unidade.unidadeID]);
 
             //? Grupo: pega os grupos de anexos solicitados pra esse fornecedor
             const sqlGrupoItens = `
             SELECT *
-                FROM fabrica_fornecedor_grupoanexo AS ffg
+            FROM fabrica_fornecedor_grupoanexo AS ffg
                 LEFT JOIN grupoanexo AS ga ON(ffg.grupoAnexoID = ga.grupoanexoID)
             WHERE ffg.fabricaFornecedorID = ? AND ga.status = 1`;
             const [resultGrupo] = await db.promise().query(sqlGrupoItens, [resultFabricaFornecedorId[0].fabricaFornecedorID]);
@@ -333,28 +303,20 @@ class FornecedorController {
 
             const sqlBlocos = `
             SELECT *
-                FROM par_fornecedor_bloco
-            WHERE unidadeID = ? AND status = 1
+            FROM par_fornecedor_modelo_bloco
+            WHERE parFornecedorModeloID = ? AND status = 1
             ORDER BY ordem ASC`
-            const [resultBlocos] = await db.promise().query(sqlBlocos, [unidade.unidadeID])
+            const [resultBlocos] = await db.promise().query(sqlBlocos, [modeloID])
 
             //? Blocos
             const sqlBloco = getSqlBloco()
             for (const bloco of resultBlocos) {
-                const [resultBloco] = await db.promise().query(sqlBloco, [id, id, id, bloco.parFornecedorBlocoID])
-
-                //? Categorias do bloco
-                const sqlCategorias = `SELECT categoriaID FROM par_fornecedor_bloco_categoria WHERE parFornecedorBlocoID = ? AND unidadeID = ? `
-                const [resultCategorias] = await db.promise().query(sqlCategorias, [bloco.parFornecedorBlocoID, unidade.unidadeID])
-
-                //? Atividades do bloco
-                const sqlAtividades = `SELECT atividadeID FROM par_fornecedor_bloco_atividade WHERE parFornecedorBlocoID = ? AND unidadeID = ? `
-                const [resultAtividades] = await db.promise().query(sqlAtividades, [bloco.parFornecedorBlocoID, unidade.unidadeID])
+                const [resultBloco] = await db.promise().query(sqlBloco, [id, id, id, bloco.parFornecedorModeloBlocoID])
 
                 //? Itens
                 for (const item of resultBloco) {
                     const sqlAlternativa = getAlternativasSql()
-                    const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item['parFornecedorBlocoItemID']])
+                    const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item['parFornecedorModeloBlocoItemID']])
                     item.alternativas = resultAlternativa
 
                     // Cria objeto da resposta (se for de selecionar)
@@ -366,8 +328,6 @@ class FornecedorController {
                     }
                 }
 
-                bloco.categorias = resultCategorias ? resultCategorias : []
-                bloco.atividades = resultAtividades ? resultAtividades : []
                 bloco.itens = resultBloco
             }
 
@@ -378,9 +338,6 @@ class FornecedorController {
             const data = {
                 unidade: unidade,
                 fields: resultFields,
-                categorias: resultCategoria,
-                atividades: resultAtividade,
-                sistemasQualidade: resultSistemaQualidade,
                 blocos: resultBlocos,
                 grupoAnexo: gruposAnexo,
                 info: {
@@ -511,82 +468,25 @@ class FornecedorController {
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
         }
 
-        // Categorias
-        for (const categoria of data.categorias) {
-            if (categoria.checked) {
-                // Verifica se já existe registro desse dado na tabela fornecedor_categoria
-                const sqlCategoria = `SELECT * FROM fornecedor_categoria WHERE fornecedorID = ? AND categoriaID = ? `
-                const [resultSelectCategoria] = await db.promise().query(sqlCategoria, [id, categoria.id])
-                // Se ainda não houver registro, fazer insert na tabela 
-                if (resultSelectCategoria.length === 0) {
-                    const sqlCategoria2 = `INSERT INTO fornecedor_categoria(fornecedorID, categoriaID) VALUES(?, ?)`
-                    const [resultCategoria] = await db.promise().query(sqlCategoria2, [id, categoria.id])
-                    if (resultCategoria.length === 0) { return res.status(500).json('Error'); }
-                }
-            } else if (categoria.checked == false) {
-                const sqlCategoria = `DELETE FROM fornecedor_categoria WHERE fornecedorID = ? AND categoriaID = ? `
-                const [resultCategoria] = await db.promise().query(sqlCategoria, [id, categoria.id])
-                if (resultCategoria.length === 0) { return res.status(500).json('Error'); }
-            }
-        }
-
-        // Atividades
-        for (const atividade of data.atividades) {
-            if (atividade.checked) {
-                // Verifica se já existe registro desse dado na tabela fornecedor_atividade
-                const sqlAtividade = `SELECT * FROM fornecedor_atividade WHERE fornecedorID = ? AND atividadeID = ? `
-                const [resultSelectAtividade] = await db.promise().query(sqlAtividade, [id, atividade.id])
-                // Se ainda não houver registro, fazer insert na tabela 
-                if (resultSelectAtividade.length === 0) {
-                    const sqlAtividade2 = `INSERT INTO fornecedor_atividade(fornecedorID, atividadeID) VALUES(?, ?)`
-                    const [resultAtividade] = await db.promise().query(sqlAtividade2, [id, atividade.id])
-                    if (resultAtividade.length === 0) { return res.status(500).json('Error'); }
-                }
-            } else {
-                const sqlAtividade = `DELETE FROM fornecedor_atividade WHERE fornecedorID = ? AND atividadeID = ? `
-                const [resultAtividade] = await db.promise().query(sqlAtividade, [id, atividade.id])
-                if (resultAtividade.length === 0) { return res.status(500).json('Error'); }
-            }
-        }
-
-        // Sistemas de qualidade 
-        for (const sistema of data.sistemasQualidade) {
-            if (sistema.checked) {
-                // Verifica se já existe registro desse dado na tabela fornecedor_sistemaqualidade
-                const sqlSistemaQualidade = `SELECT * FROM fornecedor_sistemaqualidade WHERE fornecedorID = ? AND sistemaQualidadeID = ? `
-                const [resultSelectSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id, sistema.id])
-                // Se ainda não houver registro, fazer insert na tabela
-                if (resultSelectSistemaQualidade.length === 0) {
-                    const sqlSistemaQualidade2 = `INSERT INTO fornecedor_sistemaqualidade(fornecedorID, sistemaQualidadeID) VALUES(?, ?)`
-                    const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade2, [id, sistema.id])
-                    if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
-                }
-            } else {
-                const sqlSistemaQualidade = `DELETE FROM fornecedor_sistemaqualidade WHERE fornecedorID = ? AND sistemaQualidadeID = ? `
-                const [resultSistemaQualidade] = await db.promise().query(sqlSistemaQualidade, [id, sistema.id])
-                if (resultSistemaQualidade.length === 0) { return res.status(500).json('Error'); }
-            }
-        }
-
         //? Blocos 
         for (const bloco of data.blocos) {
             // Itens 
-            if (bloco && bloco.parFornecedorBlocoID && bloco.parFornecedorBlocoID > 0 && bloco.itens) {
+            if (bloco && bloco.parFornecedorModeloBlocoID && bloco.parFornecedorModeloBlocoID > 0 && bloco.itens) {
                 for (const item of bloco.itens) {
                     if (item && item.itemID && item.itemID > 0) {
-                        // Verifica se já existe registro em fornecedor_resposta, com o fornecedorID, parFornecedorBlocoID e itemID, se houver, faz update, senao faz insert 
-                        const sqlVerificaResposta = `SELECT * FROM fornecedor_resposta WHERE fornecedorID = ? AND parFornecedorBlocoID = ? AND itemID = ? `
-                        const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parFornecedorBlocoID, item.itemID])
+                        // Verifica se já existe registro em fornecedor_resposta, com o fornecedorID, parFornecedorModeloBlocoID e itemID, se houver, faz update, senao faz insert 
+                        const sqlVerificaResposta = `SELECT * FROM fornecedor_resposta WHERE fornecedorID = ? AND parFornecedorModeloBlocoID = ? AND itemID = ? `
+                        const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parFornecedorModeloBlocoID, item.itemID])
 
                         const resposta = item.resposta && item.resposta.nome ? item.resposta.nome : item.resposta
                         const respostaID = item.resposta && item.resposta.id > 0 ? item.resposta.id : null
                         const observacao = item.observacao != undefined ? item.observacao : ''
 
                         if (resposta && resultVerificaResposta.length === 0) {
-                            const sqlInsert = `INSERT INTO fornecedor_resposta(fornecedorID, parFornecedorBlocoID, itemID, resposta, respostaID, obs) VALUES(?, ?, ?, ?, ?, ?)`
+                            const sqlInsert = `INSERT INTO fornecedor_resposta(fornecedorID, parFornecedorModeloBlocoID, itemID, resposta, respostaID, obs) VALUES(?, ?, ?, ?, ?, ?)`
                             const [resultInsert] = await db.promise().query(sqlInsert, [
                                 id,
-                                bloco.parFornecedorBlocoID,
+                                bloco.parFornecedorModeloBlocoID,
                                 item.itemID,
                                 resposta,
                                 respostaID,
@@ -597,21 +497,21 @@ class FornecedorController {
                             const sqlUpdate = `
                             UPDATE fornecedor_resposta 
                             SET resposta = ?, respostaID = ?, obs = ?, fornecedorID = ?
-                            WHERE fornecedorID = ? AND parFornecedorBlocoID = ? AND itemID = ? `
+                            WHERE fornecedorID = ? AND parFornecedorModeloBlocoID = ? AND itemID = ? `
                             const [resultUpdate] = await db.promise().query(sqlUpdate, [
                                 resposta,
                                 respostaID,
                                 observacao,
                                 id,
                                 id,
-                                bloco.parFornecedorBlocoID,
+                                bloco.parFornecedorModeloBlocoID,
                                 item.itemID
                             ])
                             if (resultUpdate.length === 0) { return res.json('Error'); }
                         }
                         else if (!resposta) {
-                            const sqlDelete = `DELETE FROM fornecedor_resposta WHERE fornecedorID = ? AND parFornecedorBlocoID = ? AND itemID = ? `
-                            const [resultDelete] = await db.promise().query(sqlDelete, [id, bloco.parFornecedorBlocoID, item.itemID])
+                            const sqlDelete = `DELETE FROM fornecedor_resposta WHERE fornecedorID = ? AND parFornecedorModeloBlocoID = ? AND itemID = ? `
+                            const [resultDelete] = await db.promise().query(sqlDelete, [id, bloco.parFornecedorModeloBlocoID, item.itemID])
                         }
 
                     }
@@ -1035,20 +935,20 @@ const getSqlBloco = () => {
 
         (SELECT fr.respostaID
         FROM fornecedor_resposta AS fr 
-        WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS respostaID,
+        WHERE fr.fornecedorID = ? AND fr.parFornecedorModeloBlocoID = pfbi.parFornecedorModeloBlocoID AND fr.itemID = pfbi.itemID) AS respostaID,
 
         (SELECT fr.resposta
         FROM fornecedor_resposta AS fr 
-        WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS resposta,
+        WHERE fr.fornecedorID = ? AND fr.parFornecedorModeloBlocoID = pfbi.parFornecedorModeloBlocoID AND fr.itemID = pfbi.itemID) AS resposta,
 
         (SELECT fr.obs
         FROM fornecedor_resposta AS fr 
-        WHERE fr.fornecedorID = ? AND fr.parFornecedorBlocoID = pfbi.parFornecedorBlocoID AND fr.itemID = pfbi.itemID) AS observacao
+        WHERE fr.fornecedorID = ? AND fr.parFornecedorModeloBlocoID = pfbi.parFornecedorModeloBlocoID AND fr.itemID = pfbi.itemID) AS observacao
 
-    FROM par_fornecedor_bloco_item AS pfbi 
+    FROM par_fornecedor_modelo_bloco_item AS pfbi 
         LEFT JOIN item AS i ON(pfbi.itemID = i.itemID)
         LEFT JOIN alternativa AS a ON(pfbi.alternativaID = a.alternativaID)
-    WHERE pfbi.parFornecedorBlocoID = ? AND pfbi.status = 1
+    WHERE pfbi.parFornecedorModeloBlocoID = ? AND pfbi.status = 1
     ORDER BY pfbi.ordem ASC`
     return sql
 }
@@ -1056,10 +956,10 @@ const getSqlBloco = () => {
 const getAlternativasSql = () => {
     const sql = `
     SELECT ai.alternativaItemID AS id, ai.nome
-    FROM par_fornecedor_bloco_item AS pfbi 
+    FROM par_fornecedor_modelo_bloco_item AS pfbi 
         JOIN alternativa AS a ON(pfbi.alternativaID = a.alternativaID)
         JOIN alternativa_item AS ai ON(a.alternativaID = ai.alternativaID)
-    WHERE pfbi.parFornecedorBlocoItemID = ? AND pfbi.status = 1`
+    WHERE pfbi.parFornecedorModeloBlocoItemID = ? AND pfbi.status = 1`
     return sql
 }
 

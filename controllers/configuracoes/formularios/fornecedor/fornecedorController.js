@@ -60,7 +60,7 @@ class FornecedorController {
             SELECT i.*, pfmbi.*, a.nome AS alternativa, 
                 (SELECT IF(COUNT(*) > 0, 1, 0)
                 FROM fornecedor_resposta AS fr 
-                WHERE fr.parFornecedorBlocoID = pfmbi.parFornecedorModeloBlocoID AND fr.itemID = pfmbi.itemID) AS hasPending
+                WHERE fr.parFornecedorModeloBlocoID = pfmbi.parFornecedorModeloBlocoID AND fr.itemID = pfmbi.itemID) AS hasPending
             FROM par_fornecedor_modelo_bloco_item AS pfmbi 
                 LEFT JOIN item AS i ON (pfmbi.itemID = i.itemID)
                 LEFT JOIN alternativa AS a ON (pfmbi.alternativaID = a.alternativaID)
@@ -79,6 +79,7 @@ class FornecedorController {
 
             for (const item of resultBlock) {
                 const [resultItem] = await db.promise().query(sqlItem, [item.parFornecedorModeloBlocoID])
+                console.log("🚀 ~ resultItem:", resultItem)
 
                 for (const item of resultItem) {
                     if (item) {
@@ -120,6 +121,7 @@ class FornecedorController {
                 options: objOptions,
                 orientations: resultOrientacoes[0]
             }
+            console.log("🚀 ~ result:", result)
 
             return res.json(result)
         } catch (error) {
