@@ -23,6 +23,9 @@ fornecedorRoutes.post(`${route}/fornecedorStatus`, fornecedorController.forneced
 fornecedorRoutes.post(`${route}/sendMail`, fornecedorController.sendMail);
 fornecedorRoutes.post(`${route}/getItemScore`, fornecedorController.getItemScore);
 fornecedorRoutes.post(`${route}/saveItemScore`, fornecedorController.saveItemScore);
+fornecedorRoutes.post(`${route}/getModels`, fornecedorController.getModels);
+fornecedorRoutes.post(`${route}/getProducts`, fornecedorController.getProducts);
+fornecedorRoutes.post(`${route}/getGruposAnexo`, fornecedorController.getGruposAnexo);
 
 fornecedorRoutes.post(`${route}/conclusionAndSendForm/:id`, fornecedorController.conclusionAndSendForm);
 fornecedorRoutes.post(`${route}/updateFormStatus/:id`, fornecedorController.updateFormStatus);
