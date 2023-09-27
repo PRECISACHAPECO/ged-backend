@@ -34,7 +34,7 @@ class UsuarioController {
 
             // LEFT JOIN profissao c on (b.profissaoID = c.profissaoID) b.profissaoID,
             const sql = `
-            SELECT a.*, b.usuarioUnidadeID,  b.registroConselhoClasse, c.nome AS profissao, d.nome AS papel
+            SELECT a.*, b.usuarioUnidadeID,  b.registroConselhoClasse, d.nome AS papel
             FROM usuario a 
                 JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
                 LEFT JOIN papel d on (b.papelID = d.papelID)
@@ -55,7 +55,7 @@ class UsuarioController {
             // Se for admin, busca os dados da unidade, papel e cargo
             if (admin == 1) {
                 const sqlUnits = `
-                SELECT b.usuarioUnidadeID, a.*, b.registroConselhoClasse, b.unidadeID, b.papelID, d.nomeFantasia as unidade,  b.status as statusUnidade, c.nome AS profissao, e.nome AS papel
+                SELECT b.usuarioUnidadeID, a.*, b.registroConselhoClasse, b.unidadeID, b.papelID, d.nomeFantasia as unidade,  b.status as statusUnidade, e.nome AS papel
                 FROM usuario a 
                     JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
                     JOIN unidade d on (b.unidadeID = d.unidadeID)
