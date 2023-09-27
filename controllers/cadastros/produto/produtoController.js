@@ -148,11 +148,9 @@ class ProdutoController {
             if (values.anexos.length > 0) {
                 values.anexos.map(async (item) => {
                     if (item && item.produtoAnexoID > 0) { //? Já existe, atualiza
-                        console.log("ja exisate", item.produtoAnexoID)
                         const sqlUpdateItem = `UPDATE produto_anexo SET nome = ?, descricao = ?, status = ?, obrigatorio = ? WHERE produtoAnexoID = ?`
                         const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [item.nome, item.descricao, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0'), item.produtoAnexoID])
                     } else if (item && !item.produtoAnexoID) {                   //? Novo, insere
-                        console.log("ainda não existe", item.produtoAnexoID)
                         const sqlInsertItem = `INSERT INTO produto_anexo (nome, descricao, produtoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?)`
                         const [resultInsertItem] = await db.promise().query(sqlInsertItem, [item.nome, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')])
                     }

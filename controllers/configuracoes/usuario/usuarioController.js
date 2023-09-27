@@ -32,16 +32,16 @@ class UsuarioController {
             const { unidadeID, papelID, admin } = req.query
             let getData = {}
 
+            // LEFT JOIN profissao c on (b.profissaoID = c.profissaoID) b.profissaoID,
             const sql = `
-            SELECT a.*, b.usuarioUnidadeID, b.profissaoID, b.registroConselhoClasse, c.nome AS profissao, d.nome AS papel
+            SELECT a.*, b.usuarioUnidadeID,  b.registroConselhoClasse, c.nome AS profissao, d.nome AS papel
             FROM usuario a 
                 JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
-                LEFT JOIN profissao c on (b.profissaoID = c.profissaoID)
                 LEFT JOIN papel d on (b.papelID = d.papelID)
-            WHERE a.usuarioID = ? AND b.unidadeID = ?`
+                WHERE a.usuarioID = ? AND b.unidadeID = ?`
             const [result] = await db.promise().query(sql, [id, unidadeID])
 
-            if (result.length === 0) {
+            if (result.length == 0) {
                 return res.status(404).json({ message: 'Usuário não encontrado!' })
             }
 
@@ -51,13 +51,13 @@ class UsuarioController {
             }
             getData['units'] = []
 
+            // LEFT JOIN profissao c on (b.profissaoID = c.profissaoID) c.profissaoID,
             // Se for admin, busca os dados da unidade, papel e cargo
             if (admin == 1) {
                 const sqlUnits = `
-                SELECT b.usuarioUnidadeID, a.*, b.registroConselhoClasse, b.unidadeID, b.papelID, d.nomeFantasia as unidade, c.profissaoID, b.status as statusUnidade, c.nome AS profissao, e.nome AS papel
+                SELECT b.usuarioUnidadeID, a.*, b.registroConselhoClasse, b.unidadeID, b.papelID, d.nomeFantasia as unidade,  b.status as statusUnidade, c.nome AS profissao, e.nome AS papel
                 FROM usuario a 
                     JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
-                    LEFT JOIN profissao c on (b.profissaoID = c.profissaoID)
                     JOIN unidade d on (b.unidadeID = d.unidadeID)
                     JOIN papel e on (b.papelID = e.papelID)
                 WHERE a.usuarioID = ?

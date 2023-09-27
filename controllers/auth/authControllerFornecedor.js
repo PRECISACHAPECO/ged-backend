@@ -32,7 +32,7 @@ class AuthControllerFornecedor {
 
         db.query(sql, [cnpj], (err, result) => {
             if (err) { res.status(409).json({ message: err.message }); }
-            if (result.length === 0) {
+            if (result.length == 0) {
                 return res.status(401).json({ message: 'CNPJ ou senha incorretos' });
             }
 
