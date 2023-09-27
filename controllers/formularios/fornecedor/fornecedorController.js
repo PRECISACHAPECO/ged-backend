@@ -287,23 +287,16 @@ class FornecedorController {
                 }
             }
 
-            //* GRUPO DE ANEXOS
-            const sqlFabricaFornecedorId = `
+            //* GRUPOS DE ANEXO
+            const sqlGruposAnexo = `
             SELECT *
-            FROM fabrica_fornecedor AS ff
-            WHERE ff.unidadeID = ? AND ff.fornecedorCnpj = "${resultFornecedor[0].cnpj}" `;
-            const [resultFabricaFornecedorId] = await db.promise().query(sqlFabricaFornecedorId, [unidade.unidadeID]);
-
-            //? Grupo: pega os grupos de anexos solicitados pra esse fornecedor
-            const sqlGrupoItens = `
-            SELECT *
-            FROM fabrica_fornecedor_grupoanexo AS ffg
-                LEFT JOIN grupoanexo AS ga ON(ffg.grupoAnexoID = ga.grupoanexoID)
-            WHERE ffg.fabricaFornecedorID = ? AND ga.status = 1`;
-            const [resultGrupo] = await db.promise().query(sqlGrupoItens, [resultFabricaFornecedorId[0].fabricaFornecedorID]);
+            FROM fornecedor_grupoanexo AS fg
+                LEFT JOIN grupoanexo AS ga ON(fg.grupoAnexoID = ga.grupoanexoID)
+            WHERE fg.fornecedorID = ? AND ga.status = 1`;
+            const [resultGruposAnexo] = await db.promise().query(sqlGruposAnexo, [id]);
 
             const gruposAnexo = [];
-            for (const grupo of resultGrupo) {
+            for (const grupo of resultGruposAnexo) {
                 //? Pega os itens do grupo atual
                 const sqlItens = `SELECT * FROM grupoanexo_item WHERE grupoanexoID = ? AND status = 1`;
                 const [resultGrupoItens] = await db.promise().query(sqlItens, [grupo.grupoanexoID]);
@@ -679,17 +672,42 @@ class FornecedorController {
 
         // Verifica se já possui formulário preenchido pra minha empresa
         const sqlFormulario = `
-        SELECT *
-        FROM fornecedor
-        WHERE unidadeID = ? AND cnpj = ? `
+        SELECT 
+            f.fornecedorID, 
+            pfm.nome AS modelo,
+            DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y") AS dataAvaliacao,
+            (
+                SELECT GROUP_CONCAT(p.nome SEPARATOR ', ')
+                FROM fornecedor_produto AS fp 
+                    JOIN produto AS p ON(fp.produtoID = p.produtoID)
+                WHERE fp.fornecedorID = f.fornecedorID
+                ORDER BY p.nome ASC
+            ) AS produtos,
+
+            (
+                SELECT GROUP_CONCAT(ga.nome SEPARATOR ', ')
+                FROM fornecedor_grupoanexo AS fga
+                    JOIN grupoanexo AS ga ON(fga.grupoAnexoID = ga.grupoanexoID)
+                WHERE fga.fornecedorID = f.fornecedorID
+                ORDER BY ga.nome ASC
+            ) AS gruposAnexo
+        FROM fornecedor AS f
+            JOIN par_fornecedor_modelo AS pfm ON(f.parFornecedorModeloID = pfm.parFornecedorModeloID)
+        WHERE f.unidadeID = ? AND f.cnpj = ? 
+        ORDER BY f.fornecedorID DESC
+        LIMIT 1`
         const [resultFormulario] = await db.promise().query(sqlFormulario, [unidadeID, cnpj])
 
         const result = {
-            isFornecedor: resultFornecedor.length > 0 ? true : false,
-            fornecedor: resultFormulario[0]
+            new: resultFornecedor.length === 0 ? true : false,
+            fornecedorID: resultFormulario[0]?.fornecedorID,
+            modelo: resultFormulario[0]?.modelo,
+            dataAvaliacao: resultFormulario[0]?.dataAvaliacao,
+            produtos: resultFormulario[0]?.produtos,
+            gruposAnexo: resultFormulario[0]?.gruposAnexo,
         }
 
-        res.status(200).json(result);
+        return res.status(200).json(result);
     }
 
     async makeFornecedor(req, res) {
@@ -748,7 +766,7 @@ class FornecedorController {
             razaoSocial: values.razaoSocial,
             cnpj: values.cnpj,
             email: values.email,
-            link: `${process.env.BASE_URL}formularios/fornecedor/`
+            link: `${process.env.BASE_URL}formularios/fornecedor?id=${fornecedorID}`
         }
 
         res.status(200).json(result)
