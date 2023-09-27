@@ -23,12 +23,12 @@ class AuthController {
             email: ['Algo está errado!!']
         }
 
+        // LEFT JOIN profissao AS pr ON (uu.profissaoID = pr.profissaoID) , pr.nome as profissao
         const sql = `
-        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel, pr.nome as profissao
+        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel
         FROM usuario AS u 
             LEFT JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
             LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
-            LEFT JOIN profissao AS pr ON (uu.profissaoID = pr.profissaoID)
             LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
         WHERE u.cpf = ? AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
