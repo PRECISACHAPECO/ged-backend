@@ -59,8 +59,8 @@ class LimpezaController {
             const sqlItem = `
             SELECT i.*, plmbi.*, a.nome AS alternativa, 
                 (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM fornecedor_resposta AS fr 
-                WHERE fr.parFornecedorBlocoID = plmbi.parLimpezaModeloBlocoID AND fr.itemID = plmbi.itemID) AS hasPending
+                FROM limpeza_resposta AS fr 
+                WHERE fr.parLimpezaModeloBlocoID = plmbi.parLimpezaModeloBlocoID AND fr.itemID = plmbi.itemID) AS hasPending
             FROM par_limpeza_modelo_bloco_item AS plmbi 
                 LEFT JOIN item AS i ON (plmbi.itemID = i.itemID)
                 LEFT JOIN alternativa AS a ON (plmbi.alternativaID = a.alternativaID)
@@ -96,7 +96,7 @@ class LimpezaController {
 
                 const objData = {
                     dados: item,
-                    itens: resultItem,
+                    itens: resultItem ?? [],
                     optionsBlock: objOptionsBlock
                 };
 
@@ -105,9 +105,10 @@ class LimpezaController {
 
             //? Options
             const objOptions = {
-                itens: resultItem,
+                itens: resultItem ?? [],
                 alternativas: resultAlternativa
             };
+            console.log("🚀 ~ objOptions:", objOptions)
 
             //? Orientações
             const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 4`;

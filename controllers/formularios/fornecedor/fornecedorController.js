@@ -364,7 +364,8 @@ class FornecedorController {
                 info: {
                     obs: resultOtherInformations[0].obs,
                     status: resultOtherInformations[0].status,
-                }
+                },
+                link: `${process.env.BASE_URL}formularios/fornecedor?id=${id}`
             }
 
             res.status(200).json(data);
@@ -674,6 +675,7 @@ class FornecedorController {
         const sqlFormulario = `
         SELECT 
             f.fornecedorID, 
+            pfm.parFornecedorModeloID,
             pfm.nome AS modelo,
             DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y") AS dataAvaliacao,
             (
@@ -698,13 +700,41 @@ class FornecedorController {
         LIMIT 1`
         const [resultFormulario] = await db.promise().query(sqlFormulario, [unidadeID, cnpj])
 
+        // Modelo de formulário (se houver apenas 1, já vem selecionado)
+        const sqlModelo = `
+        SELECT *
+        FROM par_fornecedor_modelo AS pfm
+        WHERE pfm.unidadeID = ? AND pfm.status = 1`
+        const [resultModelo] = await db.promise().query(sqlModelo, [unidadeID]);
+
+        // Grupos de anexo 
+        const sqlGruposAnexo = `
+        SELECT ga.grupoanexoID AS id, ga.nome
+        FROM fornecedor_grupoanexo AS fg
+            LEFT JOIN grupoanexo AS ga ON(fg.grupoAnexoID = ga.grupoanexoID)
+        WHERE fg.fornecedorID = ? AND ga.status = 1
+        ORDER BY ga.nome ASC`;
+        const [resultGruposAnexo] = await db.promise().query(sqlGruposAnexo, [resultFormulario[0]?.fornecedorID]);
+
+        // Produtos 
+        const sqlProdutos = `
+        SELECT p.produtoID AS id, p.nome
+        FROM fornecedor_produto AS fp
+            LEFT JOIN produto AS p ON(fp.produtoID = p.produtoID)
+        WHERE fp.fornecedorID = ? AND p.status = 1
+        ORDER BY p.nome ASC`;
+        const [resultProdutos] = await db.promise().query(sqlProdutos, [resultFormulario[0]?.fornecedorID]);
+
         const result = {
             new: resultFornecedor.length === 0 ? true : false,
             fornecedorID: resultFormulario[0]?.fornecedorID,
-            modelo: resultFormulario[0]?.modelo,
+            modelo: {
+                id: resultFormulario[0]?.parFornecedorModeloID ? resultFormulario[0]?.parFornecedorModeloID : resultModelo.length == 1 ? resultModelo[0]?.parFornecedorModeloID : null,
+                nome: resultFormulario[0]?.modelo ? resultFormulario[0]?.modelo : resultModelo.length == 1 ? resultModelo[0]?.nome : null
+            },
             dataAvaliacao: resultFormulario[0]?.dataAvaliacao,
-            produtos: resultFormulario[0]?.produtos,
-            gruposAnexo: resultFormulario[0]?.gruposAnexo,
+            produtos: resultProdutos, //resultFormulario[0]?.produtos,
+            gruposAnexo: resultGruposAnexo //resultFormulario[0]?.gruposAnexo,
         }
 
         return res.status(200).json(result);
