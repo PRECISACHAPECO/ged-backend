@@ -108,7 +108,6 @@ class LimpezaController {
                 itens: resultItem ?? [],
                 alternativas: resultAlternativa
             };
-            console.log("🚀 ~ objOptions:", objOptions)
 
             //? Orientações
             const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 4`;
