@@ -74,10 +74,10 @@ class UsuarioController {
                         id: unit.papelID,
                         nome: unit.papel,
                     }
-                    unit[`profissao`] = {
-                        id: unit.profissaoID,
-                        nome: unit.profissao,
-                    }
+                    // unit[`profissao`] = {
+                    //     id: unit.profissaoID,
+                    //     nome: unit.profissao,
+                    // }
 
                     // Obtém os cargos
                     const sqlCargos = `
@@ -113,10 +113,10 @@ class UsuarioController {
                 getData['papelOptions'] = resultPapel
             } else { // Não é admin 
                 // Profissão
-                getData[`profissao`] = {
-                    id: result[0].profissaoID,
-                    nome: result[0].profissao,
-                }
+                // getData[`profissao`] = {
+                //     id: result[0].profissaoID,
+                //     nome: result[0].profissao,
+                // }
 
                 // Cargos 
                 const sqlCargos = `
@@ -129,13 +129,13 @@ class UsuarioController {
                 getData[`cargo`] = resultCargos
             }
 
-            const sqlProfissao = `
-            SELECT * 
-            FROM profissao
-            WHERE status = 1 
-            ORDER BY nome ASC`;
-            const [resultProfissao] = await db.promise().query(sqlProfissao)
-            getData['profissaoOptions'] = resultProfissao
+            // const sqlProfissao = `
+            // SELECT * 
+            // FROM profissao
+            // WHERE status = 1 
+            // ORDER BY nome ASC`;
+            // const [resultProfissao] = await db.promise().query(sqlProfissao)
+            // getData['profissaoOptions'] = resultProfissao
 
             const sqlCargosAll = `
             SELECT cargoID AS id, nome

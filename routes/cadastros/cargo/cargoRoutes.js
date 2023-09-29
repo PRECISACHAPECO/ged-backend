@@ -6,10 +6,11 @@ const cargoController = new CargoController();
 
 const route = '/cargo';
 
-cargoRoutes.get(`${route}`, cargoController.getList);
-cargoRoutes.get(`${route}/:id`, cargoController.getData);
-cargoRoutes.put(`${route}/:id`, cargoController.updateData);
+cargoRoutes.get(`${route}/:unidadeID`, cargoController.getList);
+cargoRoutes.post(`${route}/getData/:id`, cargoController.getData);
+cargoRoutes.post(`${route}/updateData/:id`, cargoController.updateData);
+cargoRoutes.post(`${route}/new/insertData`, cargoController.insertData);
 cargoRoutes.delete(`${route}/:id`, cargoController.deleteData);
-cargoRoutes.post(`${route}/novo`, cargoController.insertData);
+
 
 module.exports = cargoRoutes;
