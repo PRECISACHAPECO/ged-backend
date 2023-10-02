@@ -22,8 +22,8 @@ const recebimentoMpRouter = require("./formularios/recebimento-mp/recebimentoMpR
 routes.use(urlBase, recebimentoMpRouter);
 
 // Recebimento de MP / Não Conformidade
-const naoConformidadeRouter = require("./formularios/recebimento-mp/nao-conformidade/naoConformidadeRoutes");
-routes.use(urlBase, naoConformidadeRouter);
+// const naoConformidadeRouter = require("./formularios/recebimento-mp/nao-conformidade/naoConformidadeRoutes");
+// routes.use(urlBase, naoConformidadeRouter);
 
 // Limpeza
 const limpezaRouter = require("./formularios/limpeza/limpezaRoutes");

@@ -1,75 +1,87 @@
 const db = require('../../../../config/db');
-const { hasPending, deleteItem } = require('../../../../config/defaultConfig');
+const fs = require('fs');
+const path = require('path');
+require('dotenv/config')
 
 class RecebimentoMpController {
+    async getList(req, res) {
+        const { unidadeID } = req.params;
+        console.log("🚀 ~ unidadeID:", unidadeID)
+
+        if (!unidadeID) return res.status(400).json({ error: 'unidadeID não informado!' })
+
+        const sql = `
+        SELECT parRecebimentoMpModeloID AS id, nome, ciclo, status
+        FROM par_recebimentomp_modelo 
+        WHERE unidadeID = ?
+        ORDER BY nome ASC`
+        const [result] = await db.promise().query(sql, [unidadeID])
+
+        return res.json(result);
+    }
+
     async getData(req, res) {
+        const { id, unidadeID } = req.body;
+
         try {
-            const { unidadeID } = req.body;
+            if (!id || id == 'undefined') { return res.json({ message: 'Sem ID recebido!' }) }
 
-            if (!unidadeID || unidadeID == 'undefined') { return res.json({ message: 'Sem unidadeID recebida!' }) }
-            //? Header 
+            //? Model
+            const sql = `
+            SELECT * 
+            FROM par_recebimentomp_modelo
+            WHERE parRecebimentoMpModeloID = ?`
+            const [resultModel] = await db.promise().query(sql, [id])
+
+            //? Header
             const sqlHeader = `
-            SELECT pr.*, 
+            SELECT pl.*, 
                 (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM par_recebimentomp_unidade AS pru 
-                WHERE pr.parRecebimentompID = pru.parRecebimentompID AND pru.unidadeID = ?
-                LIMIT 1) AS mostra,
-    
-                COALESCE((SELECT pru.obrigatorio
-                FROM par_recebimentomp_unidade AS pru 
-                WHERE pr.parRecebimentompID = pru.parRecebimentompID AND pru.unidadeID = ?
-                LIMIT 1), 0) AS obrigatorio            
+                FROM par_recebimentomp_modelo AS plm 
+                    JOIN par_recebimentomp_modelo_cabecalho AS plmc ON (plmc.parRecebimentoMpID = pl.parRecebimentoMpID AND plm.parRecebimentoMpModeloID = plmc.parRecebimentoMpModeloID)
+                WHERE plm.parRecebimentoMpModeloID = ?
+                LIMIT 1
+                ) AS mostra, 
                 
-            FROM par_recebimentomp AS pr
-            ORDER BY pr.ordem ASC`;
-            const resultHeader = await db.promise().query(sqlHeader, [unidadeID, unidadeID]);
-            const header = resultHeader[0]
+                COALESCE((SELECT plmc.obrigatorio
+                FROM par_recebimentomp_modelo AS plm 
+                    JOIN par_recebimentomp_modelo_cabecalho AS plmc ON (plmc.parRecebimentoMpID = pl.parRecebimentoMpID AND plm.parRecebimentoMpModeloID = plmc.parRecebimentoMpModeloID)
+                WHERE plm.parRecebimentoMpModeloID = ?
+                LIMIT 1
+                ), 0) AS obrigatorio
 
-            //? Produtos
-            const sqlProducts = `
-            SELECT pr.*, 
+            FROM par_recebimentomp AS pl`;
+            const [resultHeader] = await db.promise().query(sqlHeader, [id, id]);
+
+            //? Blocks
+            const blocks = [];
+            const sqlBlock = `SELECT * FROM par_recebimentomp_modelo_bloco WHERE parRecebimentoMpModeloID = ? ORDER BY ordem ASC`;
+            const [resultBlock] = await db.promise().query(sqlBlock, [id]);
+
+            const sqlItem = `
+            SELECT i.*, plmbi.*, a.nome AS alternativa, 
                 (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM par_recebimentomp_produto_unidade AS pru 
-                WHERE pr.parRecebimentoMpProdutoID = pru.parRecebimentoMpProdutoID AND pru.unidadeID = ?
-                LIMIT 1) AS mostra,
-    
-                COALESCE((SELECT pru.obrigatorio
-                FROM par_recebimentomp_produto_unidade AS pru 
-                WHERE pr.parRecebimentoMpProdutoID = pru.parRecebimentoMpProdutoID AND pru.unidadeID = ?
-                LIMIT 1), 0) AS obrigatorio            
-                
-            FROM par_recebimentomp_produto AS pr
-            ORDER BY pr.ordem ASC`;
-            const resultProducts = await db.promise().query(sqlProducts, [unidadeID, unidadeID]);
-            const products = resultProducts[0]
+                FROM recebimentomp_resposta AS fr 
+                WHERE fr.parRecebimentoMpModeloBlocoID = plmbi.parRecebimentoMpModeloBlocoID AND fr.itemID = plmbi.itemID) AS hasPending
+            FROM par_recebimentomp_modelo_bloco_item AS plmbi 
+                LEFT JOIN item AS i ON (plmbi.itemID = i.itemID)
+                LEFT JOIN alternativa AS a ON (i.alternativaID = a.alternativaID)
+            WHERE plmbi.parRecebimentoMpModeloBlocoID = ?
+            ORDER BY plmbi.ordem ASC`
 
-            //? Opções pra seleção
-            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 2 ORDER BY nome ASC`;
-            const [resultItem] = await db.promise().query(sqlOptionsItem);
-            const objOptions = {
+            //? Options
+            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 2 AND unidadeID = ? AND status = 1 ORDER BY nome ASC`;
+            const [resultItem] = await db.promise().query(sqlOptionsItem, [unidadeID]);
+            const objOptionsBlock = {
                 itens: resultItem
             };
 
-            //? Blocos 
-            const blocks = [];
-            const sqlBloco = `SELECT * FROM par_recebimentomp_bloco WHERE unidadeID = ? ORDER BY ordem ASC`;
-            const [resultBloco] = await db.promise().query(sqlBloco, [unidadeID]);
+            for (const item of resultBlock) {
+                const [resultItem] = await db.promise().query(sqlItem, [item.parRecebimentoMpModeloBlocoID])
 
-            const sqlItem = `
-            SELECT i.*, prbi.*, a.nome AS alternativa,
-                (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM recebimentomp_resposta AS rr 
-                WHERE rr.parRecebimentompBlocoID = prbi.parRecebimentompBlocoID AND rr.itemID = prbi.itemID) AS hasPending
-            FROM par_recebimentomp_bloco_item AS prbi 
-                LEFT JOIN item AS i ON (prbi.itemID = i.itemID)
-                LEFT JOIN alternativa AS a ON (i.alternativaID = a.alternativaID)
-            WHERE prbi.parRecebimentompBlocoID = ?
-            ORDER BY prbi.ordem ASC`
-
-            for (const item of resultBloco) {
-                const [resultBlockItems] = await db.promise().query(sqlItem, [item.parRecebimentompBlocoID]);
-                for (const item of resultBlockItems) {
+                for (const item of resultItem) {
                     if (item) {
+                        item['new'] = false
                         item['item'] = {
                             id: item.itemID,
                             nome: item.nome
@@ -83,25 +95,28 @@ class RecebimentoMpController {
 
                 const objData = {
                     dados: item,
-                    itens: resultBlockItems,
-                    optionsBlock: {
-                        itens: resultItem
-                    }
+                    itens: resultItem ?? [],
+                    optionsBlock: objOptionsBlock
                 };
 
                 blocks.push(objData);
             }
 
+            //? Options
+            const objOptions = {
+                itens: resultItem ?? []
+            };
+
             //? Orientações
-            const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 2`
-            const [resultOrientacoes] = await db.promise().query(sqlOrientacoes);
+            const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 2`;
+            const [resultOrientacoes] = await db.promise().query(sqlOrientacoes)
 
             const result = {
-                header: header,
-                products: products,
+                model: resultModel[0],
+                header: resultHeader,
                 blocks: blocks,
-                orientacoes: resultOrientacoes[0],
-                options: objOptions
+                options: objOptions,
+                orientations: resultOrientacoes[0]
             }
 
             return res.json(result)
@@ -112,7 +127,16 @@ class RecebimentoMpController {
 
     async updateData(req, res) {
         try {
-            const { unidadeID, header, products, blocks, orientacoes, arrRemovedItems } = req.body
+            const { id, unidadeID, model, header, blocks, arrRemovedBlocks, arrRemovedItems, orientacoes } = req.body
+
+            if (!id || id == 'undefined') { return res.json({ message: 'Erro ao receber ID!' }) }
+
+            //? Model
+            const sqlModel = `
+            UPDATE par_recebimentomp_modelo
+            SET nome = ?, ciclo = ?, status = ?
+            WHERE parRecebimentoMpModeloID = ?`
+            const [resultModel] = await db.promise().query(sqlModel, [model.nome, model.ciclo, (model.status ? 1 : 0), id])
 
             //? Header
             header && header.forEach(async (item) => {
@@ -120,125 +144,122 @@ class RecebimentoMpController {
                     // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
                     const sqlHeader = `
                     SELECT COUNT(*) AS count
-                    FROM par_recebimentomp_unidade AS pru
-                    WHERE pru.parRecebimentompID = ? AND pru.unidadeID = ?`
-                    const [resultHeader] = await db.promise().query(sqlHeader, [item.parRecebimentompID, unidadeID])
+                    FROM par_recebimentomp_modelo_cabecalho AS plmc
+                    WHERE plmc.parRecebimentoMpModeloID = ? AND plmc.parRecebimentoMpID = ?`
+                    // Verifica numero de linhas do sql 
+                    const [resultHeader] = await db.promise().query(sqlHeader, [id, item.parRecebimentoMpID])
                     if (resultHeader[0].count === 0) { // Insert
                         const sqlInsert = `
-                        INSERT INTO par_recebimentomp_unidade (parRecebimentompID, unidadeID, obrigatorio)
+                        INSERT INTO par_recebimentomp_modelo_cabecalho (parRecebimentoMpModeloID, parRecebimentoMpID, obrigatorio)
                         VALUES (?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [item.parRecebimentompID, unidadeID, (item.obrigatorio ? 1 : 0)])
-                    } else {                        // Update
+                        const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parRecebimentoMpID, (item.obrigatorio ? 1 : 0)]);
+                    } else {                            // Update
                         const sqlUpdate = `
-                        UPDATE par_recebimentomp_unidade
+                        UPDATE par_recebimentomp_modelo_cabecalho
                         SET obrigatorio = ?
-                        WHERE parRecebimentompID = ? AND unidadeID = ?`
-                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? 1 : 0), item.parRecebimentompID, unidadeID])
+                        WHERE parRecebimentoMpModeloID = ? AND parRecebimentoMpID = ?`
+                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? 1 : 0), id, item.parRecebimentoMpID]);
                     }
                 } else if (item) { // Deleta
                     const sqlDelete = `
-                    DELETE FROM par_recebimentomp_unidade
-                    WHERE parRecebimentompID = ? AND unidadeID = ?`
-                    const [resultDelete] = await db.promise().query(sqlDelete, [item.parRecebimentompID, unidadeID])
+                    DELETE FROM par_recebimentomp_modelo_cabecalho
+                    WHERE parRecebimentoMpModeloID = ? AND parRecebimentoMpID = ?`
+                    const [resultDelete] = await db.promise().query(sqlDelete, [id, item.parRecebimentoMpID])
                 }
             })
 
-            //? Products
-            products && products.forEach(async (item) => {
-                if (item && item.mostra) {
-                    // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
-                    const sqlProduct = `
-                    SELECT COUNT(*) AS count
-                    FROM par_recebimentomp_produto_unidade AS pru
-                    WHERE pru.parRecebimentoMpProdutoID = ? AND pru.unidadeID = ?`
-                    // Verifica numero de linhas do sql 
-                    const [resultProduct] = await db.promise().query(sqlProduct, [item.parRecebimentoMpProdutoID, unidadeID])
-                    if (resultProduct[0].count === 0) { // Insert
-                        const sqlInsert = `
-                        INSERT INTO par_recebimentomp_produto_unidade (parRecebimentoMpProdutoID, unidadeID, obrigatorio)
-                        VALUES (?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [item.parRecebimentoMpProdutoID, unidadeID, (item.obrigatorio ? 1 : 0)])
-                    } else {                         // Update
-                        const sqlUpdate = `
-                        UPDATE par_recebimentomp_produto_unidade
-                        SET obrigatorio = ?
-                        WHERE parRecebimentoMpProdutoID = ? AND unidadeID = ?`
-                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? 1 : 0), item.parRecebimentoMpProdutoID, unidadeID])
-                    }
-                } else if (item) {                  // Delete
-                    const sqlDelete = `
-                    DELETE FROM par_recebimentomp_produto_unidade
-                    WHERE parRecebimentoMpProdutoID = ? AND unidadeID = ?`
-                    const [resultDelete] = await db.promise().query(sqlDelete, [item.parRecebimentoMpProdutoID, unidadeID])
+            //? Blocos removidos
+            arrRemovedBlocks && arrRemovedBlocks.forEach(async (block) => {
+                if (block && block > 0) {
+                    // Blocos
+                    const sqlDeleteBlock = `DELETE FROM par_recebimentomp_modelo_bloco WHERE parRecebimentoMpModeloBlocoID = ?`
+                    const [resultDeleteBlock] = await db.promise().query(sqlDeleteBlock, [block])
+
+                    // Itens do bloco
+                    const sqlDeleteBlockItems = `DELETE FROM par_recebimentomp_modelo_bloco_item WHERE parRecebimentoMpModeloBlocoID = ?`
+                    const [resultDeleteBlockItems] = await db.promise().query(sqlDeleteBlockItems, [block])
                 }
             })
 
             //? Itens removidos dos blocos 
             arrRemovedItems && arrRemovedItems.forEach(async (item) => {
                 if (item) {
-                    const sqlDelete = `DELETE FROM par_recebimentomp_bloco_item WHERE parRecebimentompBlocoItemID = ?`
-                    const [resultDelete] = await db.promise().query(sqlDelete, [item.parRecebimentompBlocoItemID])
+                    const sqlDelete = `DELETE FROM par_recebimentomp_modelo_bloco_item WHERE parRecebimentoMpModeloBlocoItemID = ?`
+                    const [resultDelete] = await db.promise().query(sqlDelete, [item.parRecebimentoMpModeloBlocoItemID])
                 }
             })
 
             //? Blocos 
             blocks && blocks.forEach(async (block, index) => {
                 if (block) {
-                    if (block.dados.parRecebimentompBlocoID && block.dados.parRecebimentompBlocoID > 0) { // Update
+                    if (block.dados.parRecebimentoMpModeloBlocoID && parseInt(block.dados.parRecebimentoMpModeloBlocoID) > 0) {
+                        //? Bloco já existe, Update
                         const sqlUpdateBlock = `
-                        UPDATE par_recebimentomp_bloco
+                        UPDATE par_recebimentomp_modelo_bloco
                         SET ordem = ?, nome = ?, obs = ?, status = ?
-                        WHERE parRecebimentompBlocoID = ?`
+                        WHERE parRecebimentoMpModeloBlocoID = ?`
                         const [resultUpdateBlock] = await db.promise().query(sqlUpdateBlock, [
                             block.dados.ordem,
                             block.dados.nome,
                             (block.dados.obs ? 1 : 0),
                             (block.dados.status ? 1 : 0),
-                            block.dados.parRecebimentompBlocoID
+                            block.dados.parRecebimentoMpModeloBlocoID
                         ])
-                    } else {                                                                 // Insert
-                        const sqlInsertBlock = `INSERT INTO par_recebimentomp_bloco (ordem, nome, obs, unidadeID, status) VALUES (?, ?, ?, ?, ?)`
-                        const [resultInsertBlock] = await db.promise().query(sqlInsertBlock, [
+                        if (resultUpdateBlock.length === 0) { return res.json(err); }
+                    } else {
+                        //? Bloco novo, Insert
+                        const sqlNewBlock = `
+                        INSERT INTO par_recebimentomp_modelo_bloco(parRecebimentoMpModeloID, ordem, nome, obs, unidadeID, status) 
+                        VALUES (?, ?, ?, ?, ?, ?)`
+                        const [resultNewBlock] = await db.promise().query(sqlNewBlock, [
+                            id,
                             block.dados.ordem,
                             block.dados.nome,
                             (block.dados.obs ? 1 : 0),
                             unidadeID,
                             (block.dados.status ? 1 : 0)
                         ])
-                        block.dados.parRecebimentompBlocoID = resultInsertBlock.insertId
+                        if (resultNewBlock.length === 0) { return res.json(err); }
+                        block.dados.parRecebimentoMpModeloBlocoID = resultNewBlock.insertId //? parRecebimentoMpModeloBlocoID que acabou de ser gerado
                     }
 
                     //? Itens 
                     block.itens && block.itens.forEach(async (item, indexItem) => {
-                        if (item && item.parRecebimentompBlocoItemID) {
-                            // Update
+                        if (item && item.parRecebimentoMpModeloBlocoItemID && item.parRecebimentoMpModeloBlocoItemID > 0) { //? Update                                
+                            console.log('update item: ', item.item.id, item.item.nome)
                             const sqlUpdate = `
-                            UPDATE par_recebimentomp_bloco_item
+                            UPDATE par_recebimentomp_modelo_bloco_item
                             SET ordem = ?, ${item.item.id ? 'itemID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
-                            WHERE parRecebimentompBlocoItemID = ?`
+                            WHERE parRecebimentoMpModeloBlocoItemID = ?`
                             const [resultUpdate] = await db.promise().query(sqlUpdate, [
                                 item.ordem,
                                 ...(item.item.id ? [item.item.id] : []),
                                 (item.obs ? 1 : 0),
                                 (item.obrigatorio ? 1 : 0),
                                 (item.status ? 1 : 0),
-                                item.parRecebimentompBlocoItemID
+                                item.parRecebimentoMpModeloBlocoItemID
                             ])
-                        } else if (item && block.dados.parRecebimentompBlocoID && item.ordem && item.item.id && item.alternativa.id) {
-                            // Insert
-                            const sqlInsert = `
-                            INSERT INTO par_recebimentomp_bloco_item (parRecebimentompBlocoID, ordem, itemID, obs, obrigatorio, status)
-                            VALUES (?, ?, ?, ?, ?, ?)`
-                            const [resultInsert] = await db.promise().query(sqlInsert, [
-                                block.dados.parRecebimentompBlocoID,
-                                item.ordem,
-                                item.item.id,
-                                (item.obs ? 1 : 0),
-                                (item.obrigatorio ? 1 : 0),
-                                (item.status ? 1 : 0)
-                            ])
+                        } else if (item && item.new && !item.parRecebimentoMpModeloBlocoItemID) { //? Insert                            
+                            // Valida duplicidade do item 
+                            const sqlItem = `
+                            SELECT COUNT(*) AS count
+                            FROM par_recebimentomp_modelo_bloco_item AS plmbi
+                            WHERE plmbi.parRecebimentoMpModeloBlocoID = ? AND plmbi.itemID = ?`
+                            const [resultItem] = await db.promise().query(sqlItem, [block.dados.parRecebimentoMpModeloBlocoID, item.item.id])
+                            if (resultItem[0].count === 0) {  // Pode inserir
+                                const sqlInsert = `
+                                INSERT INTO par_recebimentomp_modelo_bloco_item (parRecebimentoMpModeloBlocoID, ordem, itemID, obs, obrigatorio, status)
+                                VALUES (?, ?, ?, ?, ?, ?)`
+                                const [resultInsert] = await db.promise().query(sqlInsert, [
+                                    block.dados.parRecebimentoMpModeloBlocoID,
+                                    item.ordem,
+                                    item.item.id,
+                                    (item.obs ? 1 : 0),
+                                    (item.obrigatorio ? 1 : 0),
+                                    (item.status ? 1 : 0)
+                                ])
+                            }
                         }
-
                     })
                 }
             })
@@ -253,35 +274,9 @@ class RecebimentoMpController {
             res.status(200).json({ message: "Dados atualizados com sucesso." });
 
         } catch (error) {
-            return res.json({ message: 'Erro' })
+            return res.json({ message: 'Erro ao receber dados!' })
         }
     }
-
-    deleteData(req, res) {
-        const { id } = req.params
-        const objModule = {
-            table: ['item'],
-            column: 'itemID'
-        }
-        const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
-
-        if (!tablesPending || tablesPending.length === 0) {
-            return deleteItem(id, objModule.table, objModule.column, res)
-        }
-
-        hasPending(id, objModule.column, tablesPending)
-            .then((hasPending) => {
-                if (hasPending) {
-                    res.status(409).json({ message: "Dado possui pendência." });
-                } else {
-                    return deleteItem(id, objModule.table, objModule.column, res)
-                }
-            })
-            .catch((err) => {
-                res.status(500).json(err);
-            });
-    }
-
 }
 
 module.exports = RecebimentoMpController;
