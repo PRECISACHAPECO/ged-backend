@@ -156,8 +156,6 @@ class ItemController {
     async insertData(req, res) {
         try {
             const values = req.body
-            console.log("🚀 ~ values:", values)
-            // return
 
             //* Valida conflito
             const validateConflicts = {
@@ -181,7 +179,6 @@ class ItemController {
                 values.unidadeID
             ]);
             const id = resultInsert.insertId
-            console.log("🚀 ~ id:", id)
 
             //? Atualiza item_opcao
             // Insert
@@ -227,8 +224,6 @@ class ItemController {
         try {
             const { id } = req.params
             const values = req.body
-            console.log("🚀 ~ values:", id, values)
-            // return
 
             if (!id || id == undefined) return res.status(400).json({ message: "ID não informado" })
 
