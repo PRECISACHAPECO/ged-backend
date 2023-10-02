@@ -593,7 +593,7 @@ const getBlocks = async (id, unidadeID) => {
 
     FROM par_recebimentomp_bloco_item AS prbi 
         LEFT JOIN item AS i ON (prbi.itemID = i.itemID)
-        LEFT JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
+        LEFT JOIN alternativa AS a ON (i.alternativaID = a.alternativaID)
     WHERE prbi.parRecebimentompBlocoID = ? AND prbi.status = 1
     ORDER BY prbi.ordem ASC`
     for (const item of resultBlocos) {
@@ -613,7 +613,8 @@ const getBlocks = async (id, unidadeID) => {
             const sqlAlternativa = `
             SELECT ai.alternativaItemID AS id, ai.nome
             FROM par_recebimentomp_bloco_item AS prbi 
-                JOIN alternativa AS a ON (prbi.alternativaID = a.alternativaID)
+                JOIN item AS i ON (prbi.itemID = i.itemID)
+                JOIN alternativa AS a ON (i.alternativaID = a.alternativaID)
                 JOIN alternativa_item AS ai ON (a.alternativaID = ai.alternativaID)
             WHERE prbi.parRecebimentompBlocoItemID = ?`
             const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item2.parRecebimentompBlocoItemID])

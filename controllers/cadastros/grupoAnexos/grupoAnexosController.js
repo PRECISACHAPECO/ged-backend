@@ -195,7 +195,8 @@ class GrupoAnexosController {
     async deleteData(req, res) {
         const { id } = req.params;
 
-        const tablesPending = ['anexo', 'fabrica_fornecedor_grupoanexo', 'grupoanexo_item', 'grupoanexo_parformulario']; // Tabelas que possuem relacionamento com a tabela atual
+        // Tabelas que possuem relacionamento com a tabela atual
+        const tablesPending = ['anexo', 'fabrica_fornecedor_grupoanexo', 'grupoanexo_item', 'grupoanexo_parformulario'];
         // Tabelas que quero deletar
         const objModule = {
             table: ['grupoanexo', 'grupoanexo_item'],

@@ -63,18 +63,15 @@ class LimpezaController {
                 WHERE fr.parLimpezaModeloBlocoID = plmbi.parLimpezaModeloBlocoID AND fr.itemID = plmbi.itemID) AS hasPending
             FROM par_limpeza_modelo_bloco_item AS plmbi 
                 LEFT JOIN item AS i ON (plmbi.itemID = i.itemID)
-                LEFT JOIN alternativa AS a ON (plmbi.alternativaID = a.alternativaID)
+                LEFT JOIN alternativa AS a ON (i.alternativaID = a.alternativaID)
             WHERE plmbi.parLimpezaModeloBlocoID = ?
             ORDER BY plmbi.ordem ASC`
 
             //? Options
             const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 4 AND unidadeID = ? AND status = 1 ORDER BY nome ASC`;
-            const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa ORDER BY nome ASC`;
             const [resultItem] = await db.promise().query(sqlOptionsItem, [unidadeID]);
-            const [resultAlternativa] = await db.promise().query(sqlOptionsAlternativa);
             const objOptionsBlock = {
-                itens: resultItem,
-                alternativas: resultAlternativa
+                itens: resultItem
             };
 
             for (const item of resultBlock) {
@@ -105,8 +102,7 @@ class LimpezaController {
 
             //? Options
             const objOptions = {
-                itens: resultItem ?? [],
-                alternativas: resultAlternativa
+                itens: resultItem ?? []
             };
 
             //? Orientações
@@ -231,34 +227,31 @@ class LimpezaController {
                             console.log('update item: ', item.item.id, item.item.nome)
                             const sqlUpdate = `
                             UPDATE par_limpeza_modelo_bloco_item
-                            SET ordem = ?, ${item.item.id ? 'itemID = ?, ' : ''} ${item.alternativa.id ? 'alternativaID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
+                            SET ordem = ?, ${item.item.id ? 'itemID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
                             WHERE parLimpezaModeloBlocoItemID = ?`
                             const [resultUpdate] = await db.promise().query(sqlUpdate, [
                                 item.ordem,
                                 ...(item.item.id ? [item.item.id] : []),
-                                ...(item.alternativa.id ? [item.alternativa.id] : []),
                                 (item.obs ? 1 : 0),
                                 (item.obrigatorio ? 1 : 0),
                                 (item.status ? 1 : 0),
                                 item.parLimpezaModeloBlocoItemID
                             ])
                         } else if (item && item.new && !item.parLimpezaModeloBlocoItemID) { //? Insert                            
-                            console.log('insert new item: ', item.item.id, item.item.nome)
                             // Valida duplicidade do item 
                             const sqlItem = `
                             SELECT COUNT(*) AS count
                             FROM par_limpeza_modelo_bloco_item AS plmbi
-                            WHERE plmbi.parLimpezaModeloBlocoID = ? AND plmbi.itemID = ? AND plmbi.alternativaID = ?`
-                            const [resultItem] = await db.promise().query(sqlItem, [block.dados.parLimpezaModeloBlocoID, item.item.id, item.alternativa.id])
+                            WHERE plmbi.parLimpezaModeloBlocoID = ? AND plmbi.itemID = ?`
+                            const [resultItem] = await db.promise().query(sqlItem, [block.dados.parLimpezaModeloBlocoID, item.item.id])
                             if (resultItem[0].count === 0) {  // Pode inserir
                                 const sqlInsert = `
-                                INSERT INTO par_limpeza_modelo_bloco_item (parLimpezaModeloBlocoID, ordem, itemID, alternativaID, obs, obrigatorio, status)
-                                VALUES (?, ?, ?, ?, ?, ?, ?)`
+                                INSERT INTO par_limpeza_modelo_bloco_item (parLimpezaModeloBlocoID, ordem, itemID, obs, obrigatorio, status)
+                                VALUES (?, ?, ?, ?, ?, ?)`
                                 const [resultInsert] = await db.promise().query(sqlInsert, [
                                     block.dados.parLimpezaModeloBlocoID,
                                     item.ordem,
                                     item.item.id,
-                                    item.alternativa.id,
                                     (item.obs ? 1 : 0),
                                     (item.obrigatorio ? 1 : 0),
                                     (item.status ? 1 : 0)

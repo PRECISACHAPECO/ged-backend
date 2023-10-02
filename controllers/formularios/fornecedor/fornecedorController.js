@@ -1033,7 +1033,7 @@ const getSqlBloco = () => {
 
     FROM par_fornecedor_modelo_bloco_item AS pfbi 
         LEFT JOIN item AS i ON(pfbi.itemID = i.itemID)
-        LEFT JOIN alternativa AS a ON(pfbi.alternativaID = a.alternativaID)
+        LEFT JOIN alternativa AS a ON(i.alternativaID = a.alternativaID)
     WHERE pfbi.parFornecedorModeloBlocoID = ? AND pfbi.status = 1
     ORDER BY pfbi.ordem ASC`
     return sql
@@ -1043,7 +1043,8 @@ const getAlternativasSql = () => {
     const sql = `
     SELECT ai.alternativaItemID AS id, ai.nome
     FROM par_fornecedor_modelo_bloco_item AS pfbi 
-        JOIN alternativa AS a ON(pfbi.alternativaID = a.alternativaID)
+    	JOIN item AS i ON (pfbi.itemID = i.itemID)
+        JOIN alternativa AS a ON(i.alternativaID = a.alternativaID)
         JOIN alternativa_item AS ai ON(a.alternativaID = ai.alternativaID)
     WHERE pfbi.parFornecedorModeloBlocoItemID = ? AND pfbi.status = 1`
     return sql
