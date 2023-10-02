@@ -67,7 +67,7 @@ class ItemController {
 
             //? Opções do item 
             const sqlOpcoes = `
-            SELECT io.itemOpcaoID AS id, ai.nome, ai.alternativaID, ai.alternativaItemID, io.anexo, io.bloqueiaFormulario, io.observacao
+            SELECT io.itemOpcaoID, ai.alternativaItemID AS id, ai.nome, ai.alternativaID, io.anexo, io.bloqueiaFormulario, io.observacao
             FROM item_opcao AS io 
                 JOIN alternativa_item AS ai ON (io.alternativaItemID = ai.alternativaItemID)
             WHERE io.itemID = ?`
@@ -78,7 +78,7 @@ class ItemController {
                 SELECT itemOpcaoAnexoID AS id, nome, obrigatorio
                 FROM item_opcao_anexo 
                 WHERE itemID = ? AND itemOpcaoID = ?`
-                const [resultAnexos] = await db.promise().query(sqlAnexos, [id, resultOpcoes[i].id]);
+                const [resultAnexos] = await db.promise().query(sqlAnexos, [id, resultOpcoes[i].itemOpcaoID]);
                 resultOpcoes[i].anexos = resultAnexos.length > 0 ? resultAnexos : [{ nome: '' }]
             }
 
@@ -191,9 +191,10 @@ class ItemController {
             const sqlInsertOpcao = `INSERT INTO item_opcao (itemID, alternativaItemID, anexo, bloqueiaFormulario, observacao) VALUES (?, ?, ?, ?, ?)`
             for (let i = 0; i < values.fields.opcoes.length; i++) {
                 const element = values.fields.opcoes[i];
+                console.log("🚀 ~ element:", element)
                 const [resultInsertOpcao] = await db.promise().query(sqlInsertOpcao, [
                     id,
-                    element.alternativaItemID,
+                    element.id,
                     (element.anexo ? '1' : '0'),
                     (element.bloqueiaFormulario ? '1' : '0'),
                     (element.observacao ? '1' : '0')
