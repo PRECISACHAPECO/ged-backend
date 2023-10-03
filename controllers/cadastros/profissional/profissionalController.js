@@ -35,9 +35,8 @@ class ProfissionalController {
 
             // Dados do profissional
             const dataUser = `
-            SELECT 
-                *
-                FROM pessoa AS a 
+            SELECT *
+            FROM pessoa AS a 
             WHERE a.pessoaID = ? AND a.unidadeID = ?;
             `
             const [resultDataUser] = await db.promise().query(dataUser, [id, unidadeID])
@@ -189,15 +188,12 @@ class ProfissionalController {
             console.log("🚀 ~ id:", id)
             const data = req.body
             console.log("🚀 ~ data:", data)
-            const updateUserFormat = {
-                ...data.fields,
-                usuarioID: data.fields.usuarioID == true ? 1 : 0,
-            };
+
 
             //* Valida conflito
             const validateConflicts = {
-                columns: ['pessoaID', 'cpf'],
-                values: [id, data.fields.cpf],
+                columns: ['pessoaID', 'cpf', 'unidadeID'],
+                values: [id, data.fields.cpf, data.fields.unidadeID],
                 table: 'pessoa',
                 id: id
             }
@@ -207,7 +203,7 @@ class ProfissionalController {
 
             // Atualiza dados do profissional
             const UpdateUser = `UPDATE pessoa SET ? WHERE pessoaID = ?`
-            const [resultUpdateUser] = await db.promise().query(UpdateUser, [updateUserFormat, id])
+            const [resultUpdateUser] = await db.promise().query(UpdateUser, [data.fields, id])
 
             // Exclui cargos / função
             if (data.removedItems.length > 0) {
@@ -228,36 +224,55 @@ class ProfissionalController {
                 })
             }
 
-            // Verifica se profissional vai ter usuário e se o CPF já esta cadastrado
-            if (data.fields.usuarioID > 0) {
+            //* Marcou usuário do sistema
+            if (data.isUsuario) {
+                console.log("é um usuario")
                 const sqlCheckCPF = `SELECT * FROM usuario WHERE cpf = ?`
                 const [resultCheckCPF] = await db.promise().query(sqlCheckCPF, [data.fields.cpf])
-                const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?, ?)`
 
+                //? Já existe usuário com esse CPF, copia usuário id para a tabela pessoa
                 if (resultCheckCPF.length > 0) {
-                    console.log("Cpf já cadastrado")
+                    const usuarioID = resultCheckCPF[0].usuarioID
+
+                    // Seta usuárioID na tabela pessoa
+                    const UpdateUser = `UPDATE pessoa SET usuarioID = ? WHERE pessoaID = ?`
+                    const [resultUpdateUser] = await db.promise().query(UpdateUser, [usuarioID, id])
+
                     // Verifica se já esta cadastrado na unidade
                     const sqlUnityCheck = `SELECT * FROM usuario_unidade WHERE usuarioID = ? AND unidadeID = ?`
-                    const [resultUnityCheck] = await db.promise().query(sqlUnityCheck, [data.fields.usuarioID, data.fields.unidadeID])
+                    const [resultUnityCheck] = await db.promise().query(sqlUnityCheck, [usuarioID, data.fields.unidadeID])
 
-
-                    if (resultUnityCheck.length > 0) {
-                        console.log("Usuario já cadastrado na unidade")
+                    //? Já está cadastrado na unidade
+                    if (resultUnityCheck.length.length > 0) {
+                        // Força status como ativo 
+                        const sqlUpdateUsuarioUnity = `UPDATE usuario_unidade SET status = ? WHERE usuarioID = ? AND unidadeID = ? `
+                        const [resultUpdateUsuarioUnity] = await db.promise().query(sqlUpdateUsuarioUnity, [1, usuarioID, data.fields.unidadeID])
                     } else {
-                        const [resultInsertUsuarioUnity] = await db.promise().query(sqlInsertUsuarioUnity, [data.fields.usuarioID, data.fields.unidadeID], 1)
+                        // Insere usuário na unidade
+                        const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?,?)`
+                        const [resultInsertUsuarioUnity] = await db.promise().query(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1])
                     }
+                }
+                //? Ainda não existe o usuario com esse CPF, cria novo
+                else {
+                    const sqlInsertUsuario = `INSERT INTO usuario (cpf, nome, senha) VALUES (?,?,?)`
+                    const [resultInsertUsuario] = await db.promise().query(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, criptoMd5(data.senha)])
+                    const usuarioID = resultInsertUsuario.insertId
 
-                } else {
-                    console.log("No cpf já cadastrado")
-                    const sqlInsertUsuario = `INSERT INTO usuario (cpf, nome, email, senha) VALUES (?,?,?,?)`
-                    const [resultInsertUsuario] = await db.promise().query(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, data.fields.email, criptoMd5(data.senha)])
-                    console.log("Usuario cadatradop")
-                    const [resultInsertUsuarioUnity] = await db.promise().query(sqlInsertUsuarioUnity, [resultInsertUsuario.insertId, data.fields.unidadeID, 1])
-                    console.log("USUARIO UNIDADE CADASRRADODODOD")
+                    const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?, ?)`
+                    const [resultInsertUsuarioUnity] = await db.promise().query(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1])
+
+                    const UpdateUser = `UPDATE pessoa SET usuarioID = ? WHERE pessoaID = ?`
+                    const [resultUpdateUser] = await db.promise().query(UpdateUser, [usuarioID, id])
                 }
             }
+            //* Desmarcou usuário do sistema
+            else {
+                console.log("não é usaurio")
+                const UpdateUser = `UPDATE pessoa SET usuarioID = ? WHERE pessoaID = ?`
+                const [resultUpdateUser] = await db.promise().query(UpdateUser, [0, id])
 
-
+            }
             res.status(200).json({ message: 'Dados atualizados com sucesso!' })
         } catch (error) {
             console.log("🚀 ~ error:", error)
