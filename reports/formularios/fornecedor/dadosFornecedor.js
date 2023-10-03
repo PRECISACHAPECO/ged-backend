@@ -106,7 +106,7 @@ const dadosFornecedor = async (req, res) => {
             case 
                 when (SELECT al.nome
                 FROM alternativa al 
-            WHERE al.alternativaID = a.alternativaID) = 'Data' 
+            WHERE al.alternativaID = b.alternativaID) = 'Data' 
             then (SELECT DATE_FORMAT(fr.resposta, '%d/%m/%Y') 
                 FROM fornecedor_resposta fr 
             WHERE fr.fornecedorID = ? AND fr.parFornecedorModeloBlocoID = a.parFornecedorModeloBlocoID AND fr.itemID = a.itemID)

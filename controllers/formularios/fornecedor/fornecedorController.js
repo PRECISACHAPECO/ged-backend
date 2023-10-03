@@ -184,6 +184,7 @@ class FornecedorController {
         }
         //* Fornecedor 
         else if (papelID == 2 && cnpj) {
+            console.log("🚀 ~ fornecedor cnpj:", cnpj)
             const sql = `
             SELECT
                 f.fornecedorID AS id,
@@ -216,12 +217,18 @@ class FornecedorController {
 
             //? obtém a unidadeID (fábrica) do formulário, pro formulário ter os campos de preenchimento de acordo com o configurado pra aquela fábrica.
             const sqlUnidade = `
-            SELECT f.parFornecedorModeloID, f.unidadeID, u.nomeFantasia, f.cnpj
+            SELECT f.parFornecedorModeloID, f.unidadeID, f.cnpj AS cnpjFornecedor, u.nomeFantasia, u.cnpj, u.obrigatorioProdutoFornecedor
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
             WHERE f.fornecedorID = ? `
             const [resultFornecedor] = await db.promise().query(sqlUnidade, [id])
-            const unidade = resultFornecedor[0]
+            const unidade = {
+                parFornecedorModeloID: resultFornecedor[0]['parFornecedorModeloID'],
+                unidadeID: resultFornecedor[0]['unidadeID'],
+                nomeFantasia: resultFornecedor[0]['nomeFantasia'],
+                cnpj: resultFornecedor[0]['cnpj'],
+                obrigatorioProdutoFornecedor: resultFornecedor[0]['obrigatorioProdutoFornecedor'] == 1 ? true : false
+            }
             const modeloID = resultFornecedor[0].parFornecedorModeloID
 
             //? obtém os dados da unidade do fornecedor (controle de notificações)
@@ -229,7 +236,7 @@ class FornecedorController {
             SELECT u.unidadeID, u.nomeFantasia, u.cnpj
             FROM unidade AS u
             WHERE u.cnpj = ? `
-            const [resultUnidadeFornecedor] = await db.promise().query(sqlUnidadeFornecedor, [unidade.cnpj])
+            const [resultUnidadeFornecedor] = await db.promise().query(sqlUnidadeFornecedor, [resultFornecedor[0].cnpjFornecedor])
             unidade['fornecedor'] = resultUnidadeFornecedor[0]
 
             // Fields do header
@@ -285,6 +292,22 @@ class FornecedorController {
                     let [resultFieldData] = await db.promise().query(sqlFieldData, [id])
                     field[field.nomeColuna] = resultFieldData[0].coluna ?? ''
                 }
+            }
+
+            //* PRODUTOS
+            const sqlProdutos = `
+            SELECT fp.fornecedorProdutoID, p.*, um.nome AS unidadeMedida 
+            FROM fornecedor_produto AS fp 
+                JOIN produto AS p ON (fp.produtoID = p.produtoID)
+                LEFT JOIN unidademedida AS um ON (p.unidadeMedidaID = um.unidadeMedidaID)
+            WHERE fp.fornecedorID = ? AND p.status = 1`
+            const [resultProdutos] = await db.promise().query(sqlProdutos, [id])
+
+            // Varre produtos verificando tabela produto_anexo
+            for (const produto of resultProdutos) {
+                const sqlProdutoAnexo = `SELECT * FROM produto_anexo WHERE produtoID = ? AND status = 1`
+                const [resultProdutoAnexo] = await db.promise().query(sqlProdutoAnexo, [produto.produtoID])
+                produto['anexos'] = resultProdutoAnexo ?? []
             }
 
             //* GRUPOS DE ANEXO
@@ -359,6 +382,7 @@ class FornecedorController {
             const data = {
                 unidade: unidade,
                 fields: resultFields,
+                produtos: resultProdutos ?? [],
                 blocos: resultBlocos,
                 grupoAnexo: gruposAnexo,
                 info: {
