@@ -14,6 +14,7 @@ profissionalRoutes.post(`${route}/getData/:id`, profissionalController.getData);
 profissionalRoutes.post(`${route}/new/getData`, profissionalController.getNewData);
 
 profissionalRoutes.post(`${route}/updateData/:id`, profissionalController.updateData);
+profissionalRoutes.post(`${route}/verifyCPF`, profissionalController.verifyCPF);
 
 profissionalRoutes.delete(`${route}/photo-profile/:id`, profissionalController.handleDeleteImage);
 profissionalRoutes.delete(`${route}/:id`, profissionalController.deleteData);

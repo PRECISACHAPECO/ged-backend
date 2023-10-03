@@ -57,11 +57,10 @@ class ProfissionalController {
             `
             const [resultFormacaoCargo] = await db.promise().query(formacaoCargo, [id, unidadeID])
 
-
-
             const values = {
                 fields: resultDataUser[0],
-                cargosFuncoes: resultFormacaoCargo
+                cargosFuncoes: resultFormacaoCargo,
+                permission: await getMenuPermissions(1, 1, unidadeID)
             }
 
 
@@ -73,14 +72,28 @@ class ProfissionalController {
 
     async getNewData(req, res) {
         try {
+            const today = new Date();
+            today.setDate(today.getDate() + 1);
+
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+
+            const formattedDate = `${year}-${month}-${day}`;
+
             const values = {
                 fields: {},
-                cargosFuncoes: [{}]
-            }
-            res.status(200).json(values)
+                cargosFuncoes: [
+                    {
+                        data: formattedDate
+                    }
+                ]
+            };
 
+            res.status(200).json(values);
         } catch (error) {
-            console.log("🚀 ~ error:", error)
+            console.log("🚀 ~ error:", error);
+            res.status(500).json({ error: "Internal Server Error" });
         }
     }
 
@@ -89,10 +102,32 @@ class ProfissionalController {
             const data = req.body;
             console.log("🚀 ~ data:", data)
 
-            return
+            //* Valida conflito
+            const validateConflicts = {
+                columns: ['cpf', 'unidadeID'],
+                values: [data.fields.cpf, data.unidadeID],
+                table: 'pessoa',
+                id: null
+            }
+            if (await hasConflict(validateConflicts)) {
+                return res.status(409).json({ message: "Dados já cadastrados!" });
+            }
 
 
+            // Cadastra novo profisional
+            const InsertUser = `INSERT pessoa SET ? `
+            const [resultInsertUser] = await db.promise().query(InsertUser, [data.fields])
+            console.log("🚀 ~ resultInsertUser:", resultInsertUser)
+            const pessoaID = resultInsertUser.insertId
 
+            // Cadastro CARGOS / FUNÇÃO
+            const insertCargo = `INSERT INTO pessoa_cargo (data, formacaoCargo, conselho, dataInativacao, pessoaID) VALUES (?, ?, ?, ?, ?)`
+            if (data.cargosFuncoes.length > 0) {
+                data.cargosFuncoes.map(async (row) => {
+                    const [resultInsertCargo] = await db.promise().query(insertCargo, [row.data, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), pessoaID])
+                })
+            }
+            res.status(200).json({ message: 'Dados inseridos com sucesso!' })
         } catch (error) {
             console.log("🚀 ~ error:", error)
         }
@@ -179,6 +214,20 @@ class ProfissionalController {
         } catch (error) {
             console.error('Erro ao excluir a imagem:', error);
             res.status(500).json({ error: 'Erro ao excluir a imagem' });
+        }
+    }
+
+    async verifyCPF(req, res) {
+        const data = req.body
+        try {
+            const sql = `SELECT * FROM usuario WHERE cpf = ?`
+            const [result] = await db.promise().query(sql, [data.cpf])
+            if (result.length > 0) {
+                return res.status(409).json({ message: "CPF já cadastrado!" });
+            }
+            return res.status(200).json({ message: "CPF válido!" });
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao verificar CPF' });
         }
     }
 
