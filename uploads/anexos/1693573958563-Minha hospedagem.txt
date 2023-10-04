@@ -1,3 +1,0 @@
-host: johncode.tech
-usuario: johncode
-senha: 
