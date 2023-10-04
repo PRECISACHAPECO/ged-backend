@@ -64,8 +64,10 @@ class FornecedorController {
     async saveAnexo(req, res) {
         try {
             const { id } = req.params;
+            const pathDestination = req.pathDestination
             let file = req.file;
-            const { titulo, grupoanexoitemID, usuarioID, unidadeID, arrAnexoRemoved } = req.body;
+            const { titulo, usuarioID, unidadeID, produtoAnexoID, grupoAnexoItemID, arrAnexoRemoved } = req.body;
+            console.log("🚀 ~ saveAnexo ~ produtoAnexoID:", produtoAnexoID)
 
             //? Verificar se há arquivo enviado
             if (!file) {
@@ -73,13 +75,16 @@ class FornecedorController {
             }
 
             //? Anexo atual
-            const sqlCurrentFile = `SELECT arquivo FROM anexo WHERE grupoAnexoItemID = ? AND unidadeID = ? AND fornecedorID = ?`;
-            const [tempResultCurrentFile] = await db.promise().query(sqlCurrentFile, [grupoanexoitemID, unidadeID, id])
-            const resultCurrentFile = tempResultCurrentFile[0]?.arquivo;
+            const sqlCurrentFile = `
+            SELECT a.anexoID, a.arquivo 
+            FROM anexo AS a
+                JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
+            WHERE ab.fornecedorID = ? ${grupoAnexoItemID > 0 ? ` AND ab.grupoAnexoItemID = ?` : ` AND ab.produtoAnexoID = ?`}`;
+            const [resultCurrentFile] = await db.promise().query(sqlCurrentFile, [id, (grupoAnexoItemID > 0 ? grupoAnexoItemID : produtoAnexoID)])
 
             //? Exclui o arquivo anterior
-            if (resultCurrentFile) {
-                const previousFile = path.resolve('uploads/anexos', resultCurrentFile);
+            if (resultCurrentFile.length > 0) {
+                const previousFile = path.resolve(pathDestination, resultCurrentFile[0].arquivo);
                 fs.unlink(previousFile, (error) => {
                     if (error) {
                         return console.error('Erro ao excluir a imagem anterior:', error);
@@ -89,35 +94,39 @@ class FornecedorController {
                 });
             }
 
-            if (resultCurrentFile) {
-                const sqlUpdate = `UPDATE anexo SET arquivo = ?, tamanho = ?, tipo = ?, titulo = ?, dataHora = ? WHERE grupoAnexoItemID = ? AND unidadeID = ? AND fornecedorID = ?`;
+            if (resultCurrentFile.length > 0) {
+                const sqlUpdate = `UPDATE anexo SET arquivo = ?, tamanho = ?, tipo = ?, titulo = ?, dataHora = ? WHERE anexoID = ?`;
                 const [resultUpdate] = await db.promise().query(sqlUpdate, [
                     file.filename,
                     file.size,
                     file.mimetype,
                     titulo,
                     new Date(),
-                    grupoanexoitemID,
-                    unidadeID,
-                    id
+                    resultCurrentFile[0].anexoID
                 ])
             } else {
-                const sqlInsert = `INSERT INTO anexo(titulo, arquivo, tamanho, tipo, grupoAnexoItemID, usuarioID, unidadeID, fornecedorID, dataHora) VALUES(?,?,?,?,?,?,?,?,?)`;
+                // Insert anexo
+                const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
                 const [resultInsert] = await db.promise().query(sqlInsert, [
                     titulo,
+                    pathDestination,
                     file.filename,
                     file.size,
                     file.mimetype,
-                    grupoanexoitemID,
                     usuarioID,
                     unidadeID,
-                    id,
                     new Date()
                 ])
+                const anexoID = resultInsert.insertId;
+
+                // Insert anexo_busca
+                const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, produtoAnexoID, grupoAnexoItemID) VALUES(?,?,?,?)`;
+                const [resultInsertBusca] = await db.promise().query(sqlInsertBusca, [anexoID, id, produtoAnexoID, grupoAnexoItemID])
             }
 
             const result = {
-                path: `${process.env.BASE_URL_UPLOADS}anexos/${file.filename}`,
+                exist: true,
+                path: `${process.env.BASE_URL_API}${pathDestination}${file.filename}`,
                 nome: titulo,
                 tipo: file.mimetype,
                 size: file.size,
@@ -132,16 +141,21 @@ class FornecedorController {
     }
 
     async deleteAnexo(req, res) {
-        const { grupoanexoitemID, id, unidadeID, usuarioID } = req.params;
+        const { grupoanexoitemID, id, unidadeID, usuarioID, folder } = req.params;
 
         //? Obtém o caminho do anexo atual
-        const sqlCurrentFile = `SELECT arquivo FROM anexo WHERE grupoAnexoItemID = ? AND unidadeID = ? AND fornecedorID = ?`;
-        const [tempResultCurrentFile] = await db.promise().query(sqlCurrentFile, [grupoanexoitemID, unidadeID, id])
+        const sqlCurrentFile = `
+        SELECT arquivo 
+        FROM anexo AS a 
+            JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
+        WHERE ab.fornecedorID = ? AND ab.grupoAnexoItemID = ?`;
+        const [tempResultCurrentFile] = await db.promise().query(sqlCurrentFile, [id, grupoanexoitemID, id])
         const resultCurrentFile = tempResultCurrentFile[0]?.arquivo;
 
         //? Remover arquivo do diretório
         if (resultCurrentFile) {
-            const previousFile = path.resolve('uploads/anexos', resultCurrentFile);
+            const pathFile = `uploads/${unidadeID}/fornecedor/${folder}/`
+            const previousFile = path.resolve(pathFile, resultCurrentFile);
             fs.unlink(previousFile, (error) => {
                 if (error) {
                     return console.error('Erro ao remover o anexo:', error);
@@ -151,9 +165,13 @@ class FornecedorController {
             });
         }
 
-        //? Remove anexo do BD
-        const sqlDelete = `DELETE FROM anexo WHERE grupoAnexoItemID = ? AND unidadeID = ? AND fornecedorID = ?`;
-        const [resultDelete] = await db.promise().query(sqlDelete, [grupoanexoitemID, unidadeID, id])
+        //? Remove anexo do BD fazendo join com anexo_busca
+        const sqlDelete = `
+        DELETE a.*
+        FROM anexo AS a
+            JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
+        WHERE ab.fornecedorID = ? AND ab.grupoAnexoItemID = ?`;
+        const [resultDelete] = await db.promise().query(sqlDelete, [id, grupoanexoitemID])
 
         res.status(200).json(resultDelete);
     }
@@ -305,8 +323,30 @@ class FornecedorController {
 
             // Varre produtos verificando tabela produto_anexo
             for (const produto of resultProdutos) {
-                const sqlProdutoAnexo = `SELECT * FROM produto_anexo WHERE produtoID = ? AND status = 1`
+                const sqlProdutoAnexo = `
+                SELECT * 
+                FROM produto_anexo 
+                WHERE produtoID = ? AND status = 1`
                 const [resultProdutoAnexo] = await db.promise().query(sqlProdutoAnexo, [produto.produtoID])
+
+                for (const anexo of resultProdutoAnexo) {
+                    const sqlAnexo = `
+                    SELECT a.*
+                    FROM anexo AS a
+                        JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
+                    WHERE ab.fornecedorID = ? AND ab.produtoAnexoID = ?`
+                    const [resultAnexo] = await db.promise().query(sqlAnexo, [id, anexo.produtoAnexoID])
+                    anexo['anexo'] = {
+                        exist: resultAnexo.length > 0 ? true : false,
+                        anexoID: resultAnexo[0]?.anexoID,
+                        path: `${process.env.BASE_URL_API}${resultAnexo[0]?.diretorio}${resultAnexo[0]?.arquivo} `,
+                        nome: resultAnexo[0]?.titulo,
+                        tipo: resultAnexo[0]?.tipo,
+                        size: resultAnexo[0]?.tamanho,
+                        time: resultAnexo[0]?.dataHora
+                    }
+                }
+
                 produto['anexos'] = resultProdutoAnexo ?? []
             }
 
@@ -327,13 +367,17 @@ class FornecedorController {
                 //? Varre itens do grupo, verificando se tem anexo
                 for (const item of resultGrupoItens) {
                     item.anexo = {}
-                    const sqlAnexo = `SELECT * FROM anexo WHERE fornecedorID = ? AND grupoAnexoItemID = ? `
+                    const sqlAnexo = `
+                    SELECT a.* 
+                    FROM anexo AS a 
+                        JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
+                    WHERE ab.fornecedorID = ? AND ab.grupoAnexoItemID = ? `
                     const [resultAnexo] = await db.promise().query(sqlAnexo, [id, item.grupoanexoitemID]);
                     if (resultAnexo.length > 0) {
                         item.anexo = {
                             exist: true,
                             anexoID: resultAnexo[0].anexoID,
-                            path: `${process.env.BASE_URL_UPLOADS}anexos/${resultAnexo[0].arquivo} `,
+                            path: `${process.env.BASE_URL_API}${resultAnexo[0].diretorio}${resultAnexo[0].arquivo} `,
                             nome: resultAnexo[0]?.titulo,
                             tipo: resultAnexo[0]?.tipo,
                             size: resultAnexo[0]?.tamanho,
@@ -463,15 +507,12 @@ class FornecedorController {
                     } else {
                         // update na tabela fornecedor_resposta
                         const sqlUpdate = `
-            UPDATE
-            fornecedor_resposta 
+                        UPDATE fornecedor_resposta 
                         SET ${item.resposta ? 'resposta = ?, ' : ''} 
                             ${item.respostaID ? 'respostaID = ?, ' : ''} 
                             ${item.observacao != undefined ? 'obs = ?, ' : ''}
-            fornecedorID = ?
-                WHERE fornecedorID = ?
-                    AND parFornecedorBlocoID = ?
-                        AND itemID = ? `
+                            fornecedorID = ?
+                        WHERE fornecedorID = ? AND parFornecedorBlocoID = ? AND itemID = ? `
                         const [resultUpdate] = await db.promise().query(sqlUpdate, [
                             ...(item.resposta ? [item.resposta] : []),
                             ...(item.respostaID ? [item.respostaID] : []),
