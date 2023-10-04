@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { hasPending, deleteItem, getMenuPermissions, hasConflict, criptoMd5 } = require('../../../config/defaultConfig');
 const multer = require('multer');
+const { accessPermissions } = require('../../../defaults/functions');
 
 class ProfissionalController {
     async getList(req, res) {
@@ -60,7 +61,7 @@ class ProfissionalController {
             const values = {
                 fields: resultDataUser[0],
                 cargosFuncoes: resultFormacaoCargo,
-                permission: await getMenuPermissions(1, 1, unidadeID)
+                menu: await getMenuPermissions(1, resultDataUser[0].usuarioID, unidadeID)
             }
 
 
@@ -113,11 +114,9 @@ class ProfissionalController {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
-
             // Cadastra novo profisional
             const InsertUser = `INSERT pessoa SET ? `
             const [resultInsertUser] = await db.promise().query(InsertUser, [data.fields])
-            console.log("🚀 ~ resultInsertUser:", resultInsertUser)
             const pessoaID = resultInsertUser.insertId
 
             // Cadastro CARGOS / FUNÇÃO
@@ -127,7 +126,36 @@ class ProfissionalController {
                     const [resultInsertCargo] = await db.promise().query(insertCargo, [row.data, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), pessoaID])
                 })
             }
-            res.status(200).json({ message: 'Dados inseridos com sucesso!' })
+
+            // Se for usuario
+            //* Marcou usuário do sistema
+            if (data.isUsuario) {
+                const sqlInsertUsuario = `INSERT INTO usuario (cpf, nome, senha) VALUES (?,?,?)`
+                const [resultInsertUsuario] = await db.promise().query(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, criptoMd5(data.senha)])
+                const usuarioID = resultInsertUsuario.insertId
+
+                const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?, ?)`
+                const [resultInsertUsuarioUnity] = await db.promise().query(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1])
+
+                const UpdateUser = `UPDATE pessoa SET usuarioID = ? WHERE pessoaID = ?`
+                const [resultUpdateUser] = await db.promise().query(UpdateUser, [usuarioID, pessoaID])
+
+                //* PERMISSÕES DE ACESSO
+                const newData = {
+                    ...data,
+                    fields: {
+                        ...data.fields,
+                        usuarioID
+                    },
+                }
+                console.log("dataaaa update sem isdddddd", newData)
+                accessPermissions(newData)
+
+                return res.status(200).json(pessoaID)
+            }
+
+
+            return res.status(200).json(pessoaID)
         } catch (error) {
             console.log("🚀 ~ error:", error)
         }
@@ -234,21 +262,17 @@ class ProfissionalController {
     async updateData(req, res) {
         try {
             const { id } = req.params
-            console.log("🚀 ~ id:", id)
             const data = req.body
-            console.log("🚀 ~ data:", data)
-
-
-            //* Valida conflito
-            const validateConflicts = {
-                columns: ['pessoaID', 'cpf', 'unidadeID'],
-                values: [id, data.fields.cpf, data.fields.unidadeID],
-                table: 'pessoa',
-                id: id
-            }
-            if (await hasConflict(validateConflicts)) {
-                return res.status(409).json({ message: "Dados já cadastrados!" });
-            }
+            // //* Valida conflito
+            // const validateConflicts = {
+            //     columns: ['pessoaID', 'cpf', 'unidadeID'],
+            //     values: [id, data.fields.cpf, data.fields.unidadeID],
+            //     table: 'pessoa',
+            //     id: id
+            // }
+            // if (await hasConflict(validateConflicts)) {
+            //     return res.status(409).json({ message: "Dados já cadastrados!" });
+            // }
 
             // Atualiza dados do profissional
             const UpdateUser = `UPDATE pessoa SET ? WHERE pessoaID = ?`
@@ -301,6 +325,11 @@ class ProfissionalController {
                         const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?,?)`
                         const [resultInsertUsuarioUnity] = await db.promise().query(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1])
                     }
+
+                    //* PERMISSÕES DE ACESSO
+                    accessPermissions(data)
+                    res.status(200).json({ message: 'Dados atualizados com sucesso!' })
+
                 }
                 //? Ainda não existe o usuario com esse CPF, cria novo
                 else {
@@ -313,16 +342,33 @@ class ProfissionalController {
 
                     const UpdateUser = `UPDATE pessoa SET usuarioID = ? WHERE pessoaID = ?`
                     const [resultUpdateUser] = await db.promise().query(UpdateUser, [usuarioID, id])
+
+                    //* PERMISSÕES DE ACESSO
+                    const newData = {
+                        ...data,
+                        fields: {
+                            ...data.fields,
+                            usuarioID
+                        },
+                    }
+                    console.log("dataaaa update sem isdddddd", newData)
+                    accessPermissions(newData)
+
+                    res.status(200).json({ message: 'Dados atualizados com sucesso!' })
+
+
                 }
+
             }
             //* Desmarcou usuário do sistema
             else {
                 console.log("não é usaurio")
                 const UpdateUser = `UPDATE pessoa SET usuarioID = ? WHERE pessoaID = ?`
                 const [resultUpdateUser] = await db.promise().query(UpdateUser, [0, id])
+                res.status(200).json({ message: 'Dados atualizados com sucesso!' })
 
             }
-            res.status(200).json({ message: 'Dados atualizados com sucesso!' })
+
         } catch (error) {
             console.log("🚀 ~ error:", error)
         }
@@ -373,5 +419,7 @@ const hasCargosEdit = (cargos) => {
     })
     return hasEdit
 }
+
+
 
 module.exports = ProfissionalController;
