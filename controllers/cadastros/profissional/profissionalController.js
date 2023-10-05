@@ -88,7 +88,8 @@ class ProfissionalController {
                     {
                         data: formattedDate
                     }
-                ]
+                ],
+                menu: await getMenuPermissions(1, 0, 1)
             };
 
             res.status(200).json(values);
