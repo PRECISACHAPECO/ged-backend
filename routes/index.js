@@ -11,7 +11,9 @@ routes.use(urlBase + '/', auth);
 
 // Dashborards
 const fabricaRouter = require("./dashboard/fabricaRoutes")
+const fornecedorDashboardRouter = require("./dashboard/fornecedorRoutes")
 routes.use(urlBase + '/dashboard', fabricaRouter);
+routes.use(urlBase + '/dashboard', fornecedorDashboardRouter);
 
 // Fornecedor
 const fornecedorRouter = require("./formularios/fornecedor/fornecedorRoutes");
@@ -26,7 +28,7 @@ routes.use(urlBase, recebimentoMpRouter);
 // routes.use(urlBase, naoConformidadeRouter);
 
 // Limpeza
-const limpezaRouter = require("./formularios/limpeza/limpezaRoutes");
+const limpezaRouter = require("./formularios/limpeza/limpezaRoutes"); 1
 routes.use(urlBase, limpezaRouter);
 
 // Cadastros 
