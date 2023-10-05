@@ -3,19 +3,22 @@ const multer = require('multer')
 const path = require('path')
 const sharp = require('sharp')
 
-const timeNow = Date.now()
-const defineFileName = (tempFolder, originalName) => {
-    const fileName = tempFolder ? `temp/${timeNow}-${originalName}` : `${timeNow}-${originalName}`
-    return fileName
+const defineFileName = (tempFolder, originalName, usuarioID) => {
+    //? yyyymmdd-hms
+    const dateTimeNow = new Date().toISOString().replace(/[-:.]/g, '').replace('T', '-').split('.')[0].slice(0, 15)
+    const fileName = `${dateTimeNow}-${usuarioID}-${originalName}`
+    // obter diretorio da pasta temp em uploads/temp
+    const tempPathFolder = `temp`
+    return tempFolder ? `${tempPathFolder}/${fileName}` : `${fileName}`
 }
 
-const multerImage = async (req, res, next, pathDestination, maxOriginalSize, maxSize, allowedUnityExtensions, imageMaxDimensionToResize) => {
+const multerImage = async (req, res, next, usuarioID, pathDestination, maxOriginalSize, maxSize, allowedUnityExtensions, imageMaxDimensionToResize) => {
     const customStorage = multer.diskStorage({
         destination: function (req, file, cb) {
             cb(null, pathDestination)
         },
         filename: function (req, file, cb) {
-            cb(null, defineFileName(true, file.originalname)) //? Grava imagem orional na pasta temp
+            cb(null, defineFileName(true, file.originalname, usuarioID)) //? Grava imagem original na pasta temp
         }
     })
 
@@ -56,7 +59,8 @@ const multerImage = async (req, res, next, pathDestination, maxOriginalSize, max
             }
         } else {
             //? Redimensionar imagem
-            const fileName = defineFileName(false, req.file.originalname) //? Grava imagem redimensionada na pasta raiz            
+            console.log("🚀 ~ redimensiona imagem => usuarioID:", usuarioID)
+            const fileName = defineFileName(false, req.file.originalname, usuarioID) //? Grava imagem redimensionada na pasta raiz            
             sharp(req.file.path)
                 .resize({
                     width: imageMaxDimensionToResize,

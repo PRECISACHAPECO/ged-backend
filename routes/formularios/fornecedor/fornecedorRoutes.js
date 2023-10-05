@@ -12,7 +12,7 @@ fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
 fornecedorRoutes.post(`${route}/getData/:id`, fornecedorController.getData);
 fornecedorRoutes.post(`${route}/updateData/:id`, fornecedorController.updateData);
 fornecedorRoutes.delete(`${route}/:id`, fornecedorController.deleteData);
-fornecedorRoutes.delete(`${route}/deleteAnexo/:grupoanexoitemID/:id/:unidadeID/:usuarioID`, fornecedorController.deleteAnexo);
+fornecedorRoutes.delete(`${route}/deleteAnexo/:grupoanexoitemID/:id/:unidadeID/:usuarioID/:folder`, fornecedorController.deleteAnexo);
 fornecedorRoutes.post(`${route}/novo`, fornecedorController.insertData);
 
 // Específicos
@@ -36,8 +36,12 @@ fornecedorRoutes.post(`${route}/getGruposAnexo`, fornecedorController.getGruposA
 fornecedorRoutes.post(`${route}/sendNotification`, fornecedorController.sendNotification);
 
 //? MULTER: Upload de arquivo
-fornecedorRoutes.post(`${route}/saveAnexo/:id/:unidadeID/:isImage`, (req, res, next) => {
-    configureMulterMiddleware(req, res, next, req.params.unidadeID, 'uploads/anexos/', req.params.isImage)
+fornecedorRoutes.post(`${route}/saveAnexo/:id/:folder/:usuarioID/:unidadeID/:isImage`, (req, res, next) => {
+    const folder = req.params.folder ?? '/' //? Pasta destino do arquivo (grupo-anexo/produto/item/...)
+    const pathDestination = `uploads/${req.params.unidadeID}/fornecedor/${folder}/`
+    req.pathDestination = pathDestination
+    console.log("🚀 ~ middlewere pathDestination:", pathDestination)
+    configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.unidadeID, pathDestination, req.params.isImage)
 }, fornecedorController.saveAnexo);
 
 module.exports = fornecedorRoutes;

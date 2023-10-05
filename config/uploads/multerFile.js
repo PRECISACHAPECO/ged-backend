@@ -1,17 +1,19 @@
 
 const multer = require('multer')
 
-const defineFileName = (originalName) => {
-    return `${Date.now()}-${originalName}`
+const defineFileName = (usuarioID, originalName) => {
+    //? yyyymmdd-hms
+    const dateTimeNow = new Date().toISOString().replace(/[-:.]/g, '').replace('T', '-').split('.')[0].slice(0, 15)
+    return `${dateTimeNow}-${usuarioID}-${originalName}`
 }
 
-const multerFile = async (req, res, next, pathDestination, maxSize, allowedUnityExtensions) => {
+const multerFile = async (req, res, next, usuarioID, pathDestination, maxSize, allowedUnityExtensions) => {
     const customStorage = multer.diskStorage({
         destination: function (req, file, cb) {
             cb(null, pathDestination)
         },
         filename: function (req, file, cb) {
-            cb(null, defineFileName(file.originalname))
+            cb(null, defineFileName(usuarioID, file.originalname))
         }
     })
 
