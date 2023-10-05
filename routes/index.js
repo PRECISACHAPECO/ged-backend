@@ -11,7 +11,7 @@ routes.use(urlBase + '/', auth);
 
 // Dashborards
 const fabricaRouter = require("./dashboard/fabricaRoutes")
-const fornecedorDashboardRouter = require("./dashboard/fornecedorRoutes")
+const fornecedorDashboardRouter = require("./dashboard/fornecedorDashboardRoutes")
 routes.use(urlBase + '/dashboard', fabricaRouter);
 routes.use(urlBase + '/dashboard', fornecedorDashboardRouter);
 
