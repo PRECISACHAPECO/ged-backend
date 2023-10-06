@@ -2,13 +2,43 @@ const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class ItemController {
+
+    async getItemConfigs(req, res) {
+        try {
+            const { itemID, alternativaID, alternativaItemID } = req.body
+            if (!itemID || !alternativaID || !alternativaItemID) return res.status(400).json({ message: "Dados não informados!" })
+
+            const sql = `
+            SELECT io.itemOpcaoID, io.anexo, io.bloqueiaFormulario, io.observacao
+            FROM item AS i
+                LEFT JOIN item_opcao AS io ON (i.itemID = io.itemID)
+            WHERE i.itemID = ? AND io.alternativaItemID = ?`
+            const [result] = await db.promise().query(sql, [itemID, alternativaItemID])
+
+            result[0]['anexos'] = []
+            if (result[0]['anexo'] == 1) { //? Essa resposta solicita anexo
+                const sqlAnexos = `
+                SELECT itemOpcaoAnexoID, nome, obrigatorio
+                FROM item_opcao_anexo
+                WHERE itemID = ? AND itemOpcaoID = ?`
+                const [resultAnexos] = await db.promise().query(sqlAnexos, [itemID, result[0]['itemOpcaoID']])
+                result[0]['anexos'] = resultAnexos.length > 0 ? resultAnexos : []
+            }
+
+            return res.status(200).json(result[0])
+
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
     async getAlternatives(req, res) {
         const { alternativa } = req.body
 
         const sql = `
         SELECT alternativaItemID AS id, nome
         FROM alternativa_item 
-        WHERE alternativaID = ?`
+        WHERE alternativaID = ? `
         const [result] = await db.promise().query(sql, [alternativa.id])
 
         for (let i = 0; i < result.length; i++) {
@@ -26,16 +56,16 @@ class ItemController {
         try {
             const sqlGetList = `
             SELECT 
-                itemID AS id, 
-                a.nome, 
+                itemID AS id,
+                a.nome,
                 e.nome AS status,
-                e.cor,
-            b.nome AS formulario 
+                    e.cor,
+                    b.nome AS formulario 
             FROM item AS a 
-            LEFT JOIN par_formulario b ON (a.parFormularioID = b.parFormularioID) 
-            JOIN status e ON (a.status = e.statusID)
+            LEFT JOIN par_formulario b ON(a.parFormularioID = b.parFormularioID) 
+            JOIN status e ON(a.status = e.statusID)
             WHERE a.unidadeID = ?
-            ORDER BY b.parFormularioID ASC, a.itemID ASC`
+                ORDER BY b.parFormularioID ASC, a.itemID ASC`
             const resultSqlGetList = await db.promise().query(sqlGetList, [unidadeID])
             return res.status(200).json(resultSqlGetList[0])
         } catch (error) {
@@ -50,9 +80,9 @@ class ItemController {
             const sql = `
             SELECT i.itemID AS id, i.nome, i.status, i.ajuda, pf.parFormularioID, pf.nome AS formulario, a.alternativaID, a.nome AS alternativa
             FROM item AS i
-                JOIN par_formulario AS pf ON (i.parFormularioID = pf.parFormularioID)
-                JOIN alternativa AS a ON (i.alternativaID = a.alternativaID)
-            WHERE i.itemID = ?`
+                JOIN par_formulario AS pf ON(i.parFormularioID = pf.parFormularioID)
+                JOIN alternativa AS a ON(i.alternativaID = a.alternativaID)
+            WHERE i.itemID = ? `
             const [resultData] = await db.promise().query(sql, [id]);
 
             if (!resultData || resultData.length === 0) return res.status(404).json({ error: "Nenhum dado encontrado." })
@@ -69,15 +99,15 @@ class ItemController {
             const sqlOpcoes = `
             SELECT io.itemOpcaoID, ai.alternativaItemID AS id, ai.nome, ai.alternativaID, io.anexo, io.bloqueiaFormulario, io.observacao
             FROM item_opcao AS io 
-                JOIN alternativa_item AS ai ON (io.alternativaItemID = ai.alternativaItemID)
-            WHERE io.itemID = ?`
+                JOIN alternativa_item AS ai ON(io.alternativaItemID = ai.alternativaItemID)
+            WHERE io.itemID = ? `
             const [resultOpcoes] = await db.promise().query(sqlOpcoes, [id]);
 
             for (let i = 0; i < resultOpcoes.length; i++) {
                 const sqlAnexos = `
                 SELECT itemOpcaoAnexoID AS id, nome, obrigatorio
                 FROM item_opcao_anexo 
-                WHERE itemID = ? AND itemOpcaoID = ?`
+                WHERE itemID = ? AND itemOpcaoID = ? `
                 const [resultAnexos] = await db.promise().query(sqlAnexos, [id, resultOpcoes[i].itemOpcaoID]);
                 resultOpcoes[i].anexos = resultAnexos.length > 0 ? resultAnexos : [{ nome: '' }]
             }
@@ -121,7 +151,7 @@ class ItemController {
             const sqlOpcoes = `
             SELECT ai.alternativaItemID AS id, ai.nome, ai.alternativaID
             FROM alternativa_item AS ai 
-            WHERE ai.alternativaID = ?`
+            WHERE ai.alternativaID = ? `
             const [resultOpcoes] = await db.promise().query(sqlOpcoes, [resultOptionsAlternativa[0].id]);
 
             for (let i = 0; i < resultOpcoes.length; i++) {
@@ -169,7 +199,7 @@ class ItemController {
             }
 
             //? Insert item
-            const sqlInsert = `INSERT INTO item (nome, parFormularioID, alternativaID, ajuda, status, unidadeID) VALUES (?, ?, ?, ?, ?, ?)`;
+            const sqlInsert = `INSERT INTO item(nome, parFormularioID, alternativaID, ajuda, status, unidadeID) VALUES(?, ?, ?, ?, ?, ?)`;
             const [resultInsert] = await db.promise().query(sqlInsert, [
                 values.fields.nome,
                 values.fields.formulario.id,
@@ -182,7 +212,7 @@ class ItemController {
 
             //? Atualiza item_opcao
             // Insert
-            const sqlInsertOpcao = `INSERT INTO item_opcao (itemID, alternativaItemID, anexo, bloqueiaFormulario, observacao) VALUES (?, ?, ?, ?, ?)`
+            const sqlInsertOpcao = `INSERT INTO item_opcao(itemID, alternativaItemID, anexo, bloqueiaFormulario, observacao) VALUES(?, ?, ?, ?, ?)`
             if (values.fields.opcoes && values.fields.opcoes.length > 0) {
                 for (let i = 0; i < values.fields.opcoes.length; i++) {
                     const element = values.fields.opcoes[i];
@@ -197,7 +227,7 @@ class ItemController {
 
                     //? Atualiza item_opcao_anexo
                     // Insert
-                    const sqlInsertAnexo = `INSERT INTO item_opcao_anexo (itemID, itemOpcaoID, nome, obrigatorio) VALUES (?, ?, ?, ?)`
+                    const sqlInsertAnexo = `INSERT INTO item_opcao_anexo(itemID, itemOpcaoID, nome, obrigatorio) VALUES(?, ?, ?, ?)`
                     if (element.anexos && element.anexos.length > 0) {
                         for (let j = 0; j < element.anexos.length; j++) {
                             const elementAnexo = element.anexos[j];
@@ -239,20 +269,20 @@ class ItemController {
             }
 
             //? Atualiza item
-            const sqlUpdate = `UPDATE item SET nome = ?, parFormularioID = ?, alternativaID = ?, ajuda = ?, status = ? WHERE itemID = ?`;
+            const sqlUpdate = `UPDATE item SET nome = ?, parFormularioID = ?, alternativaID = ?, ajuda = ?, status = ? WHERE itemID = ? `;
             const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.formulario.id, values.fields.alternativa.id, values.fields.ajuda, (values.fields.status ? '1' : '0'), id]);
 
             //? Atualiza item_opcao
             // Delete
-            const sqlDelete = `DELETE FROM item_opcao WHERE itemID = ?`
+            const sqlDelete = `DELETE FROM item_opcao WHERE itemID = ? `
             const [resultDelete] = await db.promise().query(sqlDelete, [id])
 
             // Delete
-            const sqlDeleteAnexo = `DELETE FROM item_opcao_anexo WHERE itemID = ?`
+            const sqlDeleteAnexo = `DELETE FROM item_opcao_anexo WHERE itemID = ? `
             const [resultDeleteAnexo] = await db.promise().query(sqlDeleteAnexo, [id])
 
             // Insert
-            const sqlInsertOpcao = `INSERT INTO item_opcao (itemID, alternativaItemID, anexo, bloqueiaFormulario, observacao) VALUES (?, ?, ?, ?, ?)`
+            const sqlInsertOpcao = `INSERT INTO item_opcao(itemID, alternativaItemID, anexo, bloqueiaFormulario, observacao) VALUES(?, ?, ?, ?, ?)`
             for (let i = 0; i < values.fields.opcoes.length; i++) {
                 const element = values.fields.opcoes[i];
                 console.log("🚀 ~ element:", element)
@@ -267,7 +297,7 @@ class ItemController {
 
                 //? Atualiza item_opcao_anexo
                 // Insert
-                const sqlInsertAnexo = `INSERT INTO item_opcao_anexo (itemID, itemOpcaoID, nome, obrigatorio) VALUES (?, ?, ?, ?)`
+                const sqlInsertAnexo = `INSERT INTO item_opcao_anexo(itemID, itemOpcaoID, nome, obrigatorio) VALUES(?, ?, ?, ?)`
                 for (let j = 0; j < element.anexos.length; j++) {
                     const elementAnexo = element.anexos[j];
                     if (elementAnexo.nome != '') {
