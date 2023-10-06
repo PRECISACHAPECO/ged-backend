@@ -9,6 +9,7 @@ class fornecedorDashboardController {
         try {
             const getLastForms = `
             SELECT
+                f.fornecedorID,
                 u.nomeFantasia AS fabrica,
                 DATE_FORMAT(f.dataInicio, '%d/%m/%Y') AS dataCriacao_formatada,
                 e.nome AS status,
@@ -19,7 +20,8 @@ class fornecedorDashboardController {
                 LEFT JOIN unidade AS u ON f.unidadeID = u.unidadeID
                 LEFT JOIN status AS e ON f.status = e.statusID
             WHERE f.cnpj = ?
-            ORDER BY f.status ASC;`
+            ORDER BY f.status ASC, f.fornecedorID DESC
+            LIMIT 12`
 
             const [resultLastForms] = await db.promise().query(getLastForms, [data.cnpj])
 
