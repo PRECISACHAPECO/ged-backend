@@ -329,25 +329,33 @@ class FornecedorController {
                 WHERE produtoID = ? AND status = 1`
                 const [resultProdutoAnexo] = await db.promise().query(sqlProdutoAnexo, [produto.produtoID])
 
-                for (const anexo of resultProdutoAnexo) {
+                for (const produtoTituloAnexo of resultProdutoAnexo) {
                     const sqlAnexo = `
                     SELECT a.*
                     FROM anexo AS a
                         JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
                     WHERE ab.fornecedorID = ? AND ab.produtoAnexoID = ?`
-                    const [resultAnexo] = await db.promise().query(sqlAnexo, [id, anexo.produtoAnexoID])
-                    anexo['anexo'] = {
-                        exist: resultAnexo.length > 0 ? true : false,
-                        anexoID: resultAnexo[0]?.anexoID,
-                        path: `${process.env.BASE_URL_API}${resultAnexo[0]?.diretorio}${resultAnexo[0]?.arquivo} `,
-                        nome: resultAnexo[0]?.titulo,
-                        tipo: resultAnexo[0]?.tipo,
-                        size: resultAnexo[0]?.tamanho,
-                        time: resultAnexo[0]?.dataHora
+                    const [resultAnexo] = await db.promise().query(sqlAnexo, [id, produtoTituloAnexo.produtoAnexoID])
+
+                    const arrayAnexos = []
+                    for (const anexo of resultAnexo) {
+                        if (anexo && anexo.anexoID > 0) {
+                            const objAnexo = {
+                                exist: true,
+                                anexoID: anexo.anexoID,
+                                path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
+                                nome: anexo.titulo,
+                                tipo: anexo.tipo,
+                                size: anexo.tamanho,
+                                time: anexo.dataHora
+                            }
+                            arrayAnexos.push(objAnexo)
+                        }
                     }
+                    produtoTituloAnexo['anexos'] = arrayAnexos
                 }
 
-                produto['anexos'] = resultProdutoAnexo ?? []
+                produto['produtoAnexosDescricao'] = resultProdutoAnexo ?? []
             }
 
             //* GRUPOS DE ANEXO
@@ -366,26 +374,45 @@ class FornecedorController {
 
                 //? Varre itens do grupo, verificando se tem anexo
                 for (const item of resultGrupoItens) {
-                    item.anexo = {}
                     const sqlAnexo = `
                     SELECT a.* 
                     FROM anexo AS a 
                         JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
                     WHERE ab.fornecedorID = ? AND ab.grupoAnexoItemID = ? `
                     const [resultAnexo] = await db.promise().query(sqlAnexo, [id, item.grupoanexoitemID]);
-                    if (resultAnexo.length > 0) {
-                        item.anexo = {
-                            exist: true,
-                            anexoID: resultAnexo[0].anexoID,
-                            path: `${process.env.BASE_URL_API}${resultAnexo[0].diretorio}${resultAnexo[0].arquivo} `,
-                            nome: resultAnexo[0]?.titulo,
-                            tipo: resultAnexo[0]?.tipo,
-                            size: resultAnexo[0]?.tamanho,
-                            time: resultAnexo[0]?.dataHora,
+
+                    const arrayAnexos = []
+                    for (const anexo of resultAnexo) {
+                        if (anexo && anexo.anexoID > 0) {
+                            const objAnexo = {
+                                exist: true,
+                                anexoID: anexo.anexoID,
+                                path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
+                                nome: anexo.titulo,
+                                tipo: anexo.tipo,
+                                size: anexo.tamanho,
+                                time: anexo.dataHora
+                            }
+                            arrayAnexos.push(objAnexo)
                         }
                     }
+                    item['anexos'] = arrayAnexos
+                    // if (resultAnexo.length > 0) {
+                    //     item.anexo = {
+                    //         exist: true,
+                    //         anexoID: resultAnexo[0].anexoID,
+                    //         path: `${process.env.BASE_URL_API}${resultAnexo[0].diretorio}${resultAnexo[0].arquivo} `,
+                    //         nome: resultAnexo[0]?.titulo,
+                    //         tipo: resultAnexo[0]?.tipo,
+                    //         size: resultAnexo[0]?.tamanho,
+                    //         time: resultAnexo[0]?.dataHora,
+                    //     }
+                    // }
                 }
-                grupo.itens = resultGrupoItens;
+
+                grupo['itens'] = resultGrupoItens
+
+                // grupo.itens = resultGrupoItens;
                 gruposAnexo.push(grupo)
             }
 
@@ -435,6 +462,7 @@ class FornecedorController {
                 },
                 link: `${process.env.BASE_URL}formularios/fornecedor?id=${id}`
             }
+            console.log("🚀 ~ resultProdutos:", data.resultProdutos)
 
             res.status(200).json(data);
         } catch (error) {
