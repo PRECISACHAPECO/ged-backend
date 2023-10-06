@@ -12,7 +12,6 @@ fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
 fornecedorRoutes.post(`${route}/getData/:id`, fornecedorController.getData);
 fornecedorRoutes.post(`${route}/updateData/:id`, fornecedorController.updateData);
 fornecedorRoutes.delete(`${route}/:id`, fornecedorController.deleteData);
-fornecedorRoutes.delete(`${route}/deleteAnexo/:grupoanexoitemID/:id/:unidadeID/:usuarioID/:folder`, fornecedorController.deleteAnexo);
 fornecedorRoutes.post(`${route}/novo`, fornecedorController.insertData);
 
 // Específicos
@@ -35,12 +34,13 @@ fornecedorRoutes.post(`${route}/changeFormStatus/:id`, fornecedorController.chan
 fornecedorRoutes.post(`${route}/getGruposAnexo`, fornecedorController.getGruposAnexo);
 fornecedorRoutes.post(`${route}/sendNotification`, fornecedorController.sendNotification);
 
+// Anexos
+fornecedorRoutes.delete(`${route}/deleteAnexo/:id/:anexoID/:unidadeID/:usuarioID/:folder`, fornecedorController.deleteAnexo);
 //? MULTER: Upload de arquivo
 fornecedorRoutes.post(`${route}/saveAnexo/:id/:folder/:usuarioID/:unidadeID`, (req, res, next) => {
     const folder = req.params.folder ?? '/' //? Pasta destino do arquivo (grupo-anexo/produto/item/...)
     const pathDestination = `uploads/${req.params.unidadeID}/fornecedor/${folder}/`
     req.pathDestination = pathDestination
-    console.log("🚀 ~ middlewere pathDestination:", pathDestination)
     configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.unidadeID, pathDestination)
 }, fornecedorController.saveAnexo);
 

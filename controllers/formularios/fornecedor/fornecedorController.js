@@ -33,7 +33,7 @@ class FornecedorController {
     async getGruposAnexo(req, res) {
         const { unidadeID } = req.body
         const sql = `
-        SELECT grupoanexoID AS id, nome
+        SELECT grupoAnexoID AS id, nome
         FROM grupoanexo
         WHERE unidadeID = ? AND status = 1 
         ORDER BY nome ASC`;
@@ -98,6 +98,7 @@ class FornecedorController {
 
                 const objAnexo = {
                     exist: true,
+                    anexoID: anexoID,
                     path: `${process.env.BASE_URL_API}${pathDestination}${file.filename}`,
                     nome: file.originalname,
                     tipo: file.mimetype,
@@ -114,15 +115,11 @@ class FornecedorController {
     }
 
     async deleteAnexo(req, res) {
-        const { grupoanexoitemID, id, unidadeID, usuarioID, folder } = req.params;
+        const { id, anexoID, unidadeID, usuarioID, folder } = req.params;
 
         //? Obtém o caminho do anexo atual
-        const sqlCurrentFile = `
-        SELECT arquivo 
-        FROM anexo AS a 
-            JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
-        WHERE ab.fornecedorID = ? AND ab.grupoAnexoItemID = ?`;
-        const [tempResultCurrentFile] = await db.promise().query(sqlCurrentFile, [id, grupoanexoitemID, id])
+        const sqlCurrentFile = `SELECT arquivo FROM anexo WHERE anexoID = ?`;
+        const [tempResultCurrentFile] = await db.promise().query(sqlCurrentFile, [anexoID])
         const resultCurrentFile = tempResultCurrentFile[0]?.arquivo;
 
         //? Remover arquivo do diretório
@@ -138,15 +135,11 @@ class FornecedorController {
             });
         }
 
-        //? Remove anexo do BD fazendo join com anexo_busca
-        const sqlDelete = `
-        DELETE a.*
-        FROM anexo AS a
-            JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
-        WHERE ab.fornecedorID = ? AND ab.grupoAnexoItemID = ?`;
-        const [resultDelete] = await db.promise().query(sqlDelete, [id, grupoanexoitemID])
+        //? Remove anexo do BD
+        const sqlDelete = `DELETE FROM anexo WHERE anexoID = ?`;
+        const [resultDelete] = await db.promise().query(sqlDelete, [anexoID])
 
-        res.status(200).json(resultDelete);
+        res.status(200).json(anexoID);
     }
 
     async getList(req, res) {
@@ -335,15 +328,15 @@ class FornecedorController {
             const sqlGruposAnexo = `
             SELECT *
             FROM fornecedor_grupoanexo AS fg
-                LEFT JOIN grupoanexo AS ga ON(fg.grupoAnexoID = ga.grupoanexoID)
+                LEFT JOIN grupoanexo AS ga ON(fg.grupoAnexoID = ga.grupoAnexoID)
             WHERE fg.fornecedorID = ? AND ga.status = 1`;
             const [resultGruposAnexo] = await db.promise().query(sqlGruposAnexo, [id]);
 
             const gruposAnexo = [];
             for (const grupo of resultGruposAnexo) {
                 //? Pega os itens do grupo atual
-                const sqlItens = `SELECT * FROM grupoanexo_item WHERE grupoanexoID = ? AND status = 1`;
-                const [resultGrupoItens] = await db.promise().query(sqlItens, [grupo.grupoanexoID]);
+                const sqlItens = `SELECT * FROM grupoanexo_item WHERE grupoAnexoID = ? AND status = 1`;
+                const [resultGrupoItens] = await db.promise().query(sqlItens, [grupo.grupoAnexoID]);
 
                 //? Varre itens do grupo, verificando se tem anexo
                 for (const item of resultGrupoItens) {
@@ -352,7 +345,7 @@ class FornecedorController {
                     FROM anexo AS a 
                         JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
                     WHERE ab.fornecedorID = ? AND ab.grupoAnexoItemID = ? `
-                    const [resultAnexo] = await db.promise().query(sqlAnexo, [id, item.grupoanexoitemID]);
+                    const [resultAnexo] = await db.promise().query(sqlAnexo, [id, item.grupoAnexoItemID]);
 
                     const arrayAnexos = []
                     for (const anexo of resultAnexo) {
@@ -658,9 +651,9 @@ class FornecedorController {
         const { unidadeID } = req.body
 
         const sql = `
-        SELECT g.grupoanexoID AS id, g.nome, g.descricao
+        SELECT g.grupoAnexoID AS id, g.nome, g.descricao
         FROM grupoanexo AS g
-            JOIN grupoanexo_parformulario AS gp ON (g.grupoanexoID = gp.grupoAnexoID)
+            JOIN grupoanexo_parformulario AS gp ON (g.grupoAnexoID = gp.grupoAnexoID)
         WHERE g.unidadeID = ? AND gp.parFormularioID = ? AND g.status = ?`
         const [result] = await db.promise().query(sql, [unidadeID, 1, 1])
 
@@ -755,7 +748,7 @@ class FornecedorController {
             (
                 SELECT GROUP_CONCAT(ga.nome SEPARATOR ', ')
                 FROM fornecedor_grupoanexo AS fga
-                    JOIN grupoanexo AS ga ON(fga.grupoAnexoID = ga.grupoanexoID)
+                    JOIN grupoanexo AS ga ON(fga.grupoAnexoID = ga.grupoAnexoID)
                 WHERE fga.fornecedorID = f.fornecedorID
                 ORDER BY ga.nome ASC
             ) AS gruposAnexo
@@ -775,9 +768,9 @@ class FornecedorController {
 
         // Grupos de anexo 
         const sqlGruposAnexo = `
-        SELECT ga.grupoanexoID AS id, ga.nome
+        SELECT ga.grupoAnexoID AS id, ga.nome
         FROM fornecedor_grupoanexo AS fg
-            LEFT JOIN grupoanexo AS ga ON(fg.grupoAnexoID = ga.grupoanexoID)
+            LEFT JOIN grupoanexo AS ga ON(fg.grupoAnexoID = ga.grupoAnexoID)
         WHERE fg.fornecedorID = ? AND ga.status = 1
         ORDER BY ga.nome ASC`;
         const [resultGruposAnexo] = await db.promise().query(sqlGruposAnexo, [resultFormulario[0]?.fornecedorID]);
