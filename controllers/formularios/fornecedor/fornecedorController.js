@@ -65,50 +65,23 @@ class FornecedorController {
         try {
             const { id } = req.params;
             const pathDestination = req.pathDestination
-            let file = req.file;
-            const { titulo, usuarioID, unidadeID, produtoAnexoID, grupoAnexoItemID, arrAnexoRemoved } = req.body;
-            console.log("🚀 ~ saveAnexo ~ produtoAnexoID:", produtoAnexoID)
+            const files = req.files; //? Array de arquivos
 
-            //? Verificar se há arquivo enviado
-            if (!file) {
+            const { usuarioID, unidadeID, produtoAnexoID, grupoAnexoItemID, arrAnexoRemoved } = req.body;
+
+            //? Verificar se há arquivos enviados
+            if (!files || files.length === 0) {
                 return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
             }
 
-            //? Anexo atual
-            const sqlCurrentFile = `
-            SELECT a.anexoID, a.arquivo 
-            FROM anexo AS a
-                JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
-            WHERE ab.fornecedorID = ? ${grupoAnexoItemID > 0 ? ` AND ab.grupoAnexoItemID = ?` : ` AND ab.produtoAnexoID = ?`}`;
-            const [resultCurrentFile] = await db.promise().query(sqlCurrentFile, [id, (grupoAnexoItemID > 0 ? grupoAnexoItemID : produtoAnexoID)])
+            let result = []
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
 
-            //? Exclui o arquivo anterior
-            if (resultCurrentFile.length > 0) {
-                const previousFile = path.resolve(pathDestination, resultCurrentFile[0].arquivo);
-                fs.unlink(previousFile, (error) => {
-                    if (error) {
-                        return console.error('Erro ao excluir a imagem anterior:', error);
-                    } else {
-                        return console.log('Imagem anterior excluída com sucesso!');
-                    }
-                });
-            }
-
-            if (resultCurrentFile.length > 0) {
-                const sqlUpdate = `UPDATE anexo SET arquivo = ?, tamanho = ?, tipo = ?, titulo = ?, dataHora = ? WHERE anexoID = ?`;
-                const [resultUpdate] = await db.promise().query(sqlUpdate, [
-                    file.filename,
-                    file.size,
-                    file.mimetype,
-                    titulo,
-                    new Date(),
-                    resultCurrentFile[0].anexoID
-                ])
-            } else {
-                // Insert anexo
+                //? Insere em anexo
                 const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
                 const [resultInsert] = await db.promise().query(sqlInsert, [
-                    titulo,
+                    file.originalname,
                     pathDestination,
                     file.filename,
                     file.size,
@@ -119,22 +92,22 @@ class FornecedorController {
                 ])
                 const anexoID = resultInsert.insertId;
 
-                // Insert anexo_busca
+                //? Insere em anexo_busca
                 const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, produtoAnexoID, grupoAnexoItemID) VALUES(?,?,?,?)`;
                 const [resultInsertBusca] = await db.promise().query(sqlInsertBusca, [anexoID, id, produtoAnexoID, grupoAnexoItemID])
+
+                const objAnexo = {
+                    exist: true,
+                    path: `${process.env.BASE_URL_API}${pathDestination}${file.filename}`,
+                    nome: file.originalname,
+                    tipo: file.mimetype,
+                    size: file.size,
+                    time: new Date(),
+                }
+                result.push(objAnexo)
             }
 
-            const result = {
-                exist: true,
-                path: `${process.env.BASE_URL_API}${pathDestination}${file.filename}`,
-                nome: titulo,
-                tipo: file.mimetype,
-                size: file.size,
-                time: new Date(),
-            }
-
-            res.status(200).json(result);
-
+            return res.status(200).json(result)
         } catch (error) {
             console.log(error)
         }

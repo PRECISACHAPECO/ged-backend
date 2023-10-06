@@ -36,12 +36,12 @@ fornecedorRoutes.post(`${route}/getGruposAnexo`, fornecedorController.getGruposA
 fornecedorRoutes.post(`${route}/sendNotification`, fornecedorController.sendNotification);
 
 //? MULTER: Upload de arquivo
-fornecedorRoutes.post(`${route}/saveAnexo/:id/:folder/:usuarioID/:unidadeID/:isImage`, (req, res, next) => {
+fornecedorRoutes.post(`${route}/saveAnexo/:id/:folder/:usuarioID/:unidadeID`, (req, res, next) => {
     const folder = req.params.folder ?? '/' //? Pasta destino do arquivo (grupo-anexo/produto/item/...)
     const pathDestination = `uploads/${req.params.unidadeID}/fornecedor/${folder}/`
     req.pathDestination = pathDestination
     console.log("🚀 ~ middlewere pathDestination:", pathDestination)
-    configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.unidadeID, pathDestination, req.params.isImage)
+    configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.unidadeID, pathDestination)
 }, fornecedorController.saveAnexo);
 
 module.exports = fornecedorRoutes;

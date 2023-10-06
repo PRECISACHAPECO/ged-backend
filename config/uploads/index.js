@@ -1,6 +1,5 @@
 const db = require('../db')
-const multerFile = require('./multerFile')
-const multerImage = require('./multerImage')
+const multerFiles = require('./multerFiles')
 
 const getExtensions = async (unidadeID) => {
     const sql = `
@@ -21,16 +20,13 @@ const getFileMaxSize = async (unidadeID) => {
     return result[0].anexosTamanhoMaximo ?? 5
 }
 
-const configureMulterMiddleware = async (req, res, next, usuarioID, unidadeID, pathDestination, isImage) => {
+const configureMulterMiddleware = async (req, res, next, usuarioID, unidadeID, pathDestination) => {
     //? Parâmetros pro multer
     const maxSize = await getFileMaxSize(unidadeID)
     const allowedUnityExtensions = await getExtensions(unidadeID)
     const maxOriginalSize = 100 //? Imagem até 100MB (antes de redimensionar)
     const imageMaxDimensionToResize = 1024
-
-    isImage === 'true' ?
-        multerImage(req, res, next, usuarioID, pathDestination, maxOriginalSize, maxSize, allowedUnityExtensions, imageMaxDimensionToResize) :
-        multerFile(req, res, next, usuarioID, pathDestination, maxSize, allowedUnityExtensions)
+    multerFiles(req, res, next, usuarioID, pathDestination, maxOriginalSize, maxSize, allowedUnityExtensions, imageMaxDimensionToResize)
 }
 
 module.exports = { configureMulterMiddleware }
