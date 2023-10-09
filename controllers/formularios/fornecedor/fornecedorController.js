@@ -858,7 +858,7 @@ class FornecedorController {
         const initialStatus = 10
         const sqlFornecedor = `
         INSERT INTO fornecedor(parFornecedorModeloID, cnpj, razaoSocial, nome, email, unidadeID, status, atual, dataInicio) 
-        VALUES(?, "${values.cnpj}", ?, ?, ?, ?, ?, ?)`
+        VALUES(?, "${values.cnpj}", ?, ?, ?, ?, ?, ?, ?)`
         const [resultFornecedor] = await db.promise().query(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nome, values.email, unidadeID, initialStatus, 1, new Date()])
         const fornecedorID = resultFornecedor.insertId
 
