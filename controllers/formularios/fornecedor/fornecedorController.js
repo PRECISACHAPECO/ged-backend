@@ -159,14 +159,15 @@ class FornecedorController {
             SELECT
                 f.fornecedorID AS id,
                 IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
-                IF(u.nomeFantasia <> '', u.nomeFantasia, '--') AS fornecedor,
+                IF(uf.nomeFantasia <> '', uf.nomeFantasia, '--') AS fornecedor,
                 IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,
-                IF(u.cidade <> '', CONCAT(u.cidade, '/', u.uf), '--') AS cidade,
-                IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,
+                IF(uf.cidade <> '', CONCAT(uf.cidade, '/', uf.uf), '--') AS cidade,
+                IF(uf.responsavel <> '', uf.responsavel, '--') AS responsavel,
                 e.nome AS status,
                 e.cor
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
+                LEFT JOIN unidade AS uf ON (uf.cnpj = f.cnpj)
                 LEFT JOIN status AS e  ON(f.status = e.statusID)
             WHERE f.unidadeID = ${unidadeID}
             ORDER BY f.fornecedorID DESC, f.status ASC`
@@ -183,7 +184,7 @@ class FornecedorController {
                 IF(u.nomeFantasia <> '', u.nomeFantasia, '--') AS fabrica,
                 IF(u.cnpj <> '', u.cnpj, '--') AS cnpj,
                 IF(u.cidade <> '', CONCAT(u.cidade, '/', u.uf), '--') AS cidade,
-                IF(f.responsavel <> '', f.responsavel, '--') AS responsavel,
+                IF(u.responsavel <> '', u.responsavel, '--') AS responsavel,
                 e.nome AS status,
                 e.cor
             FROM fornecedor AS f
