@@ -5,8 +5,8 @@ class ItemController {
 
     async getItemConfigs(req, res) {
         try {
-            const { itemID, alternativaID, alternativaItemID } = req.body
-            if (!itemID || !alternativaID || !alternativaItemID) return res.status(400).json({ message: "Dados não informados!" })
+            const { itemID, alternativaItemID } = req.body
+            if (!itemID || !alternativaItemID) return res.status(400).json({ message: "Dados não informados!" })
 
             const sql = `
             SELECT io.itemOpcaoID, io.anexo, io.bloqueiaFormulario, io.observacao

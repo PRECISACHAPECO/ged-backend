@@ -67,7 +67,7 @@ class FornecedorController {
             const pathDestination = req.pathDestination
             const files = req.files; //? Array de arquivos
 
-            const { usuarioID, unidadeID, produtoAnexoID, grupoAnexoItemID, arrAnexoRemoved } = req.body;
+            const { usuarioID, unidadeID, produtoAnexoID, grupoAnexoItemID, parFornecedorModeloBlocoID, itemOpcaoAnexoID, arrAnexoRemoved } = req.body;
 
             //? Verificar se há arquivos enviados
             if (!files || files.length === 0) {
@@ -93,8 +93,15 @@ class FornecedorController {
                 const anexoID = resultInsert.insertId;
 
                 //? Insere em anexo_busca
-                const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, produtoAnexoID, grupoAnexoItemID) VALUES(?,?,?,?)`;
-                const [resultInsertBusca] = await db.promise().query(sqlInsertBusca, [anexoID, id, produtoAnexoID, grupoAnexoItemID])
+                const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, produtoAnexoID, grupoAnexoItemID, parFornecedorModeloBlocoID, itemOpcaoAnexoID) VALUES(?,?,?,?,?,?)`;
+                const [resultInsertBusca] = await db.promise().query(sqlInsertBusca, [
+                    anexoID,
+                    id,
+                    produtoAnexoID ?? null,
+                    grupoAnexoItemID ?? null,
+                    parFornecedorModeloBlocoID ?? null,
+                    itemOpcaoAnexoID ?? null
+                ])
 
                 const objAnexo = {
                     exist: true,
@@ -363,22 +370,9 @@ class FornecedorController {
                         }
                     }
                     item['anexos'] = arrayAnexos
-                    // if (resultAnexo.length > 0) {
-                    //     item.anexo = {
-                    //         exist: true,
-                    //         anexoID: resultAnexo[0].anexoID,
-                    //         path: `${process.env.BASE_URL_API}${resultAnexo[0].diretorio}${resultAnexo[0].arquivo} `,
-                    //         nome: resultAnexo[0]?.titulo,
-                    //         tipo: resultAnexo[0]?.tipo,
-                    //         size: resultAnexo[0]?.tamanho,
-                    //         time: resultAnexo[0]?.dataHora,
-                    //     }
-                    // }
                 }
 
                 grupo['itens'] = resultGrupoItens
-
-                // grupo.itens = resultGrupoItens;
                 gruposAnexo.push(grupo)
             }
 
@@ -407,6 +401,48 @@ class FornecedorController {
                             nome: item.resposta
                         }
                     }
+
+                    // Obter os anexos vinculados a essa resposta
+                    const sqlRespostaAnexos = `
+                    SELECT io.itemOpcaoID, io.anexo, io.bloqueiaFormulario, io.observacao, ioa.itemOpcaoAnexoID, ioa.nome, ioa.obrigatorio
+                    FROM item_opcao AS io 
+                        LEFT JOIN item_opcao_anexo AS ioa ON (io.itemOpcaoID = ioa.itemOpcaoID)
+                    WHERE io.itemID = ? AND io.alternativaItemID = ?`
+                    const [resultRespostaAnexos] = await db.promise().query(sqlRespostaAnexos, [item.itemID, item?.respostaID ?? 0])
+
+                    for (const respostaAnexo of resultRespostaAnexos) {
+                        //? Verifica se cada anexo exigido existe 1 ou mais arquivos anexados
+                        const sqlArquivosAnexadosResposta = `
+                        SELECT * 
+                        FROM anexo AS a 
+                            JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
+                        WHERE ab.fornecedorID = ? AND ab.parFornecedorModeloBlocoID = ? AND ab.itemOpcaoAnexoID = ?`
+                        const [resultArquivosAnexadosResposta] = await db.promise().query(sqlArquivosAnexadosResposta, [id, bloco.parFornecedorModeloBlocoID, respostaAnexo.itemOpcaoAnexoID])
+
+                        let anexos = []
+                        for (const anexo of resultArquivosAnexadosResposta) {
+                            const objAnexo = {
+                                exist: true,
+                                anexoID: anexo.anexoID,
+                                path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
+                                nome: anexo.titulo,
+                                tipo: anexo.tipo,
+                                size: anexo.tamanho,
+                                time: anexo.dataHora
+                            }
+                            anexos.push(objAnexo)
+                        }
+
+                        respostaAnexo['anexos'] = anexos ?? []
+                    }
+
+                    item['respostaConfig'] = {
+                        'anexo': resultRespostaAnexos[0]?.anexo ?? 0,
+                        'bloqueiaFormulario': resultRespostaAnexos[0]?.bloqueiaFormulario ?? 0,
+                        'observacao': resultRespostaAnexos[0]?.observacao ?? 0,
+                        'anexosSolicitados': resultRespostaAnexos ?? []
+                    }
+
                 }
 
                 bloco.itens = resultBloco
@@ -820,9 +856,9 @@ class FornecedorController {
         //? Gera um novo formulário em branco, pro fornecedor preencher depois quando acessar o sistema
         const initialStatus = 10
         const sqlFornecedor = `
-        INSERT INTO fornecedor(parFornecedorModeloID, cnpj, razaoSocial, nome, email, unidadeID, status, atual) 
+        INSERT INTO fornecedor(parFornecedorModeloID, cnpj, razaoSocial, nome, email, unidadeID, status, atual, dataInicio) 
         VALUES(?, "${values.cnpj}", ?, ?, ?, ?, ?, ?)`
-        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nome, values.email, unidadeID, initialStatus, 1])
+        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nome, values.email, unidadeID, initialStatus, 1, new Date()])
         const fornecedorID = resultFornecedor.insertId
 
         //? Grava grupos de anexo do fornecedor
@@ -964,8 +1000,8 @@ class FornecedorController {
 
         //? Atualiza pro status de conclusão do formulário (40)
         const newStatus = 40
-        const sqlUpdate = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ? `
-        const [resultUpdate] = await db.promise().query(sqlUpdate, [newStatus, id])
+        const sqlUpdate = `UPDATE fornecedor SET status = ?, dataFim = ? WHERE fornecedorID = ? `
+        const [resultUpdate] = await db.promise().query(sqlUpdate, [newStatus, new Date(), id])
         if (resultUpdate.length === 0) { return res.status(201).json({ message: 'Erro ao atualizar status do formulário! ' }) }
 
         //? Gera histórico de alteração de status
