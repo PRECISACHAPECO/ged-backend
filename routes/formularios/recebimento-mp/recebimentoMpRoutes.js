@@ -11,7 +11,7 @@ recebimentoMpRoutes.get(`${route}/getList/:unidadeID`, recebimentoMpController.g
 recebimentoMpRoutes.post(`${route}/getData/:id`, recebimentoMpController.getData);
 recebimentoMpRoutes.post(`${route}/updateData/:id`, recebimentoMpController.updateData);
 // recebimentoMpRoutes.delete(`${route}/:id`, recebimentoMpController.deleteData);
-// recebimentoMpRoutes.delete(`${route}/deleteAnexo/:grupoanexoitemID/:id/:unidadeID/:usuarioID`, recebimentoMpController.deleteAnexo);
+// recebimentoMpRoutes.delete(`${route}/deleteAnexo/:grupoAnexoItemID/:id/:unidadeID/:usuarioID`, recebimentoMpController.deleteAnexo);
 // recebimentoMpRoutes.post(`${route}/novo`, recebimentoMpController.insertData);
 
 // OLD

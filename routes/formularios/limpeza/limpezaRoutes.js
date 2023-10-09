@@ -11,7 +11,7 @@ limpezaRoutes.get(`${route}/getList/:unidadeID`, limpezaController.getList);
 limpezaRoutes.post(`${route}/getData/:id`, limpezaController.getData);
 limpezaRoutes.post(`${route}/updateData/:id`, limpezaController.updateData);
 // limpezaRoutes.delete(`${route}/:id`, limpezaController.deleteData);
-// limpezaRoutes.delete(`${route}/deleteAnexo/:grupoanexoitemID/:id/:unidadeID/:usuarioID`, limpezaController.deleteAnexo);
+// limpezaRoutes.delete(`${route}/deleteAnexo/:grupoAnexoItemID/:id/:unidadeID/:usuarioID`, limpezaController.deleteAnexo);
 // limpezaRoutes.post(`${route}/novo`, limpezaController.insertData);
 
 module.exports = limpezaRoutes;

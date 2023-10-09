@@ -13,6 +13,7 @@ itemRoutes.post(`${route}/updateData/:id`, itemController.updateData);
 itemRoutes.delete(`${route}/:id`, itemController.deleteData);
 
 itemRoutes.post(`${route}/getAlternatives`, itemController.getAlternatives);
+itemRoutes.post(`${route}/getItemConfigs`, itemController.getItemConfigs);
 
 itemRoutes.post(`${route}/new/getData`, itemController.getNewData);
 itemRoutes.post(`${route}/new/insertData`, itemController.insertData);

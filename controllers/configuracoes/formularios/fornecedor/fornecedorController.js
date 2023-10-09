@@ -133,9 +133,9 @@ class FornecedorController {
             //? Model
             const sqlModel = `
             UPDATE par_fornecedor_modelo
-            SET nome = ?, ciclo = ?, status = ?
+            SET nome = ?, ciclo = ?, cabecalho = ?, status = ?
             WHERE parFornecedorModeloID = ?`
-            const [resultModel] = await db.promise().query(sqlModel, [model.nome, model.ciclo, (model.status ? 1 : 0), id])
+            const [resultModel] = await db.promise().query(sqlModel, [model.nome, model.ciclo, model.cabecalho ?? '', (model.status ? 1 : 0), id])
 
             //? Header
             header && header.forEach(async (item) => {

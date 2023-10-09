@@ -1,0 +1,124 @@
+const multer = require('multer');
+const path = require('path');
+const sharp = require('sharp');
+const fs = require('fs').promises;
+
+const defineFileName = (originalName, usuarioID) => {
+    //? yyyymmdd-hms
+    const dateTimeNow = new Date().toISOString().replace(/[-:.]/g, '').replace('T', '-').split('.')[0].slice(0, 15);
+    const fileName = `${dateTimeNow}-${usuarioID}-${originalName}`;
+    return fileName;
+};
+
+const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOriginalSize, maxSize, allowedUnityExtensions, imageMaxDimensionToResize) => {
+    const customStorage = multer.diskStorage({
+        destination: function (req, file, cb) {
+            if (file.mimetype.startsWith('image')) {
+                // Se for uma imagem, coloque na pasta "temp"
+                cb(null, path.join(pathDestination, 'temp'));
+            } else {
+                // Se não for uma imagem, coloque na pasta de destino principal
+                cb(null, pathDestination);
+            }
+        },
+        filename: function (req, file, cb) {
+            cb(null, defineFileName(file.originalname, usuarioID));
+        }
+    });
+
+    const upload = multer({
+        storage: customStorage,
+        limits: {
+            fileSize: maxOriginalSize * 1024 * 1024
+        },
+        fileFilter: async function (req, file, cb) {
+            //? Valida a extensão do arquivo
+            if (!allowedUnityExtensions.length) {
+                return cb(new multer.MulterError('EMPTY_EXTENSION', 'Não há nenhuma extensão de arquivo configurada para esta unidade!'));
+            } else {
+                const isValidExtension = allowedUnityExtensions.some(ext => file.mimetype.startsWith(ext.mimetype));
+                if (!isValidExtension) {
+                    return cb(new multer.MulterError('EXTENSION', 'Extensão não permitida (apenas: ' + allowedUnityExtensions.map(ext => ext.nome).join(', ') + ')'));
+                } else {
+                    cb(null, true);
+                }
+            }
+        }
+    });
+
+    // Use um middleware de tratamento de erros do Multer
+    upload.array('files[]')(req, res, async function (err) {
+        if (err instanceof multer.MulterError) {
+            //! Valida tamanho do arquivo (antes de redimensionar)
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).send({ message: `O arquivo enviado é muito grande. Tamanho máximo permitido: ${maxOriginalSize}MB` });
+            }
+            //? Valida extensões permitidas
+            else if (err.code === 'EMPTY_EXTENSION') {
+                return res.status(400).send({ message: err.field });
+            }
+            //? Valida extensões permitidas
+            else if (err.code === 'EXTENSION') {
+                return res.status(400).send({ message: err.field });
+            }
+        } else {
+            // Crie um array de promessas para as operações de redimensionamento
+            const resizePromises = req.files
+                .filter(file => file.mimetype.startsWith('image'))
+                .map(file => {
+                    return new Promise((resolve, reject) => {
+                        const fileName = defineFileName(file.originalname, usuarioID);
+                        sharp(file.path)
+                            .resize({
+                                width: imageMaxDimensionToResize,
+                                height: imageMaxDimensionToResize
+                            })
+                            .toFile(path.join(pathDestination, fileName), async (err, info) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    // Atualize as informações do arquivo
+                                    file.filename = fileName;
+                                    file.path = pathDestination + fileName;
+                                    file.size = info.size;
+                                    console.log(`📸 ~ Imagem redimensionada para ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+
+                                    //! Imagem redimensionada continua maior que o tamanho máximo permitido pela unidade
+                                    if (info.size > maxSize * 1024 * 1024) {
+                                        //! Exclui imagem redimensionada
+                                        fs.unlinkSync(path.join(pathDestination, fileName));
+
+                                        return res.status(400).send({ message: `O arquivo enviado é muito grande. Tamanho máximo permitido: ${maxSize} MB` });
+                                    }
+                                    resolve();
+                                }
+                            });
+                    });
+                });
+
+            try {
+                await Promise.all(resizePromises); //? Aguarda todas as operações de redimensionamento serem concluídas
+
+                //? Excluir tudo que estiver na pasta temp/* (imagens originais)
+                try {
+                    const tempPath = path.join(pathDestination, 'temp');
+                    const tempFiles = await fs.readdir(tempPath);
+                    for (const file of tempFiles) {
+                        const filePath = path.join(tempPath, file);
+                        await fs.unlink(filePath); // Use fs.promises.unlink para excluir cada arquivo
+                    }
+                } catch (error) {
+                    console.error('Erro ao excluir arquivos da pasta temp:', error);
+                }
+
+                //* Tudo certo, segue o fluxo =>
+                next();
+            } catch (error) {
+                console.error('Erro ao redimensionar imagens:', error);
+                return res.status(400).send({ message: 'Erro ao redimensionar imagens!' });
+            }
+        }
+    });
+};
+
+module.exports = multerFiles;
