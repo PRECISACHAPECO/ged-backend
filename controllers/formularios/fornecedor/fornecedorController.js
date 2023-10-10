@@ -463,15 +463,15 @@ class FornecedorController {
                 unidade: unidade,
                 fields: resultFields,
                 produtos: resultProdutos ?? [],
-                blocos: resultBlocos,
-                grupoAnexo: gruposAnexo,
+                blocos: resultBlocos ?? [],
+                grupoAnexo: gruposAnexo ?? [],
                 info: {
                     obs: resultOtherInformations[0].obs,
                     status: resultOtherInformations[0].status,
                 },
                 link: `${process.env.BASE_URL}formularios/fornecedor?id=${id}`
             }
-            console.log("🚀 ~ resultProdutos:", data.resultProdutos)
+            console.log("🚀 ~ result: ", data)
 
             res.status(200).json(data);
         } catch (error) {
