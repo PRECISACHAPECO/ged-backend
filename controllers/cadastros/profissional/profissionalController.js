@@ -288,21 +288,23 @@ class ProfissionalController {
             // Atualiza ou insere cargo | Função
             if (data.cargosFuncoes.length > 0) {
                 data.cargosFuncoes.map(async (row) => {
+                    const formatedData = row.data.substring(0, 10)
                     if (row && row.id > 0) { //? Já existe, atualiza
                         const sqlUpdateItem = `UPDATE pessoa_cargo SET data = ?, formacaoCargo = ?, conselho = ?,  dataInativacao = ?, status = ?  WHERE pessoaCargoID = ?`
-                        const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [row.data, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), (row.status ? '1' : '0'), row.id])
+                        const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [
+                            formatedData,
+                            row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), (row.status ? '1' : '0'), row.id])
                     } else if (row && !row.id) {    //? Novo, insere
                         const sqlInsertItem = `INSERT INTO pessoa_cargo (data, formacaoCargo, conselho, dataInativacao, status, pessoaID) VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [row.data, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), (row.status ? '1' : '0'), data.fields.pessoaID])
+                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [formatedData, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), (row.status ? '1' : '0'), data.fields.pessoaID])
                     }
                 })
             }
 
             //* Marcou usuário do sistema
             if (data.isUsuario) {
-                console.log("é um usuario")
-                const sqlCheckCPF = `SELECT * FROM usuario WHERE cpf = ?`
-                const [resultCheckCPF] = await db.promise().query(sqlCheckCPF, [data.fields.cpf])
+                const sqlCheckCPF = `SELECT * FROM usuario WHERE cpf = "${data.fields.cpf}"`
+                const [resultCheckCPF] = await db.promise().query(sqlCheckCPF)
 
                 //? Já existe usuário com esse CPF, copia usuário id para a tabela pessoa
                 if (resultCheckCPF.length > 0) {
@@ -330,7 +332,6 @@ class ProfissionalController {
                     //* PERMISSÕES DE ACESSO
                     accessPermissions(data)
                     res.status(200).json({ message: 'Dados atualizados com sucesso!' })
-
                 }
                 //? Ainda não existe o usuario com esse CPF, cria novo
                 else {
@@ -340,6 +341,7 @@ class ProfissionalController {
 
                     const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?, ?)`
                     const [resultInsertUsuarioUnity] = await db.promise().query(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1])
+
 
                     const UpdateUser = `UPDATE pessoa SET usuarioID = ? WHERE pessoaID = ?`
                     const [resultUpdateUser] = await db.promise().query(UpdateUser, [usuarioID, id])
@@ -356,10 +358,7 @@ class ProfissionalController {
                     accessPermissions(newData)
 
                     res.status(200).json({ message: 'Dados atualizados com sucesso!' })
-
-
                 }
-
             }
             //* Desmarcou usuário do sistema
             else {

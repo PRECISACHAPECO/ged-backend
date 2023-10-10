@@ -54,12 +54,12 @@ class GrupoAnexosController {
             const [resultOptionsFormulario] = await db.promise().query(sqlOptionsFormulario);
 
             const sqlItens = `
-            SELECT grupoAnexoItemID AS id, nome, descricao, obrigatorio, status,
+            SELECT ai.grupoAnexoItemID AS id, ai.nome, ai.descricao, ai.obrigatorio, ai.status,
                 (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM anexo AS a 
-                WHERE a.grupoAnexoItemID = grupoanexo_item.grupoAnexoItemID) AS hasPending
-            FROM grupoanexo_item 
-            WHERE grupoAnexoID = ?`
+                FROM grupoanexo AS a 
+                WHERE a.grupoAnexoID = ai.grupoAnexoID) AS hasPending
+            FROM grupoanexo_item AS ai
+            WHERE ai.grupoAnexoID = ?`
             const [resultItens] = await db.promise().query(sqlItens, [id]);
 
             const result = {
