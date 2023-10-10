@@ -296,40 +296,42 @@ class FornecedorController {
             const [resultProdutos] = await db.promise().query(sqlProdutos, [id])
 
             // Varre produtos verificando tabela produto_anexo
-            for (const produto of resultProdutos) {
-                const sqlProdutoAnexo = `
-                SELECT * 
-                FROM produto_anexo 
-                WHERE produtoID = ? AND status = 1`
-                const [resultProdutoAnexo] = await db.promise().query(sqlProdutoAnexo, [produto.produtoID])
+            if (resultProdutos.length > 0) {
+                for (const produto of resultProdutos) {
+                    const sqlProdutoAnexo = `
+                    SELECT * 
+                    FROM produto_anexo 
+                    WHERE produtoID = ? AND status = 1`
+                    const [resultProdutoAnexo] = await db.promise().query(sqlProdutoAnexo, [produto.produtoID])
 
-                for (const produtoTituloAnexo of resultProdutoAnexo) {
-                    const sqlAnexo = `
-                    SELECT a.*
-                    FROM anexo AS a
-                        JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
-                    WHERE ab.fornecedorID = ? AND ab.produtoAnexoID = ?`
-                    const [resultAnexo] = await db.promise().query(sqlAnexo, [id, produtoTituloAnexo.produtoAnexoID])
+                    for (const produtoTituloAnexo of resultProdutoAnexo) {
+                        const sqlAnexo = `
+                        SELECT a.*
+                        FROM anexo AS a
+                            JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
+                        WHERE ab.fornecedorID = ? AND ab.produtoAnexoID = ?`
+                        const [resultAnexo] = await db.promise().query(sqlAnexo, [id, produtoTituloAnexo.produtoAnexoID])
 
-                    const arrayAnexos = []
-                    for (const anexo of resultAnexo) {
-                        if (anexo && anexo.anexoID > 0) {
-                            const objAnexo = {
-                                exist: true,
-                                anexoID: anexo.anexoID,
-                                path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
-                                nome: anexo.titulo,
-                                tipo: anexo.tipo,
-                                size: anexo.tamanho,
-                                time: anexo.dataHora
+                        const arrayAnexos = []
+                        for (const anexo of resultAnexo) {
+                            if (anexo && anexo.anexoID > 0) {
+                                const objAnexo = {
+                                    exist: true,
+                                    anexoID: anexo.anexoID,
+                                    path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
+                                    nome: anexo.titulo,
+                                    tipo: anexo.tipo,
+                                    size: anexo.tamanho,
+                                    time: anexo.dataHora
+                                }
+                                arrayAnexos.push(objAnexo)
                             }
-                            arrayAnexos.push(objAnexo)
                         }
+                        produtoTituloAnexo['anexos'] = arrayAnexos
                     }
-                    produtoTituloAnexo['anexos'] = arrayAnexos
-                }
 
-                produto['produtoAnexosDescricao'] = resultProdutoAnexo ?? []
+                    produto['produtoAnexosDescricao'] = resultProdutoAnexo ?? []
+                }
             }
 
             //* GRUPOS DE ANEXO
@@ -341,40 +343,42 @@ class FornecedorController {
             const [resultGruposAnexo] = await db.promise().query(sqlGruposAnexo, [id]);
 
             const gruposAnexo = [];
-            for (const grupo of resultGruposAnexo) {
-                //? Pega os itens do grupo atual
-                const sqlItens = `SELECT * FROM grupoanexo_item WHERE grupoAnexoID = ? AND status = 1`;
-                const [resultGrupoItens] = await db.promise().query(sqlItens, [grupo.grupoAnexoID]);
+            if (resultGruposAnexo.length > 0) {
+                for (const grupo of resultGruposAnexo) {
+                    //? Pega os itens do grupo atual
+                    const sqlItens = `SELECT * FROM grupoanexo_item WHERE grupoAnexoID = ? AND status = 1`;
+                    const [resultGrupoItens] = await db.promise().query(sqlItens, [grupo.grupoAnexoID]);
 
-                //? Varre itens do grupo, verificando se tem anexo
-                for (const item of resultGrupoItens) {
-                    const sqlAnexo = `
-                    SELECT a.* 
-                    FROM anexo AS a 
-                        JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
-                    WHERE ab.fornecedorID = ? AND ab.grupoAnexoItemID = ? `
-                    const [resultAnexo] = await db.promise().query(sqlAnexo, [id, item.grupoAnexoItemID]);
+                    //? Varre itens do grupo, verificando se tem anexo
+                    for (const item of resultGrupoItens) {
+                        const sqlAnexo = `
+                        SELECT a.* 
+                        FROM anexo AS a 
+                            JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
+                        WHERE ab.fornecedorID = ? AND ab.grupoAnexoItemID = ? `
+                        const [resultAnexo] = await db.promise().query(sqlAnexo, [id, item.grupoAnexoItemID]);
 
-                    const arrayAnexos = []
-                    for (const anexo of resultAnexo) {
-                        if (anexo && anexo.anexoID > 0) {
-                            const objAnexo = {
-                                exist: true,
-                                anexoID: anexo.anexoID,
-                                path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
-                                nome: anexo.titulo,
-                                tipo: anexo.tipo,
-                                size: anexo.tamanho,
-                                time: anexo.dataHora
+                        const arrayAnexos = []
+                        for (const anexo of resultAnexo) {
+                            if (anexo && anexo.anexoID > 0) {
+                                const objAnexo = {
+                                    exist: true,
+                                    anexoID: anexo.anexoID,
+                                    path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
+                                    nome: anexo.titulo,
+                                    tipo: anexo.tipo,
+                                    size: anexo.tamanho,
+                                    time: anexo.dataHora
+                                }
+                                arrayAnexos.push(objAnexo)
                             }
-                            arrayAnexos.push(objAnexo)
                         }
+                        item['anexos'] = arrayAnexos
                     }
-                    item['anexos'] = arrayAnexos
-                }
 
-                grupo['itens'] = resultGrupoItens
-                gruposAnexo.push(grupo)
+                    grupo['itens'] = resultGrupoItens
+                    gruposAnexo.push(grupo)
+                }
             }
 
             const sqlBlocos = `
@@ -411,30 +415,32 @@ class FornecedorController {
                     WHERE io.itemID = ? AND io.alternativaItemID = ?`
                     const [resultRespostaAnexos] = await db.promise().query(sqlRespostaAnexos, [item.itemID, item?.respostaID ?? 0])
 
-                    for (const respostaAnexo of resultRespostaAnexos) {
-                        //? Verifica se cada anexo exigido existe 1 ou mais arquivos anexados
-                        const sqlArquivosAnexadosResposta = `
-                        SELECT * 
-                        FROM anexo AS a 
-                            JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
-                        WHERE ab.fornecedorID = ? AND ab.parFornecedorModeloBlocoID = ? AND ab.itemOpcaoAnexoID = ?`
-                        const [resultArquivosAnexadosResposta] = await db.promise().query(sqlArquivosAnexadosResposta, [id, bloco.parFornecedorModeloBlocoID, respostaAnexo.itemOpcaoAnexoID])
+                    if (resultRespostaAnexos.length > 0) {
+                        for (const respostaAnexo of resultRespostaAnexos) {
+                            //? Verifica se cada anexo exigido existe 1 ou mais arquivos anexados
+                            const sqlArquivosAnexadosResposta = `
+                            SELECT * 
+                            FROM anexo AS a 
+                                JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
+                            WHERE ab.fornecedorID = ? AND ab.parFornecedorModeloBlocoID = ? AND ab.itemOpcaoAnexoID = ?`
+                            const [resultArquivosAnexadosResposta] = await db.promise().query(sqlArquivosAnexadosResposta, [id, bloco.parFornecedorModeloBlocoID, respostaAnexo.itemOpcaoAnexoID])
 
-                        let anexos = []
-                        for (const anexo of resultArquivosAnexadosResposta) {
-                            const objAnexo = {
-                                exist: true,
-                                anexoID: anexo.anexoID,
-                                path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
-                                nome: anexo.titulo,
-                                tipo: anexo.tipo,
-                                size: anexo.tamanho,
-                                time: anexo.dataHora
+                            let anexos = []
+                            for (const anexo of resultArquivosAnexadosResposta) {
+                                const objAnexo = {
+                                    exist: true,
+                                    anexoID: anexo.anexoID,
+                                    path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
+                                    nome: anexo.titulo,
+                                    tipo: anexo.tipo,
+                                    size: anexo.tamanho,
+                                    time: anexo.dataHora
+                                }
+                                anexos.push(objAnexo)
                             }
-                            anexos.push(objAnexo)
-                        }
 
-                        respostaAnexo['anexos'] = anexos ?? []
+                            respostaAnexo['anexos'] = anexos ?? []
+                        }
                     }
 
                     item['respostaConfig'] = {
