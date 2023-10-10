@@ -36,19 +36,23 @@ const getMenuPermissions = async (papelID, usuarioID, unidadeID) => {
         SELECT m.*, 
             COALESCE((SELECT p.ler
             FROM permissao AS p 
-            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}), 0) AS ler,
+            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}
+            LIMIT 1), 0) AS ler,
             
             COALESCE((SELECT p.inserir
             FROM permissao AS p 
-            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}), 0) AS inserir,
+            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}
+            LIMIT 1), 0) AS inserir,
 
             COALESCE((SELECT p.editar
             FROM permissao AS p 
-            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}), 0) AS editar, 
+            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}
+            LIMIT 1), 0) AS editar, 
 
             COALESCE((SELECT p.excluir
             FROM permissao AS p 
-            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}), 0) AS excluir
+            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}
+            LIMIT 1), 0) AS excluir
         FROM menu AS m
         WHERE m.divisorID = ${rotaDivisor.divisorID} AND m.status = 1 
         ORDER BY m.ordem ASC;`;
