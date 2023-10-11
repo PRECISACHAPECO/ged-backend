@@ -1254,12 +1254,10 @@ const getDataOfAllTypes = (dataFromFrontend) => {
     return dataHeader;
 }
 
-
 const sendMail = async (data) => {
     let assunto = `Bem-vindo ao GEDagro - ${data.nomeFantasiaFabrica}`
     const html = await instructionsNewFornecedor(data);
     sendMailConfig(data.email, assunto, html)
-
 }
 
 module.exports = FornecedorController;
