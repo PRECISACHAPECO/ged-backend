@@ -24,6 +24,7 @@ class FornecedorController {
         const { unidadeID } = req.body;
         try {
             if (!id || id == 'undefined') { return res.json({ message: 'Sem ID recebido!' }) }
+            console.log("🚀 ~ id:", id)
 
             //? Model
             const sql = `
@@ -50,7 +51,7 @@ class FornecedorController {
                 ), 0) AS obrigatorio
 
             FROM par_fornecedor AS pf`;
-            const [resultHeader] = await db.promise().query(sqlHeader, [id, id]);
+            const [resultHeader] = await db.promise().query(sqlHeader, [1, 1]);
 
             //? Blocks
             const blocks = [];
