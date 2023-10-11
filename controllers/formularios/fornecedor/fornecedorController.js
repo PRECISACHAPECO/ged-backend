@@ -978,9 +978,8 @@ class FornecedorController {
             nomeProfissional: resultSqlProfessional[0].nome,
             cargoProfissional: resultSqlProfessional[0].cargo,
             stage: 's1',
-            noBaseboard: false,
+            noBaseboard: false, // Se falso mostra o rodapé com os dados da fabrica, senão mostra dados do GEDagro
         }
-
         sendMail(dataEmail)
     }
 
@@ -1235,19 +1234,6 @@ const getDataOfAllTypes = (dataFromFrontend) => {
 
 
 const sendMail = async (data) => {
-    // const dataEmail = {
-    //     cnpjFornecedor: values.cnpj,
-    //     ifFornecedor: resultUserExists.length == 0 ? false : true,
-    //     email: values.email,
-    //     razaoSocial: values.razaoSocial,
-    //     nomeFantasia: values.nomeFantasia,
-    //      senhaFornecedor: values.senhaFornecedor,
-    //     destinatario: values.email,
-    //     fornecedorID: fornecedorID,
-    //     nomeFantasiaFabrica: resultNewUserUnity[0].nomeFantasia,
-    //     stage: 's1',
-    // }
-
     let assunto = `Bem-vindo ao GEDagro - ${data.nomeFantasiaFabrica}`
     const html = await instructionsNewFornecedor(data);
     sendMailConfig(data.email, assunto, html)
