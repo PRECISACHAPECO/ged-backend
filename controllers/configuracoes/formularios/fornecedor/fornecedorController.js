@@ -112,13 +112,13 @@ class FornecedorController {
 
             const result = {
                 model: resultModel[0],
-                header: resultHeader,
-                blocks: blocks,
-                options: objOptions,
-                orientations: resultOrientacoes[0]
+                header: resultHeader ?? [],
+                blocks: blocks ?? [],
+                options: objOptions ?? [],
+                orientations: resultOrientacoes[0] ?? null
             }
 
-            return res.json(result)
+            return res.status(200).json(result)
         } catch (error) {
             return res.json({ message: 'Erro ao receber dados!' })
         }
