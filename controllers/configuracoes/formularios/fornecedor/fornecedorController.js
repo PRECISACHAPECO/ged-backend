@@ -166,9 +166,9 @@ class FornecedorController {
                     WHERE plmc.parFornecedorModeloID = ? AND plmc.parFornecedorID = ?`
                     // Verifica numero de linhas do sql 
                     const [resultHeader] = await db.promise().query(sqlHeader, [id, item.parFornecedorID])
-                    console.log("🚀 ~ item:", resultHeader[0].count, item.mostra)
+                    console.log("🚀 ~ item:", item.parFornecedorID)
 
-                    if (resultHeader[0].count == 0) { // Insert
+                    if (resultHeader.length == 0) { // Insert
                         const sqlInsert = `
                         INSERT INTO par_fornecedor_modelo_cabecalho (parFornecedorModeloID, parFornecedorID, obrigatorio)
                         VALUES (?, ?, ?)`
