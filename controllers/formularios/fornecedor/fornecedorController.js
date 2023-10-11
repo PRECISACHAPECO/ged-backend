@@ -898,8 +898,6 @@ class FornecedorController {
             }
         }
 
-        // aaaal
-
         //? Grava produtos do fornecedor
         if (values.produtos && values.produtos.length > 0) {
             for (const produto of values.produtos) {
@@ -942,17 +940,6 @@ class FornecedorController {
             `
             const [resultNewUserUnity] = await db.promise().query(sqlNewUserUnity, [usuarioID, newUnidadeID, 2])
         }
-
-        const result = {
-            status: true,
-            fornecedorID: fornecedorID,
-            razaoSocial: values.razaoSocial,
-            cnpj: values.cnpj,
-            email: values.email,
-            link: `${process.env.BASE_URL}formularios/fornecedor?id=${fornecedorID}`
-        }
-
-        res.status(200).json(result)
 
         //   Obtem dados da fabrica
         const sqlUnity = `SELECT * FROM unidade WHERE unidadeID = "?" `
@@ -1003,6 +990,17 @@ class FornecedorController {
             noBaseboard: false, // Se falso mostra o rodapé com os dados da fabrica, senão mostra dados do GEDagro
         }
         sendMail(dataEmail)
+
+        const result = {
+            status: true,
+            fornecedorID: fornecedorID,
+            razaoSocial: values.razaoSocial,
+            cnpj: values.cnpj,
+            email: values.email,
+            link: `${process.env.BASE_URL}formularios/fornecedor?id=${fornecedorID}`
+        }
+
+        res.status(200).json(result)
     }
 
     async fornecedorStatus(req, res) {

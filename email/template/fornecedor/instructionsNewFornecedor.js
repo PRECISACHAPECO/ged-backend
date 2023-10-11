@@ -6,7 +6,6 @@ const urlBase = process.env.BASE_URL;
 
 
 async function instructionsNewFornecedor(values) {
-    console.log("🚀 ~ values:", values)
     // link login e registro enviando cnpj e unidade como parâmetros
     const linkLogin = `${urlBase}/fornecedor/?f=${values.fornecedorID}`;
 
