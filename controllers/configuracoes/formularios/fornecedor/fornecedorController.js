@@ -168,18 +168,18 @@ class FornecedorController {
                     const [resultHeader] = await db.promise().query(sqlHeader, [id, item.parFornecedorID])
                     console.log("🚀 ~ item:", item.parFornecedorID)
 
-                    if (resultHeader.length == 0) { // Insert
-                        const sqlInsert = `
+                    // if (resultHeader.length == 0) { // Insert
+                    const sqlInsert = `
                         INSERT INTO par_fornecedor_modelo_cabecalho (parFornecedorModeloID, parFornecedorID, obrigatorio)
                         VALUES (?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parFornecedorID, (item.obrigatorio ? '1' : '0')]);
-                    } else {                            // Update
-                        const sqlUpdate = `
-                        UPDATE par_fornecedor_modelo_cabecalho
-                        SET obrigatorio = ?
-                        WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
-                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? '1' : '0'), id, item.parFornecedorID]);
-                    }
+                    const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parFornecedorID, (item.obrigatorio ? '1' : '0')]);
+                    // } else {                            // Update
+                    //     const sqlUpdate = `
+                    //     UPDATE par_fornecedor_modelo_cabecalho
+                    //     SET obrigatorio = ?
+                    //     WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
+                    //     const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? '1' : '0'), id, item.parFornecedorID]);
+                    // }
                 } else if (item) { // Deleta
                     const sqlDelete = `
                     DELETE FROM par_fornecedor_modelo_cabecalho
