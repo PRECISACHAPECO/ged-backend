@@ -155,36 +155,37 @@ class FornecedorController {
             UPDATE par_fornecedor_modelo
             SET nome = ?, ciclo = ?, cabecalho = ?, status = ?
             WHERE parFornecedorModeloID = ?`
-            const [resultModel] = await db.promise().query(sqlModel, [model?.nome, model?.ciclo, model?.cabecalho ?? '', (model?.status ? 1 : 0), id])
+            const [resultModel] = await db.promise().query(sqlModel, [model?.nome, model?.ciclo, model?.cabecalho ?? '', (model?.status ? '1' : '0'), id])
 
             //? Header
             header && header.forEach(async (item) => {
-                if (item && item.mostra) {
-                    // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
-                    const sqlHeader = `
+                // if (item && (item.mostra || item.mostra == 1)) {
+                console.log("🚀 ~ item:", item)
+                // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
+                const sqlHeader = `
                     SELECT COUNT(*) AS count
                     FROM par_fornecedor_modelo_cabecalho AS plmc
                     WHERE plmc.parFornecedorModeloID = ? AND plmc.parFornecedorID = ?`
-                    // Verifica numero de linhas do sql 
-                    const [resultHeader] = await db.promise().query(sqlHeader, [id, item.parFornecedorID])
-                    if (resultHeader[0].count === 0) { // Insert
-                        const sqlInsert = `
+                // Verifica numero de linhas do sql 
+                const [resultHeader] = await db.promise().query(sqlHeader, [id, item.parFornecedorID])
+                if (resultHeader[0].count === 0) { // Insert
+                    const sqlInsert = `
                         INSERT INTO par_fornecedor_modelo_cabecalho (parFornecedorModeloID, parFornecedorID, obrigatorio)
                         VALUES (?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parFornecedorID, (item.obrigatorio ? '1' : '0')]);
-                    } else {                            // Update
-                        const sqlUpdate = `
+                    const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parFornecedorID, (item.obrigatorio ? '1' : '0')]);
+                } else {                            // Update
+                    const sqlUpdate = `
                         UPDATE par_fornecedor_modelo_cabecalho
                         SET obrigatorio = ?
                         WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
-                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? '1' : '0'), id, item.parFornecedorID]);
-                    }
-                } else if (item) { // Deleta
-                    const sqlDelete = `
-                    DELETE FROM par_fornecedor_modelo_cabecalho
-                    WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
-                    const [resultDelete] = await db.promise().query(sqlDelete, [id, item.parFornecedorID])
+                    const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? '1' : '0'), id, item.parFornecedorID]);
                 }
+                // } else if (item) { // Deleta
+                //     const sqlDelete = `
+                //     DELETE FROM par_fornecedor_modelo_cabecalho
+                //     WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
+                //     const [resultDelete] = await db.promise().query(sqlDelete, [id, item.parFornecedorID])
+                // }
             })
 
             //? Blocos removidos
