@@ -13,7 +13,6 @@ unidadeRoutes.post(`${route}/updateData/:id`, unidadeController.updateData);
 unidadeRoutes.delete(`${route}/fileReport/:id`, unidadeController.handleDeleteImage);
 unidadeRoutes.delete(`${route}/:id`, unidadeController.deleteData);
 unidadeRoutes.post(`${route}/new/insertData`, unidadeController.insertData);
-
 //? MULTER: Upload de arquivo
 unidadeRoutes.post(`${route}/updateData/report/:id`, (req, res, next) => {
     const isImage = 'true'
