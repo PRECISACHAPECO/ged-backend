@@ -158,7 +158,7 @@ class FornecedorController {
 
             //? Header
             header && header.forEach(async (item) => {
-                if (item && item.mostra == 1/*&& (item.mostra || item.mostra == 1)*/) {
+                if (item && item.mostra == true/*&& (item.mostra || item.mostra == 1)*/) {
                     // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
                     const sqlHeader = `
                     SELECT COUNT(*) AS count
@@ -180,12 +180,13 @@ class FornecedorController {
                         WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
                         const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? '1' : '0'), id, item.parFornecedorID]);
                     }
-                } else if (item) { // Deleta
-                    const sqlDelete = `
-                    DELETE FROM par_fornecedor_modelo_cabecalho
-                    WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
-                    const [resultDelete] = await db.promise().query(sqlDelete, [id, item.parFornecedorID])
                 }
+                // else if (item) { // Deleta
+                //     const sqlDelete = `
+                //     DELETE FROM par_fornecedor_modelo_cabecalho
+                //     WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
+                //     const [resultDelete] = await db.promise().query(sqlDelete, [id, item.parFornecedorID])
+                // }
             })
 
             //? Blocos removidos
