@@ -35,7 +35,7 @@ class FornecedorController {
             //? Header
             const sqlHeader = `
             SELECT pf.*, 
-                (SELECT IF(COUNT(*) > 0, true, false)
+                (SELECT COUNT(*)
                 FROM par_fornecedor_modelo AS pfm 
                     JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
                 WHERE pfm.parFornecedorModeloID = ?
