@@ -1,5 +1,5 @@
 const db = require('../../../config/db');
-const { hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { hasPending, deleteItem, criptoMd5 } = require('../../../config/defaultConfig');
 const path = require('path');
 const fs = require('fs');
 
@@ -76,18 +76,19 @@ class UnidadeController {
             const { id } = req.params
             const data = req.body
 
-            const extensoes = data.extensoes
-            delete data.extensoes
-            delete data.allExtensions
+            const extensoes = data.fields.extensoes
+            delete data.fields.extensoes
+            delete data.fields.allExtensions
+            delete data.fields.cabecalhoRelatorioTitle
 
             const sqlExist = 'SELECT * FROM unidade'
             const resultSqlExist = await db.promise().query(sqlExist)
 
-            const rows = resultSqlExist[0].find(row => row.cnpj == data.cnpj && row.unidadeID !== id);
+            const rows = resultSqlExist[0].find(row => row.cnpj == data.fields.cnpj && row.unidadeID !== id);
             if (rows > 0) return res.status(409).json({ message: "CNPJ já cadastrado!" });
 
             const sqlUpdate = 'UPDATE unidade SET ? WHERE unidadeID = ?'
-            const resultSqlUpdate = await db.promise().query(sqlUpdate, [data, id])
+            const resultSqlUpdate = await db.promise().query(sqlUpdate, [data.fields, id])
 
             //? Atualiza extensões da unidade na tabela unidade_extensao 
             if (extensoes.length > 0) {
@@ -97,6 +98,11 @@ class UnidadeController {
                 const sqlInsert = 'INSERT INTO unidade_extensao (unidadeID, extensaoID) VALUES ?'
                 const values = extensoes.map(extensao => [id, extensao.id])
                 await db.promise().query(sqlInsert, [values])
+            }
+
+            if (data.senha) {
+                const sqlUpdateUser = 'UPDATE usuario SET senha = ? WHERE usuarioID = ?'
+                const [resultSqlUpdateUser] = await db.promise().query(sqlUpdateUser, [criptoMd5(data.senha), data.usuarioID])
             }
 
             res.status(200).json({ message: 'Unidade atualizada com sucesso!' });
