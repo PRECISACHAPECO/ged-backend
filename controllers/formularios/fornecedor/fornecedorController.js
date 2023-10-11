@@ -967,8 +967,8 @@ class FornecedorController {
             a.nome,
             b.formacaoCargo AS cargo
         FROM pessoa AS a 
-            JOIN pessoa_cargo AS b ON (a.pessoaID = b.pessoaID)
-            WHERE a.usuarioID = ?
+            LEFT JOIN pessoa_cargo AS b ON (a.pessoaID = b.pessoaID)
+        WHERE a.usuarioID = ?
         `
         const [resultSqlProfessional] = await db.promise().query(sqlProfessional, [usuarioID])
 
@@ -984,8 +984,8 @@ class FornecedorController {
             fornecedorID: fornecedorID,
             enderecoCompletoFabricaSolicitante: enderecoCompleto,
             nomeFantasiaFabrica: resultUnity[0].nomeFantasia,
-            nomeProfissional: resultSqlProfessional[0].nome,
-            cargoProfissional: resultSqlProfessional[0].cargo,
+            nomeProfissional: resultSqlProfessional[0]?.nome,
+            cargoProfissional: resultSqlProfessional[0]?.cargo,
             stage: 's1',
             noBaseboard: false, // Se falso mostra o rodapé com os dados da fabrica, senão mostra dados do GEDagro
         }
@@ -1252,12 +1252,10 @@ const getDataOfAllTypes = (dataFromFrontend) => {
     return dataHeader;
 }
 
-
 const sendMail = async (data) => {
     let assunto = `Bem-vindo ao GEDagro - ${data.nomeFantasiaFabrica}`
     const html = await instructionsNewFornecedor(data);
     sendMailConfig(data.email, assunto, html)
-
 }
 
 module.exports = FornecedorController;

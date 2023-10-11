@@ -155,7 +155,7 @@ class FornecedorController {
             UPDATE par_fornecedor_modelo
             SET nome = ?, ciclo = ?, cabecalho = ?, status = ?
             WHERE parFornecedorModeloID = ?`
-            const [resultModel] = await db.promise().query(sqlModel, [model.nome, model.ciclo, model.cabecalho ?? '', (model.status ? 1 : 0), id])
+            const [resultModel] = await db.promise().query(sqlModel, [model?.nome, model?.ciclo, model?.cabecalho ?? '', (model?.status ? 1 : 0), id])
 
             //? Header
             header && header.forEach(async (item) => {
@@ -171,13 +171,13 @@ class FornecedorController {
                         const sqlInsert = `
                         INSERT INTO par_fornecedor_modelo_cabecalho (parFornecedorModeloID, parFornecedorID, obrigatorio)
                         VALUES (?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parFornecedorID, (item.obrigatorio ? 1 : 0)]);
+                        const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parFornecedorID, (item.obrigatorio ? '1' : '0')]);
                     } else {                            // Update
                         const sqlUpdate = `
                         UPDATE par_fornecedor_modelo_cabecalho
                         SET obrigatorio = ?
                         WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
-                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? 1 : 0), id, item.parFornecedorID]);
+                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? '1' : '0'), id, item.parFornecedorID]);
                     }
                 } else if (item) { // Deleta
                     const sqlDelete = `
