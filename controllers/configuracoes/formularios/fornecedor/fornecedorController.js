@@ -158,7 +158,7 @@ class FornecedorController {
 
             //? Header
             header && header.forEach(async (item) => {
-                if (item && item.mostra) {
+                if (item && item.mostra == 'true') {
                     // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
                     const sqlHeader = `
                     SELECT COUNT(*) AS count
