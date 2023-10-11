@@ -458,12 +458,32 @@ class FornecedorController {
             const sqlOtherInformations = getSqlOtherInfos()
             const [resultOtherInformations] = await db.promise().query(sqlOtherInformations, [id])
 
+            //* Última movimentação do formulário
+            const sqlLastMovimentation = `
+            SELECT 
+                u.nome, 
+                un.nomeFantasia, 
+                s1.nome AS statusAnterior, 
+                s2.nome AS statusAtual,
+                DATE_FORMAT(m.dataHora, '%d/%m/%Y %H:%i') AS dataHora, 
+                m.observacao
+            FROM movimentacaoformulario AS m
+                JOIN usuario AS u ON (m.usuarioID = u.usuarioID)
+                JOIN unidade AS un ON (m.unidadeID = un.unidadeID)
+                LEFT JOIN status AS s1 ON (s1.statusID = m.statusAnterior)
+                LEFT JOIN status AS s2 ON (s2.statusID = m.statusAtual)
+            WHERE m.parFormularioID = 1 AND m.id = ?
+            ORDER BY m.movimentacaoFormularioID DESC 
+            LIMIT 1`
+            const [resultLastMovimentation] = await db.promise().query(sqlLastMovimentation, [id])
+
             const data = {
                 unidade: unidade,
                 fields: resultFields,
                 produtos: resultProdutos ?? [],
                 blocos: resultBlocos ?? [],
                 grupoAnexo: gruposAnexo ?? [],
+                ultimaMovimentacao: resultLastMovimentation[0] ?? null,
                 info: {
                     obs: resultOtherInformations[0].obs,
                     status: resultOtherInformations[0].status,
