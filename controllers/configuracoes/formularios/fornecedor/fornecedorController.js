@@ -158,7 +158,7 @@ class FornecedorController {
 
             //? Header
             header && header.forEach(async (item) => {
-                if (item && item.obrigatorio == true/*&& (item.mostra || item.mostra == 1)*/) {
+                if (item && item.mostra) {
                     // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
                     const sqlHeader = `
                     SELECT COUNT(*) AS count
@@ -168,7 +168,7 @@ class FornecedorController {
                     const [resultHeader] = await db.promise().query(sqlHeader, [id, item.parFornecedorID])
                     console.log("🚀 ~ item:", item.parFornecedorID)
 
-                    if (resultHeader.length == 0) { // Insert
+                    if (resultHeader[0].count == 0) { // Insert
                         const sqlInsert = `
                         INSERT INTO par_fornecedor_modelo_cabecalho (parFornecedorModeloID, parFornecedorID, obrigatorio)
                         VALUES (?, ?, ?)`
