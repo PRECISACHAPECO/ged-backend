@@ -146,7 +146,21 @@ const hasConflict = async ({ columns, values, table, id }) => {
     return false;
 };
 
+function gerarSenha() {
+    const letrasMaiusculas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const letrasMinusculas = 'abcdefghijklmnopqrstuvwxyz';
+    const numeros = '0123456789';
 
+    // Gere um caractere aleatório de cada categoria
+    const letraMaiuscula = letrasMaiusculas[Math.floor(Math.random() * letrasMaiusculas.length)];
+    const letraMinuscula = letrasMinusculas[Math.floor(Math.random() * letrasMinusculas.length)];
+    const numero = numeros[Math.floor(Math.random() * numeros.length)];
+
+    // Combine os caracteres gerados em uma senha
+    const senha = `${letraMaiuscula}${letraMinuscula}${letraMinuscula}${numero}`;
+
+    return senha;
+}
 
 
 const deleteItem = async (id, table, column, res) => {
@@ -168,4 +182,4 @@ const onlyNumbers = (string) => {
     return string.replace(/[^0-9]/g, '');
 }
 
-module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict };
+module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict, gerarSenha };

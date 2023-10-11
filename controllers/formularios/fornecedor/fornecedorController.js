@@ -2,7 +2,7 @@ const db = require('../../../config/db');
 const fs = require('fs');
 const path = require('path');
 require('dotenv/config')
-const { hasPending, deleteItem, criptoMd5, onlyNumbers } = require('../../../config/defaultConfig');
+const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha } = require('../../../config/defaultConfig');
 const instructionsNewFornecedor = require('../../../email/template/fornecedor/instructionsNewFornecedor');
 const conclusionFormFornecedor = require('../../../email/template/fornecedor/conclusionFormFornecedor');
 const sendMailConfig = require('../../../config/email');
@@ -176,7 +176,6 @@ class FornecedorController {
         }
         //* Fornecedor 
         else if (papelID == 2 && cnpj) {
-            console.log("🚀 ~ fornecedor cnpj:", cnpj)
             const sql = `
             SELECT
                 f.fornecedorID AS id,
@@ -491,7 +490,6 @@ class FornecedorController {
                 },
                 link: `${process.env.BASE_URL}formularios/fornecedor?id=${id}`
             }
-            console.log("🚀 ~ result: ", data)
 
             res.status(200).json(data);
         } catch (error) {
@@ -864,7 +862,7 @@ class FornecedorController {
 
     async makeFornecedor(req, res) {
         const { usuarioID, unidadeID, papelID, values } = req.body;
-        console.log("🚀 ~ usuarioID, unidadeID, papelID, values:", usuarioID, unidadeID, papelID, values)
+        console.log("🚀 ~ values:", values)
 
         //? Verifica se cnpj já é um fornecedor apto
         const sqlVerify = `
@@ -879,6 +877,8 @@ class FornecedorController {
             const [resultInsert] = await db.promise().query(sqlInsert, [unidadeID, 1])
             // const fabricaFornecedorID = resultInsert.insertId
         }
+
+
 
         //? Gera um novo formulário em branco, pro fornecedor preencher depois quando acessar o sistema
         const initialStatus = 10
@@ -911,6 +911,36 @@ class FornecedorController {
         //? Gera histórico de alteração de status
         const movimentation = await addFormStatusMovimentation(1, fornecedorID, usuarioID, unidadeID, papelID, '0', initialStatus, '')
         if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário!" }) }
+
+
+        //! Verifica se CNPJ já tem um usuario cadastrado, se não tiver cadastra
+        const userExists = "SELECT * FROM usuario WHERE cnpj = ?"
+        const [resultUserExists] = await db.promise().query(userExists, [values.cnpj])
+
+        if (resultUserExists.length == 0) {
+            console.log("não tem cadastro")
+
+            // Salva usuário
+            const sqlNewUuser = `
+            INSERT INTO usuario(nome, cnpj, email, senha)
+            VALUES(?, ?, ?, ?)
+            `
+            const [resultNewUser] = await db.promise().query(sqlNewUuser, [values.razaoSocial, values.cnpj, values.email, gerarSenha()])
+            const usuarioID = resultNewUser.insertId
+
+            // Salva a unidade
+            const sqlInsertUnity = `
+            INSERT INTO unidade (razaoSocial, cnpj, email) VALUES (?,?, ?)`
+            const [resultSqlInsertUnity] = await db.promise().query(sqlInsertUnity, [values.razaoSocial, values.cnpj, values.email]);
+            const newUnidadeID = resultSqlInsertUnity.insertId
+
+            // Salva usuario_unidade
+            const sqlNewUserUnity = `
+            INSERT INTO usuario_unidade(usuarioID, unidadeID, papelID)
+            VALUES(?, ?, ?)
+            `
+            const [resultNewUserUnity] = await db.promise().query(sqlNewUserUnity, [usuarioID, newUnidadeID, 2])
+        }
 
         const result = {
             status: true,
@@ -1224,6 +1254,11 @@ const getDataOfAllTypes = (dataFromFrontend) => {
     }
 
     return dataHeader;
+}
+
+
+teste = () => {
+    console.log("helloooddddddddddddddo")
 }
 
 module.exports = FornecedorController;
