@@ -72,14 +72,12 @@ const css = () => {
     css += `
             .textSmall{
                 font-size: 14px;
-                line-height: 1.5;
                 color: #4c4e64de;
             }`;
     // Texto tamanho bem  pequeno
     css += `
             .superSmall{
                 font-size: 12px;
-                line-height: 1.5;
                 color: #4c4e64de;
             }
             .rodape{
