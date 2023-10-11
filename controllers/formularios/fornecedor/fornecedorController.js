@@ -864,6 +864,8 @@ class FornecedorController {
         const { usuarioID, unidadeID, papelID, values } = req.body;
         console.log("🚀 ~ values:", values)
 
+        const password = gerarSenha()
+
         //? Verifica se cnpj já é um fornecedor apto
         const sqlVerify = `
         SELECT *
@@ -878,14 +880,12 @@ class FornecedorController {
             // const fabricaFornecedorID = resultInsert.insertId
         }
 
-
-
         //? Gera um novo formulário em branco, pro fornecedor preencher depois quando acessar o sistema
         const initialStatus = 10
         const sqlFornecedor = `
-        INSERT INTO fornecedor(parFornecedorModeloID, cnpj, razaoSocial, nome, email, unidadeID, status, atual, dataInicio) 
-        VALUES(?, "${values.cnpj}", ?, ?, ?, ?, ?, ?, ?)`
-        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nome, values.email, unidadeID, initialStatus, 1, new Date()])
+        INSERT INTO fornecedor(parFornecedorModeloID, cnpj, razaoSocial, nome, email, unidadeID, status, atual, dataInicio, profissionalID) 
+        VALUES(?, "${values.cnpj}", ?, ?, ?, ?, ?, ?, ?, ?)`
+        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nome, values.email, unidadeID, initialStatus, 1, new Date(), usuarioID])
         const fornecedorID = resultFornecedor.insertId
 
         //? Grava grupos de anexo do fornecedor
@@ -919,13 +919,12 @@ class FornecedorController {
 
         if (resultUserExists.length == 0) {
             console.log("não tem cadastro")
-
             // Salva usuário
             const sqlNewUuser = `
             INSERT INTO usuario(nome, cnpj, email, senha)
             VALUES(?, ?, ?, ?)
             `
-            const [resultNewUser] = await db.promise().query(sqlNewUuser, [values.razaoSocial, values.cnpj, values.email, gerarSenha()])
+            const [resultNewUser] = await db.promise().query(sqlNewUuser, [values.razaoSocial, values.cnpj, values.email, criptoMd5(password)])
             const usuarioID = resultNewUser.insertId
 
             // Salva a unidade
@@ -952,6 +951,57 @@ class FornecedorController {
         }
 
         res.status(200).json(result)
+
+        //   Obtem dados da fabrica
+        const sqlUnity = `SELECT * FROM unidade WHERE unidadeID = "?" `
+        const [resultUnity] = await db.promise().query(sqlUnity, [unidadeID])
+
+        const endereco = {
+            logradouro: resultUnity[0].logradouro,
+            numero: resultUnity[0].numero,
+            complemento: resultUnity[0].complemento,
+            bairro: resultUnity[0].bairro,
+            cidade: resultUnity[0].cidade,
+            uf: resultUnity[0].uf,
+        }
+
+        const enderecoCompleto = Object.entries(endereco).map(([key, value]) => {
+            if (value) {
+                return `${value}, `;
+            }
+        }).join('').slice(0, -2) + '.'; // Remove a última vírgula e adiciona um ponto final
+
+
+        // Dados do profissional
+        const sqlProfessional = `
+        SELECT 
+            a.nome,
+            b.formacaoCargo AS cargo
+        FROM pessoa AS a 
+            JOIN pessoa_cargo AS b ON (a.pessoaID = b.pessoaID)
+            WHERE a.usuarioID = ?
+        `
+        const [resultSqlProfessional] = await db.promise().query(sqlProfessional, [usuarioID])
+
+        //! Envia email para fornecedor
+        const dataEmail = {
+            cnpjFornecedor: values.cnpj,
+            ifFornecedor: resultUserExists.length == 0 ? false : true,
+            email: values.email,
+            razaoSocial: values.razaoSocial,
+            nomeFantasia: values.nomeFantasia,
+            senhaFornecedor: password,
+            destinatario: values.email,
+            fornecedorID: fornecedorID,
+            enderecoCompletoFabricaSolicitante: enderecoCompleto,
+            nomeFantasiaFabrica: resultUnity[0].nomeFantasia,
+            nomeProfissional: resultSqlProfessional[0].nome,
+            cargoProfissional: resultSqlProfessional[0].cargo,
+            stage: 's1',
+            noBaseboard: false,
+        }
+
+        sendMail(dataEmail)
     }
 
     async fornecedorStatus(req, res) {
@@ -992,59 +1042,6 @@ class FornecedorController {
         }
 
         res.status(200).json(result);
-    }
-
-    //? Função que envia email para o fornecedor
-    async sendMail(req, res) {
-        const { data } = req.body;
-        const destinatario = data.destinatario
-        let haveLogin = false
-
-        // Obtem dados da fabrica
-        const sqlGetDataFactory = `SELECT * FROM unidade WHERE unidadeID = "?" `
-        const [resultSqlGetDataFactory] = await db.promise().query(sqlGetDataFactory, [data.unidadeID])
-
-        // Verifica se o fornecedor já possui login
-        const sql = `SELECT * FROM usuario WHERE cnpj = "${data.cnpj}" `
-        const [result] = await db.promise().query(sql)
-        if (result.length > 0) {
-            haveLogin = true
-        }
-
-        const endereco = {
-            logradouro: resultSqlGetDataFactory[0].logradouro,
-            numero: resultSqlGetDataFactory[0].numero,
-            complemento: resultSqlGetDataFactory[0].complemento,
-            bairro: resultSqlGetDataFactory[0].bairro,
-            cidade: resultSqlGetDataFactory[0].cidade,
-            uf: resultSqlGetDataFactory[0].uf,
-        }
-
-        const enderecoCompleto = Object.entries(endereco).map(([key, value]) => {
-            if (value) {
-                return `${value}, `;
-            }
-        }).join('').slice(0, -2) + '.'; // Remove a última vírgula e adiciona um ponto final
-
-        const values = {
-            cnpj: criptoMd5(onlyNumbers(data.cnpj.toString())),
-            unidadeID: criptoMd5(data.unidadeID.toString()),
-            haveLogin,
-            nomeFornecedor: data.nomeFornecedor,
-            destinatario: data.destinatario,
-            nomeFabricaSolicitante: resultSqlGetDataFactory[0].nomeFantasia,
-            emailFabricaSolicitante: resultSqlGetDataFactory[0].email,
-            cnpjFabricaSolicitante: resultSqlGetDataFactory[0].cnpj,
-            enderecoSimplificadoFabricaSolicitante: `${resultSqlGetDataFactory[0].cidade}/${resultSqlGetDataFactory[0].uf}`,
-            enderecoCompletoFabricaSolicitante: enderecoCompleto,
-            stage: 's1',
-            noBaseboard: true
-        }
-        //! noBaseboard => Se True mostra o rodapé com os dados da fabrica solicitante com dados da mesma, senão mostra com os dados da precisa
-
-        let assunto = 'Avaliação de fornecedor '
-        const html = await instructionsNewFornecedor(values);
-        res.status(200).json(sendMailConfig(destinatario, assunto, html))
     }
 
     async conclusionAndSendForm(req, res) {
@@ -1257,8 +1254,24 @@ const getDataOfAllTypes = (dataFromFrontend) => {
 }
 
 
-teste = () => {
-    console.log("helloooddddddddddddddo")
+const sendMail = async (data) => {
+    // const dataEmail = {
+    //     cnpjFornecedor: values.cnpj,
+    //     ifFornecedor: resultUserExists.length == 0 ? false : true,
+    //     email: values.email,
+    //     razaoSocial: values.razaoSocial,
+    //     nomeFantasia: values.nomeFantasia,
+    //      senhaFornecedor: values.senhaFornecedor,
+    //     destinatario: values.email,
+    //     fornecedorID: fornecedorID,
+    //     nomeFantasiaFabrica: resultNewUserUnity[0].nomeFantasia,
+    //     stage: 's1',
+    // }
+
+    let assunto = `Bem-vindo ao GEDagro - ${data.nomeFantasiaFabrica}`
+    const html = await instructionsNewFornecedor(data);
+    sendMailConfig(data.email, assunto, html)
+
 }
 
 module.exports = FornecedorController;
