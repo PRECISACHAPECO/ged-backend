@@ -20,7 +20,8 @@ class FornecedorController {
     }
 
     async getData(req, res) {
-        const { id, unidadeID } = req.body;
+        const { id } = req.params;
+        const { unidadeID } = req.body;
         try {
             if (!id || id == 'undefined') { return res.json({ message: 'Sem ID recebido!' }) }
 
@@ -119,6 +120,25 @@ class FornecedorController {
             console.log("🚀 ~ result:", result)
 
             return res.json(result)
+        } catch (error) {
+            return res.json({ message: 'Erro ao receber dados!' })
+        }
+    }
+
+    async insertData(req, res) {
+        try {
+            const { unidadeID, model } = req.body
+            console.log("🚀 ~ unidadeID, model:", unidadeID, model)
+
+            if (!unidadeID || unidadeID == 'undefined') { return res.json({ message: 'Erro ao receber ID!' }) }
+
+            //? Model
+            const sqlModel = `INSERT INTO par_fornecedor_modelo(nome, ciclo, cabecalho, unidadeID, status) VALUES (?, ?, ?, ?, ?)`
+            const [resultModel] = await db.promise().query(sqlModel, [model.nome, model.ciclo, model.cabecalho ?? '', unidadeID, (model.status ? 1 : 0)])
+            const parFornecedorModeloID = resultModel.insertId
+
+            return res.status(200).json({ id: parFornecedorModeloID });
+
         } catch (error) {
             return res.json({ message: 'Erro ao receber dados!' })
         }
