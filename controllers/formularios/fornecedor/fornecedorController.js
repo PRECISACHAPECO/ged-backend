@@ -978,8 +978,8 @@ class FornecedorController {
             a.nome,
             b.formacaoCargo AS cargo
         FROM pessoa AS a 
-            JOIN pessoa_cargo AS b ON (a.pessoaID = b.pessoaID)
-            WHERE a.usuarioID = ?
+            LEFT JOIN pessoa_cargo AS b ON (a.pessoaID = b.pessoaID)
+        WHERE a.usuarioID = ?
         `
         const [resultSqlProfessional] = await db.promise().query(sqlProfessional, [usuarioID])
 
@@ -995,8 +995,8 @@ class FornecedorController {
             fornecedorID: fornecedorID,
             enderecoCompletoFabricaSolicitante: enderecoCompleto,
             nomeFantasiaFabrica: resultUnity[0].nomeFantasia,
-            nomeProfissional: resultSqlProfessional[0].nome,
-            cargoProfissional: resultSqlProfessional[0].cargo,
+            nomeProfissional: resultSqlProfessional[0]?.nome,
+            cargoProfissional: resultSqlProfessional[0]?.cargo,
             stage: 's1',
             noBaseboard: false,
         }
