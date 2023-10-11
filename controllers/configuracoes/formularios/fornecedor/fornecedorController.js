@@ -117,7 +117,6 @@ class FornecedorController {
                 options: objOptions,
                 orientations: resultOrientacoes[0]
             }
-            console.log("🚀 ~ result:", result)
 
             return res.json(result)
         } catch (error) {
@@ -160,7 +159,6 @@ class FornecedorController {
             //? Header
             header && header.forEach(async (item) => {
                 if (item && (item.mostra || item.mostra == 1)) {
-                    console.log("🚀 ~ item:", item)
                     // Verifica se já existe registro em "par_fornecedor_unidade" para o fornecedor e unidade
                     const sqlHeader = `
                     SELECT COUNT(*) AS count
@@ -168,7 +166,9 @@ class FornecedorController {
                     WHERE plmc.parFornecedorModeloID = ? AND plmc.parFornecedorID = ?`
                     // Verifica numero de linhas do sql 
                     const [resultHeader] = await db.promise().query(sqlHeader, [id, item.parFornecedorID])
-                    if (resultHeader[0].count === 0) { // Insert
+                    console.log("🚀 ~ item:", resultHeader[0].count, item.mostra)
+
+                    if (resultHeader[0].count == 0) { // Insert
                         const sqlInsert = `
                         INSERT INTO par_fornecedor_modelo_cabecalho (parFornecedorModeloID, parFornecedorID, obrigatorio)
                         VALUES (?, ?, ?)`
