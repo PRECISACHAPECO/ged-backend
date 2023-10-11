@@ -6,9 +6,9 @@ const urlBase = process.env.BASE_URL;
 
 
 async function instructionsNewFornecedor(values) {
+    console.log("🚀 ~ values:", values)
     // link login e registro enviando cnpj e unidade como parâmetros
-    const linkLogin = `${urlBase}/fornecedor/?c=${values.cnpj}&u=${values.unidadeID}`;
-    const linkRegistro = `${urlBase}/registro/?c=${values.cnpj}&u=${values.unidadeID}&n=${encodeURIComponent(values.nomeFornecedor)}&e=${values.destinatario}`;
+    const linkLogin = `${urlBase}/fornecedor/?f=${values.fornecedorID}`;
 
     let html = `
     <html>`;
@@ -19,7 +19,7 @@ async function instructionsNewFornecedor(values) {
     <body class="body">
         <div class="box">`;
     // Cabeçalho
-    html += cabecalho("AVALIAÇÃO DO FORNECEDOR");
+    html += cabecalho("Avaliação do fornecedor");
     // Conteúdo
     html += `
     <div class="content">`
@@ -28,15 +28,25 @@ async function instructionsNewFornecedor(values) {
     <div class="boxBorderOff">
         <img style="width: 100%" src="https://gedagro.com.br/images/ged/email/fornecedor/${values.stage}.jpg" />
     </div>
-        <h1 class="title">Olá, ${values.nomeFornecedor}!</h1>`;
+        <p><strong>Olá, ${values.nomeFantasia}!</strong></p>`;
     html += `
                     <div>
-                        <p>Somos da ${values.nomeFabricaSolicitante}, empresa sediada em ${values.enderecoSimplificadoFabricaSolicitante}, gostaríamos de solicitar o cadastro de sua empresa em nosso sistema para estabelecermos uma parceria comercial.</p>
-                        <p>Para isso, pedimos que acesse o <a href=${linkRegistro}>link</a> para realizar o primeiro cadastro.</p>
-                        <p>Você será direcionado para um site seguro e fará o acesso usando CNPJ e senha.</p>
+                        <p>A partir de agora a nossa comunicação no processo de Qualificação do Fornecedor e nas Não Conformidades no Recebimento de Matéria Prima serão tratadas dentro do sistema GEDagro.</p>
+                        <p>Dados para acessar o sistema:</p>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <p>Link  <br/><a style="font-weight: bold; color: #4c4e64de; "  href="${linkLogin}">${urlBase}fornecedor/</a></p>
+                        <p>Usuário  <br/><span style="font-weight: bold;">${values.cnpjFornecedor}</span></p>
+                        <p>Senha  <br/><span style="font-weight: bold;">${values.senhaFornecedor}</span></p>
                     </div>
                     <div>
-                    <p>Em caso de dúvidas, entre em contato com dados do responsável da empresa.</p>
+                        <p style="color: red; font-size: 14px">Atenção!  Esta é uma senha gerada automaticamente pelo sistema. Para sua segurança lembre de alterá-la no menu <strong>Meus Dados</strong>.</p>
+                    </div>
+                    <div>
+                        <p>Atenciosamente, <br/>
+                            ${values.nomeProfissional} <br/>
+                            ${values.cargoProfissional} <br/>
+                        </p>
                     </div>
                 </div>
             </div>`;

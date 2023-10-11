@@ -19,7 +19,7 @@ fornecedorRoutes.post(`${route}/getFabricas`, fornecedorController.getFabricas);
 fornecedorRoutes.post(`${route}/cnpj`, fornecedorController.getFornecedorByCnpj);
 fornecedorRoutes.post(`${route}/makeFornecedor`, fornecedorController.makeFornecedor);
 fornecedorRoutes.post(`${route}/fornecedorStatus`, fornecedorController.fornecedorStatus);
-fornecedorRoutes.post(`${route}/sendMail`, fornecedorController.sendMail);
+// fornecedorRoutes.post(`${route}/sendMail`, fornecedorController.sendMail);
 fornecedorRoutes.post(`${route}/getItemScore`, fornecedorController.getItemScore);
 fornecedorRoutes.post(`${route}/saveItemScore`, fornecedorController.saveItemScore);
 fornecedorRoutes.post(`${route}/getModels`, fornecedorController.getModels);

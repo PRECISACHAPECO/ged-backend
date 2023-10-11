@@ -2,9 +2,9 @@ const cabecalho = (titulo) => {
     let html = `
     <div class="cabecalho">
         <img src="https://gedagro.com.br/images/logoBranca.png" alt="GED - Gestão Eletrônica de Documentos" class="logo">
-        <h1 class="titulo">
-            ${titulo}
-        </h1>
+        <h6 class="titulo">
+            <strong>${titulo}</strong>
+        </h6>
     </div>`;
     return html;
 };

@@ -154,10 +154,11 @@ function gerarSenha() {
     // Gere um caractere aleatório de cada categoria
     const letraMaiuscula = letrasMaiusculas[Math.floor(Math.random() * letrasMaiusculas.length)];
     const letraMinuscula = letrasMinusculas[Math.floor(Math.random() * letrasMinusculas.length)];
+    const letraMinuscula2 = letrasMinusculas[Math.floor(Math.random() * letrasMinusculas.length)];
     const numero = numeros[Math.floor(Math.random() * numeros.length)];
 
     // Combine os caracteres gerados em uma senha
-    const senha = `${letraMaiuscula}${letraMinuscula}${letraMinuscula}${numero}`;
+    const senha = `${letraMaiuscula}${letraMinuscula}${letraMinuscula2}${numero}`;
 
     return senha;
 }

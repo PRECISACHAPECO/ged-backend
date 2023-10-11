@@ -57,11 +57,7 @@ const css = () => {
                 font-weight: bold;
                 font-size: 16px;
             }
-            a {
-                text-decoration: none;
-                color: #fff;
-                transition: 0.5s;
-            }
+            
             .content{
                 padding: 25px;
                 background-color: #fff;
@@ -70,7 +66,6 @@ const css = () => {
     css += `
             p, ul, text, td{
                 font-size: 16px;
-                line-height: 1.5;
                 color: #4c4e64de;
             }`;
     // Texto tamanho pequeno

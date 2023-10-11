@@ -26,11 +26,11 @@ async function registerNewFornecedor(values) {
       <div class="boxBorderOff">
           <img style="width: 100%" src="https://gedagro.com.br/images/ged/email/fornecedor/${values.stage}.jpg" />
       </div>
+        <div class="content">
           <h1 class="title">Olá, ${values.data.nomeFornecedor}!</h1>`;
     html += `
                       <p>Cadastro realizado com sucesso!</p>
                       <p>Para acessar o sistema acesse <a href="${linkLogin}">link</a></p>
-
               </div>`;
     // Rodapé
     html += selectRodape(values);
