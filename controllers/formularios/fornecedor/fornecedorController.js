@@ -3,13 +3,14 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv/config')
 const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha } = require('../../../config/defaultConfig');
-const instructionsNewFornecedor = require('../../../email/template/fornecedor/instructionsNewFornecedor');
 const conclusionFormFornecedor = require('../../../email/template/fornecedor/conclusionFormFornecedor');
 const sendMailConfig = require('../../../config/email');
 const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
 
 //? Email
 const layoutNotification = require('../../../email/template/notificacao');
+const instructionsNewFornecedor = require('../../../email/template/fornecedor/instructionsNewFornecedor');
+const instructionsExistFornecedor = require('../../../email/template/fornecedor/instructionsExistFornecedor');
 
 class FornecedorController {
     async getModels(req, res) {
@@ -862,7 +863,6 @@ class FornecedorController {
 
     async makeFornecedor(req, res) {
         const { usuarioID, unidadeID, papelID, values } = req.body;
-        console.log("🚀 ~ values:", values)
 
         const password = gerarSenha()
 
@@ -918,7 +918,6 @@ class FornecedorController {
         const [resultUserExists] = await db.promise().query(userExists, [values.cnpj])
 
         if (resultUserExists.length == 0) {
-            console.log("não tem cadastro")
             // Salva usuário
             const sqlNewUuser = `
             INSERT INTO usuario(nome, cnpj, email, senha)
@@ -942,8 +941,14 @@ class FornecedorController {
         }
 
         //   Obtem dados da fabrica
-        const sqlUnity = `SELECT * FROM unidade WHERE unidadeID = "?" `
-        const [resultUnity] = await db.promise().query(sqlUnity, [unidadeID])
+        const sqlUnity = `
+        SELECT a.*,
+            DATE_FORMAT(b.dataInicio, '%d/%m/%Y %H:%i:%s') as dataInicio
+        FROM unidade AS a
+            LEFT JOIN fornecedor AS b ON (a.unidadeID = b.unidadeID)
+        WHERE a.unidadeID = ? AND b.fornecedorID = ?;
+        `
+        const [resultUnity] = await db.promise().query(sqlUnity, [unidadeID, fornecedorID])
 
         const endereco = {
             logradouro: resultUnity[0].logradouro,
@@ -974,20 +979,30 @@ class FornecedorController {
 
         //! Envia email para fornecedor
         const dataEmail = {
+            // fabrica
+            enderecoCompletoFabrica: enderecoCompleto,
+            nomeFantasiaFabrica: resultUnity[0].nomeFantasia,
+            cnpjFabrica: resultUnity[0].cnpj,
+
+            // profissional que abriu formulario
+            nomeProfissional: resultSqlProfessional[0]?.nome,
+            cargoProfissional: resultSqlProfessional[0]?.cargo,
+
+            // fornecedor
             cnpjFornecedor: values.cnpj,
-            ifFornecedor: resultUserExists.length == 0 ? false : true,
             email: values.email,
             razaoSocial: values.razaoSocial,
             nomeFantasia: values.nomeFantasia,
             senhaFornecedor: password,
-            destinatario: values.email,
             fornecedorID: fornecedorID,
-            enderecoCompletoFabricaSolicitante: enderecoCompleto,
-            nomeFantasiaFabrica: resultUnity[0].nomeFantasia,
-            nomeProfissional: resultSqlProfessional[0]?.nome,
-            cargoProfissional: resultSqlProfessional[0]?.cargo,
-            stage: 's1',
-            noBaseboard: false, // Se falso mostra o rodapé com os dados da fabrica, senão mostra dados do GEDagro
+            destinatario: values.email, // email do fornecedor
+            dataInicio: resultUnity[0].dataInicio,
+
+            // outros
+            ifFornecedor: resultUserExists.length == 0 ? false : true,
+            stage: 's1', // estagio que o formulario se encontra
+            noBaseboard: false, // Se falso mostra o rodapé com os dados da fabrica, senão mostra dados do GEDagro,
+            link: `${process.env.BASE_URL}formularios/fornecedor?f=${fornecedorID}`,
         }
         sendMail(dataEmail)
 
@@ -997,7 +1012,7 @@ class FornecedorController {
             razaoSocial: values.razaoSocial,
             cnpj: values.cnpj,
             email: values.email,
-            link: `${process.env.BASE_URL}formularios/fornecedor?id=${fornecedorID}`
+            link: `${process.env.BASE_URL}formularios/fornecedor?f=${fornecedorID}`
         }
 
         res.status(200).json(result)
@@ -1253,8 +1268,9 @@ const getDataOfAllTypes = (dataFromFrontend) => {
 }
 
 const sendMail = async (data) => {
+    const htmlFormat = data.ifFornecedor ? instructionsExistFornecedor : instructionsNewFornecedor
+    const html = await htmlFormat(data)
     let assunto = `Bem-vindo ao GEDagro - ${data.nomeFantasiaFabrica}`
-    const html = await instructionsNewFornecedor(data);
     sendMailConfig(data.email, assunto, html)
 }
 
