@@ -227,8 +227,8 @@ class FornecedorController {
             const sqlUnidadeFornecedor = `
             SELECT u.unidadeID, u.nomeFantasia, u.cnpj
             FROM unidade AS u
-            WHERE u.cnpj = ? `
-            const [resultUnidadeFornecedor] = await db.promise().query(sqlUnidadeFornecedor, [resultFornecedor[0].cnpjFornecedor])
+            WHERE u.cnpj = "${resultFornecedor[0].cnpjFornecedor}" `
+            const [resultUnidadeFornecedor] = await db.promise().query(sqlUnidadeFornecedor)
             unidade['fornecedor'] = resultUnidadeFornecedor[0]
 
             // Fields do header
