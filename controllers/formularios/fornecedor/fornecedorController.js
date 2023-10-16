@@ -821,6 +821,10 @@ class FornecedorController {
         LIMIT 1`
         const [resultFormulario] = await db.promise().query(sqlFormulario, [unidadeID, cnpj])
 
+        // dados da unidade quando já for fornecedor carrega os dados da unidade
+        const sqlUnity = `SELECT * FROM unidade WHERE cnpj = "${cnpj}"`
+        const [resultUnity] = await db.promise().query(sqlUnity)
+
         // Modelo de formulário (se houver apenas 1, já vem selecionado)
         const sqlModelo = `
         SELECT *
@@ -849,6 +853,11 @@ class FornecedorController {
         const result = {
             new: resultFornecedor.length === 0 ? true : false,
             fornecedorID: resultFormulario[0]?.fornecedorID,
+            fields: {
+                nomeFantasia: resultUnity[0]?.nomeFantasia,
+                razaoSocial: resultUnity[0]?.razaoSocial,
+                email: resultUnity[0]?.email,
+            },
             modelo: {
                 id: resultFormulario[0]?.parFornecedorModeloID ? resultFormulario[0]?.parFornecedorModeloID : resultModelo.length == 1 ? resultModelo[0]?.parFornecedorModeloID : null,
                 nome: resultFormulario[0]?.modelo ? resultFormulario[0]?.modelo : resultModelo.length == 1 ? resultModelo[0]?.nome : null
@@ -928,8 +937,8 @@ class FornecedorController {
 
             // Salva a unidade
             const sqlInsertUnity = `
-            INSERT INTO unidade (razaoSocial, cnpj, email) VALUES (?,?, ?)`
-            const [resultSqlInsertUnity] = await db.promise().query(sqlInsertUnity, [values.razaoSocial, values.cnpj, values.email]);
+            INSERT INTO unidade (razaoSocial, nomeFantasia, cnpj, email) VALUES (?,?, ?, ?)`
+            const [resultSqlInsertUnity] = await db.promise().query(sqlInsertUnity, [values.razaoSocial, values.nomeFantasia, values.cnpj, values.email]);
             const newUnidadeID = resultSqlInsertUnity.insertId
 
             // Salva usuario_unidade
@@ -973,7 +982,7 @@ class FornecedorController {
             b.formacaoCargo AS cargo
         FROM profissional AS a 
             LEFT JOIN profissional_cargo AS b ON (a.profissionalID = b.profissionalID)
-        WHERE a.usuarioID = ?
+        WHERE a.profissionalID = ?
         `
         const [resultSqlProfessional] = await db.promise().query(sqlProfessional, [usuarioID])
 
@@ -1269,8 +1278,10 @@ const getDataOfAllTypes = (dataFromFrontend) => {
 
 const sendMail = async (data) => {
     const htmlFormat = data.ifFornecedor ? instructionsExistFornecedor : instructionsNewFornecedor
+    const assuntoFormat = data.ifFornecedor ? `GEDagro - Qualificação de Fornecedor - ${data.fornecedorID}` : `Bem-vindo ao GEDagro`
+
     const html = await htmlFormat(data)
-    let assunto = `Bem-vindo ao GEDagro - ${data.nomeFantasiaFabrica}`
+    let assunto = `${assuntoFormat} - ${data.nomeFantasiaFabrica}`
     sendMailConfig(data.email, assunto, html)
 }
 
