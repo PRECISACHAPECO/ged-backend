@@ -34,9 +34,9 @@ async function instructionsNewFornecedor(values) {
                         <p>Dados para acessar o sistema:</p>
                     </div>
                     <div style="margin-top: 10px;">
-                        <p>Link  <br/><a style="font-weight: bold; color: #4c4e64de; "  href="${linkLogin}">${urlBase}fornecedor/</a></p>
-                        <p>Usuário  <br/><span style="font-weight: bold;">${values.cnpjFornecedor}</span></p>
-                        <p>Senha  <br/><span style="font-weight: bold;">${values.senhaFornecedor}</span></p>
+                        <p>Link  <br/><a style="font-weight: bold; color: #4c4e64de; "  href="${linkLogin}">${urlBase}fornecedor/?f=${values.fornecedorID}</a></p>
+                        <p>Usuário  <br/><strong>${values.cnpjFornecedor}</strong></p>
+                        <p>Senha  <br/><strong>${values.senhaFornecedor}</strong></p>
                     </div>
                     <div>
                         <p style="color: red; font-size: 14px">Atenção!  Esta é uma senha gerada automaticamente pelo sistema. Para sua segurança lembre de alterá-la no menu <strong>Meus Dados</strong>.</p>

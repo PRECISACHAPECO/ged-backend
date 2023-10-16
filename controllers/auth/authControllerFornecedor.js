@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 const { getMenu, criptoMd5 } = require('../../config/defaultConfig');
 const sendMailConfig = require('../../config/email');
-const registerNewFornecedor = require('../../email/template/fornecedor/registerNewFornecedor')
 
 // ** JWT import
 const jwt = require('jsonwebtoken');
@@ -157,17 +156,17 @@ class AuthControllerFornecedor {
 
     //? Envia email quando fornecedor se cadastrar com sucesso
     async sendMailNewFornecedor(req, res) {
-        const { data } = req.body;
-        const values = {
-            data,
-            noBaseboard: true,
-            stage: 's2'
-        }
-        // noBaseboard => Se falso mostra o rodapé com os dados da fabrica solicitante senão um padrão
+        // const { data } = req.body;
+        // const values = {
+        //     data,
+        //     noBaseboard: true,
+        //     stage: 's2'
+        // }
+        // // noBaseboard => Se falso mostra o rodapé com os dados da fabrica solicitante senão um padrão
 
-        let assunto = 'Avaliação de fornecedor '
-        const html = await registerNewFornecedor(values);
-        res.status(200).json(sendMailConfig(data.destinatario, assunto, html))
+        // let assunto = 'Avaliação de fornecedor '
+        // const html = await registerNewFornecedor(values);
+        // res.status(200).json(sendMailConfig(data.destinatario, assunto, html))
     }
 
     //? Quando o fornecedor acessa o link de acesso enviado por email / Muda o stado de 10 para 20 na tabela de fornecedor e salva na tabela de movimentaçãoFornecedor

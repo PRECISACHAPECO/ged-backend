@@ -4,7 +4,7 @@ const rodape = (values) => {
         <p class="textSmall">Este é um e-mail automático, não responda.</p>
         <div>
             <p class="superSmall">${values.nomeFantasiaFabrica}<br/>
-             ${values.enderecoCompletoFabricaSolicitante}</p>
+             ${values.enderecoCompletoFabrica}</p>
         </div>
     </div>`;
     return html;
