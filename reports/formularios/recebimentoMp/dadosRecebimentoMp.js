@@ -5,12 +5,10 @@ const { arraysIguais } = require('../../configs/config');
 const dadosRecebimentoMp = async (req, res) => {
     const { id, unidadeID } = req.body.data;
     const recebimentoMpID = id
-    console.log("🚀 ~~~~~ id:", id)
 
-    // //? Obtém unidadeID da fábrica (quem define o padrão do formulário)
-    // const sqlUnity = `SELECT *, recebimentompID FROM recebimentomp WHERE recebimentompID = ? LIMIT 1`;
-    // const [resultUnidade] = await db.promise().query(sqlUnity, [recebimentoMpID]);
-    // const { unidadeID } = resultUnidade[0] //? unidadeID da fábrica
+    if (!id) {
+        return res.json({ error: 'ID não informado!' })
+    }
 
     const sqlRecebimentoMp = `
     SELECT * 
@@ -68,7 +66,6 @@ const dadosRecebimentoMp = async (req, res) => {
     //? Blocos
     const sqlAllBlocks = `SELECT * FROM par_recebimentomp_bloco a WHERE a.unidadeID = ? `
     const [resulAllBlocks] = await db.promise().query(sqlAllBlocks, [unidadeID]);
-    console.log("🚀 ~ resulAllBlocks:", resulAllBlocks)
 
     const resultBlocos = []
     for (let i = 0; i < resulAllBlocks.length; i++) {

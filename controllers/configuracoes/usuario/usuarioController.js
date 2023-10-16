@@ -15,9 +15,10 @@ class UsuarioController {
 
         //? Busca usuários da unidade e papel atual 
         const sql = `
-        SELECT u.usuarioID AS id, u.nome, u.cpf, u.dataNascimento, u.status 
+        SELECT u.usuarioID AS id, u.nome, u.cpf, u.dataNascimento, e.nome AS status , e.cor
         FROM usuario AS u
             JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
+            JOIN status AS e ON (u.status = e.statusID)
         WHERE uu.unidadeID = ? AND uu.papelID = ?
         ORDER BY u.status DESC, u.nome ASC`
         const [result] = await db.promise().query(sql, [unidadeID, papelID])
@@ -31,16 +32,16 @@ class UsuarioController {
             const { unidadeID, papelID, admin } = req.query
             let getData = {}
 
+            // LEFT JOIN profissao c on (b.profissaoID = c.profissaoID) b.profissaoID,
             const sql = `
-            SELECT a.*, b.usuarioUnidadeID, b.profissaoID, b.registroConselhoClasse, c.nome AS profissao, d.nome AS papel
+            SELECT a.*, b.usuarioUnidadeID,  b.registroConselhoClasse, d.nome AS papel
             FROM usuario a 
                 JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
-                LEFT JOIN profissao c on (b.profissaoID = c.profissaoID)
                 LEFT JOIN papel d on (b.papelID = d.papelID)
-            WHERE a.usuarioID = ? AND b.unidadeID = ?`
+                WHERE a.usuarioID = ? AND b.unidadeID = ?`
             const [result] = await db.promise().query(sql, [id, unidadeID])
 
-            if (result.length === 0) {
+            if (result.length == 0) {
                 return res.status(404).json({ message: 'Usuário não encontrado!' })
             }
 
@@ -50,13 +51,13 @@ class UsuarioController {
             }
             getData['units'] = []
 
+            // LEFT JOIN profissao c on (b.profissaoID = c.profissaoID) c.profissaoID,
             // Se for admin, busca os dados da unidade, papel e cargo
             if (admin == 1) {
                 const sqlUnits = `
-                SELECT b.usuarioUnidadeID, a.*, b.registroConselhoClasse, b.unidadeID, b.papelID, d.nomeFantasia as unidade, c.profissaoID, b.status as statusUnidade, c.nome AS profissao, e.nome AS papel
+                SELECT b.usuarioUnidadeID, a.*, b.registroConselhoClasse, b.unidadeID, b.papelID, d.nomeFantasia as unidade,  b.status as statusUnidade, e.nome AS papel
                 FROM usuario a 
                     JOIN usuario_unidade b ON a.usuarioID = b.usuarioID
-                    LEFT JOIN profissao c on (b.profissaoID = c.profissaoID)
                     JOIN unidade d on (b.unidadeID = d.unidadeID)
                     JOIN papel e on (b.papelID = e.papelID)
                 WHERE a.usuarioID = ?
@@ -73,10 +74,10 @@ class UsuarioController {
                         id: unit.papelID,
                         nome: unit.papel,
                     }
-                    unit[`profissao`] = {
-                        id: unit.profissaoID,
-                        nome: unit.profissao,
-                    }
+                    // unit[`profissao`] = {
+                    //     id: unit.profissaoID,
+                    //     nome: unit.profissao,
+                    // }
 
                     // Obtém os cargos
                     const sqlCargos = `
@@ -112,10 +113,10 @@ class UsuarioController {
                 getData['papelOptions'] = resultPapel
             } else { // Não é admin 
                 // Profissão
-                getData[`profissao`] = {
-                    id: result[0].profissaoID,
-                    nome: result[0].profissao,
-                }
+                // getData[`profissao`] = {
+                //     id: result[0].profissaoID,
+                //     nome: result[0].profissao,
+                // }
 
                 // Cargos 
                 const sqlCargos = `
@@ -128,13 +129,13 @@ class UsuarioController {
                 getData[`cargo`] = resultCargos
             }
 
-            const sqlProfissao = `
-            SELECT * 
-            FROM profissao
-            WHERE status = 1 
-            ORDER BY nome ASC`;
-            const [resultProfissao] = await db.promise().query(sqlProfissao)
-            getData['profissaoOptions'] = resultProfissao
+            // const sqlProfissao = `
+            // SELECT * 
+            // FROM profissao
+            // WHERE status = 1 
+            // ORDER BY nome ASC`;
+            // const [resultProfissao] = await db.promise().query(sqlProfissao)
+            // getData['profissaoOptions'] = resultProfissao
 
             const sqlCargosAll = `
             SELECT cargoID AS id, nome

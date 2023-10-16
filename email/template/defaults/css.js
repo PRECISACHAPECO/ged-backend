@@ -57,17 +57,7 @@ const css = () => {
                 font-weight: bold;
                 font-size: 16px;
             }
-            a {
-                text-decoration: none;
-                color: #fff;
-                transition: 0.5s;
-            }
-            .button:hover{
-                background-color: #4A8B57;
-                color: #fff;
-                box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-                transition: 0.5s;
-            }
+            
             .content{
                 padding: 25px;
                 background-color: #fff;
@@ -76,21 +66,18 @@ const css = () => {
     css += `
             p, ul, text, td{
                 font-size: 16px;
-                line-height: 1.5;
                 color: #4c4e64de;
             }`;
     // Texto tamanho pequeno
     css += `
             .textSmall{
                 font-size: 14px;
-                line-height: 1.5;
                 color: #4c4e64de;
             }`;
     // Texto tamanho bem  pequeno
     css += `
             .superSmall{
                 font-size: 12px;
-                line-height: 1.5;
                 color: #4c4e64de;
             }
             .rodape{

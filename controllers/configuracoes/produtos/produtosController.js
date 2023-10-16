@@ -17,7 +17,8 @@ class ProdutosController {
                 p.nome, 
                 p.descricao, 
                 pc.nome AS categoria, 
-                p.status, 
+                e.nome AS status, 
+                e.cor,
 
                 (SELECT IF(COUNT(*) > 0, 1, 0)
                 FROM produto_unidade AS pu 
@@ -25,6 +26,7 @@ class ProdutosController {
                 ) AS checked                
             FROM produto AS p 
                 JOIN produto_categoria AS pc ON (p.produtoCategoriaID = pc.produtoCategoriaID)
+                JOIN status as e ON (p.status = e.statusID)
             WHERE p.status = 1 
             ORDER BY p.produtoID ASC`
             const [resultGetList] = await db.promise().query(getList, [unidadeID, unidadeID]);

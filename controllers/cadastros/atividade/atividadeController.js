@@ -4,7 +4,15 @@ const { hasConflict, hasPending, deleteItem } = require('../../../config/default
 class AtividadeController {
     async getList(req, res) {
         try {
-            const getList = 'SELECT atividadeID AS id, nome, status FROM atividade'
+            const getList = `
+            SELECT 
+            a.atividadeID AS id, 
+            a.nome, 
+            e.nome AS status,
+            e.cor
+            FROM atividade AS a
+            JOIN status as e ON (a.status = e.statusID);
+            `
             const [resultGetList] = await db.promise().query(getList);
             res.status(200).json(resultGetList);
         } catch (error) {

@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 const { getMenu, criptoMd5 } = require('../../config/defaultConfig');
 const sendMailConfig = require('../../config/email');
-const registerNewFornecedor = require('../../email/template/fornecedor/registerNewFornecedor')
 
 // ** JWT import
 const jwt = require('jsonwebtoken');
@@ -32,7 +31,7 @@ class AuthControllerFornecedor {
 
         db.query(sql, [cnpj], (err, result) => {
             if (err) { res.status(409).json({ message: err.message }); }
-            if (result.length === 0) {
+            if (result.length == 0) {
                 return res.status(401).json({ message: 'CNPJ ou senha incorretos' });
             }
 
@@ -107,6 +106,10 @@ class AuthControllerFornecedor {
         const { data } = req.body
         let unidadeID = ''
 
+        //? Busca o nome da unida fabrica para enviar notificação após o fornecedor concluir o cadastro
+        const sqlGetFactoryUnit = 'SELECT nomeFantasia, unidadeID FROM unidade WHERE unidadeID = ?'
+        const [resultSqlGetFactoryUnit] = await db.promise().query(sqlGetFactoryUnit, [data.unidadeID])
+
         // //? Verificar se o CNPJ já existe na tabela de usuário
         const resultUserSave = await hasUser(data.sectionOne.cnpj)
         if (resultUserSave) {
@@ -140,22 +143,30 @@ class AuthControllerFornecedor {
                 INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID, status) VALUES (?, ?, ?, ?)`;
         const resultInsertUsuarioUnidade = await db.promise().query(sqlInsertUsuarioUnidade, [usuarioID, unidadeID, 2, 1]);
 
-        res.status(200).json({ message: 'Fornecedor cadastrado com sucesso!' });
+        const values = {
+            factory: resultSqlGetFactoryUnit[0],
+            supplier: {
+                unidadeID,
+                usuarioID
+            }
+        }
+
+        res.status(200).json(values);
     }
 
     //? Envia email quando fornecedor se cadastrar com sucesso
     async sendMailNewFornecedor(req, res) {
-        const { data } = req.body;
-        const values = {
-            data,
-            noBaseboard: true,
-            stage: 's2'
-        }
-        // noBaseboard => Se falso mostra o rodapé com os dados da fabrica solicitante senão um padrão
+        // const { data } = req.body;
+        // const values = {
+        //     data,
+        //     noBaseboard: true,
+        //     stage: 's2'
+        // }
+        // // noBaseboard => Se falso mostra o rodapé com os dados da fabrica solicitante senão um padrão
 
-        let assunto = 'Avaliação de fornecedor '
-        const html = await registerNewFornecedor(values);
-        res.status(200).json(sendMailConfig(data.destinatario, assunto, html))
+        // let assunto = 'Avaliação de fornecedor '
+        // const html = await registerNewFornecedor(values);
+        // res.status(200).json(sendMailConfig(data.destinatario, assunto, html))
     }
 
     //? Quando o fornecedor acessa o link de acesso enviado por email / Muda o stado de 10 para 20 na tabela de fornecedor e salva na tabela de movimentaçãoFornecedor

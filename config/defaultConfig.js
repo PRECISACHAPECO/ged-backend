@@ -36,19 +36,23 @@ const getMenuPermissions = async (papelID, usuarioID, unidadeID) => {
         SELECT m.*, 
             COALESCE((SELECT p.ler
             FROM permissao AS p 
-            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}), 0) AS ler,
+            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}
+            LIMIT 1), 0) AS ler,
             
             COALESCE((SELECT p.inserir
             FROM permissao AS p 
-            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}), 0) AS inserir,
+            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}
+            LIMIT 1), 0) AS inserir,
 
             COALESCE((SELECT p.editar
             FROM permissao AS p 
-            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}), 0) AS editar, 
+            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}
+            LIMIT 1), 0) AS editar, 
 
             COALESCE((SELECT p.excluir
             FROM permissao AS p 
-            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}), 0) AS excluir
+            WHERE p.rota = m.rota AND p.papelID = ${papelID} AND p.usuarioID = ${usuarioID} AND p.unidadeID = ${unidadeID}
+            LIMIT 1), 0) AS excluir
         FROM menu AS m
         WHERE m.divisorID = ${rotaDivisor.divisorID} AND m.status = 1 
         ORDER BY m.ordem ASC;`;
@@ -142,7 +146,22 @@ const hasConflict = async ({ columns, values, table, id }) => {
     return false;
 };
 
+function gerarSenha() {
+    const letrasMaiusculas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const letrasMinusculas = 'abcdefghijklmnopqrstuvwxyz';
+    const numeros = '0123456789';
 
+    // Gere um caractere aleatório de cada categoria
+    const letraMaiuscula = letrasMaiusculas[Math.floor(Math.random() * letrasMaiusculas.length)];
+    const letraMinuscula = letrasMinusculas[Math.floor(Math.random() * letrasMinusculas.length)];
+    const letraMinuscula2 = letrasMinusculas[Math.floor(Math.random() * letrasMinusculas.length)];
+    const numero = numeros[Math.floor(Math.random() * numeros.length)];
+
+    // Combine os caracteres gerados em uma senha
+    const senha = `${letraMaiuscula}${letraMinuscula}${letraMinuscula2}${numero}`;
+
+    return senha;
+}
 
 
 const deleteItem = async (id, table, column, res) => {
@@ -164,4 +183,4 @@ const onlyNumbers = (string) => {
     return string.replace(/[^0-9]/g, '');
 }
 
-module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict };
+module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict, gerarSenha };
