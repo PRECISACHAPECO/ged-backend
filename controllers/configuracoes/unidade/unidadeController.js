@@ -39,7 +39,7 @@ class UnidadeController {
             const result = {
                 fields: {
                     ...resultSqlGetData[0],
-                    cabecalhoRelatorio: resultSqlGetData[0].cabecalhoRelatorio ? `${process.env.BASE_URL_UPLOADS}report/${resultSqlGetData[0].cabecalhoRelatorio}` : null,
+                    cabecalhoRelatorio: resultSqlGetData[0].cabecalhoRelatorio ? `${process.env.BASE_URL_API}${resultSqlGetData[0].cabecalhoRelatorio}` : null,
                     cabecalhoRelatorioTitle: resultSqlGetData[0].cabecalhoRelatorio,
                     extensoes: resultExtensions.length > 0 ? resultExtensions : [],
                     allExtensions: resultAllExtensions.length > 0 ? resultAllExtensions : []
@@ -115,27 +115,27 @@ class UnidadeController {
     async updateDataReport(req, res) {
         try {
             const { id } = req.params;
-            const reportFile = req.file;
+            const pathDestination = req.pathDestination
+            const file = req.files[0]; //? Somente 1 arquivo
 
-            const sqlSelectPreviousFileReport = `SELECT cabecalhoRelatorio FROM unidade  WHERE unidadeID = ?`;
+            const sqlSelectPreviousFileReport = `SELECT cabecalhoRelatorio FROM unidade WHERE unidadeID = ?`;
             const sqlUpdateFileReport = `UPDATE unidade SET cabecalhoRelatorio = ? WHERE unidadeID = ?`;
 
-            // Verificar se um arquivo foi enviado
-            if (!reportFile) {
-                res.status(400).json({ error: 'Nenhum arquivo enviado.' });
-                return;
+            //? Verificar se há arquivos enviados
+            if (!file) {
+                return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
             }
 
             // Obter o nome da foto de perfil anterior
             const [rows] = await db.promise().query(sqlSelectPreviousFileReport, [id]);
-            const previousFileReport = rows[0]?.imagem;
+            const previousFileReport = rows[0]?.cabecalhoRelatorio;
 
             // Atualizar a foto de perfil no banco de dados
-            await db.promise().query(sqlUpdateFileReport, [reportFile.filename, id]);
+            await db.promise().query(sqlUpdateFileReport, [`${pathDestination}${file.filename}`, id]);
 
             // Excluir a foto de perfil anterior
             if (previousFileReport) {
-                const previousFileReportPath = path.resolve('uploads/report', previousFileReport);
+                const previousFileReportPath = path.resolve(previousFileReport);
                 fs.unlink(previousFileReportPath, (error) => {
                     if (error) {
                         return console.error('Erro ao excluir a imagem anterior:', error);
@@ -144,7 +144,7 @@ class UnidadeController {
                     }
                 });
             }
-            const photoProfileUrl = `${process.env.BASE_URL_UPLOADS}report/${reportFile.filename}`;
+            const photoProfileUrl = `${process.env.BASE_URL_API}${pathDestination}${file.filename}`;
             res.status(200).json(photoProfileUrl);
         } catch (e) {
             console.log(e)
@@ -161,14 +161,14 @@ class UnidadeController {
         try {
             // Obter o nome da foto de perfil anterior
             const [rows] = await db.promise().query(sqlSelectPreviousPhoto, [id]);
-            const previousPhotoProfile = rows[0]?.imagem;
+            const previousPhotoProfile = rows[0]?.cabecalhoRelatorio;
 
             // Atualizar a foto de perfil no banco de dados
             await db.promise().query(sqlUpdatePhotoProfile, [null, id]);
 
             // Excluir a foto de perfil anterior
             if (previousPhotoProfile) {
-                const previousPhotoPath = path.resolve('uploads/report', previousPhotoProfile);
+                const previousPhotoPath = path.resolve(previousPhotoProfile);
                 fs.unlink(previousPhotoPath, (error) => {
                     if (error) {
                         console.error('Erro ao excluir a imagem anterior:', error);

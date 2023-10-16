@@ -49,7 +49,6 @@ class FornecedorController {
                 WHERE pfm.parFornecedorModeloID = ${id}
                 LIMIT 1
                 ), 0) AS obrigatorio
-
             FROM par_fornecedor AS pf`;
             // console.log("🚀 ~ sqlHeader:", sqlHeader)
             const [resultHeader] = await db.promise().query(sqlHeader);

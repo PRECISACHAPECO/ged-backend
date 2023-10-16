@@ -16,14 +16,15 @@ profissionalRoutes.post(`${route}/new/getData`, profissionalController.getNewDat
 profissionalRoutes.post(`${route}/updateData/:id`, profissionalController.updateData);
 profissionalRoutes.post(`${route}/verifyCPF`, profissionalController.verifyCPF);
 
-profissionalRoutes.delete(`${route}/photo-profile/:id`, profissionalController.handleDeleteImage);
+profissionalRoutes.delete(`${route}/photo-profile/:id/:unidadeID`, profissionalController.handleDeleteImage);
 profissionalRoutes.delete(`${route}/:id`, profissionalController.deleteData);
 profissionalRoutes.post(`${route}/new/insertData`, profissionalController.insertData);
 
 //? MULTER: Upload de arquivo
-profissionalRoutes.post(`${route}/photo-profile/:id/:unidadeID`, (req, res, next) => {
-    const isImage = 'true'
-    configureMulterMiddleware(req, res, next, req.params.unidadeID, 'uploads/profile', isImage)
+profissionalRoutes.post(`${route}/photo-profile/:id/:unidadeID/:usuarioID`, (req, res, next) => {
+    const pathDestination = `uploads/${req.params.unidadeID}/profissional/`
+    req.pathDestination = pathDestination
+    configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.unidadeID, pathDestination)
 }, profissionalController.updatePhotoProfile);
 
 module.exports = profissionalRoutes;

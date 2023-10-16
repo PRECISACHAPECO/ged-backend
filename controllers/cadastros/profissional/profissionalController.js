@@ -59,11 +59,11 @@ class ProfissionalController {
             const [resultFormacaoCargo] = await db.promise().query(formacaoCargo, [id, unidadeID])
 
             const values = {
+                imagem: resultDataUser[0].imagem ? `${process.env.BASE_URL_API}${resultDataUser[0].imagem}` : null,
                 fields: resultDataUser[0],
                 cargosFuncoes: resultFormacaoCargo,
                 menu: await getMenuPermissions(1, resultDataUser[0].usuarioID, unidadeID)
             }
-
 
             res.status(200).json(values)
         } catch (error) {
@@ -165,13 +165,15 @@ class ProfissionalController {
     //! Atualiza a foto do perfil do usuário
     async updatePhotoProfile(req, res) {
         try {
-            const photoProfile = req.file;
             const { id } = req.params;
-            const sqlSelectPreviousPhoto = `SELECT imagem FROM usuario WHERE usuarioID = ?`;
-            const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuarioID = ?`;
+            const pathDestination = req.pathDestination
+            const file = req.files[0]; //? Somente 1 arquivo
+
+            const sqlSelectPreviousPhoto = `SELECT imagem FROM pessoa WHERE pessoaID = ?`;
+            const sqlUpdatePhotoProfile = `UPDATE pessoa SET imagem = ? WHERE pessoaID = ?`;
 
             // Verificar se um arquivo foi enviado
-            if (!photoProfile) {
+            if (!file) {
                 res.status(400).json({ error: 'Nenhum arquivo enviado.' });
                 return;
             }
@@ -181,11 +183,11 @@ class ProfissionalController {
             const previousPhotoProfile = rows[0]?.imagem;
 
             // Atualizar a foto de perfil no banco de dados
-            await db.promise().query(sqlUpdatePhotoProfile, [photoProfile.filename, id]);
+            await db.promise().query(sqlUpdatePhotoProfile, [`${pathDestination}${file.filename}`, id]);
 
             // Excluir a foto de perfil anterior
             if (previousPhotoProfile) {
-                const previousPhotoPath = path.resolve('uploads/profile', previousPhotoProfile);
+                const previousPhotoPath = path.resolve(previousPhotoProfile);
                 fs.unlink(previousPhotoPath, (error) => {
                     if (error) {
                         return console.error('Erro ao excluir a imagem anterior:', error);
@@ -195,7 +197,7 @@ class ProfissionalController {
                 });
             }
 
-            const photoProfileUrl = `${process.env.BASE_URL_UPLOADS}profile/${photoProfile.filename}`;
+            const photoProfileUrl = `${process.env.BASE_URL_API}${pathDestination}${file.filename}`;
             res.status(200).json(photoProfileUrl);
         } catch (error) {
             console.log("🚀 ~ error:", error)
@@ -214,10 +216,10 @@ class ProfissionalController {
     }
 
     async handleDeleteImage(req, res) {
-        const { id } = req.params;
+        const { id, unidadeID } = req.params;
 
-        const sqlSelectPreviousPhoto = `SELECT imagem FROM usuario WHERE usuarioID = ?`;
-        const sqlUpdatePhotoProfile = `UPDATE usuario SET imagem = ? WHERE usuarioID = ?`;
+        const sqlSelectPreviousPhoto = `SELECT imagem FROM pessoa WHERE pessoaID = ?`;
+        const sqlUpdatePhotoProfile = `UPDATE pessoa SET imagem = ? WHERE pessoaID = ?`;
 
         try {
             // Obter o nome da foto de perfil anterior
@@ -229,7 +231,7 @@ class ProfissionalController {
 
             // Excluir a foto de perfil anterior
             if (previousPhotoProfile) {
-                const previousPhotoPath = path.resolve('uploads/profile', previousPhotoProfile);
+                const previousPhotoPath = path.resolve(previousPhotoProfile);
                 fs.unlink(previousPhotoPath, (error) => {
                     if (error) {
                         console.error('Erro ao excluir a imagem anterior:', error);
