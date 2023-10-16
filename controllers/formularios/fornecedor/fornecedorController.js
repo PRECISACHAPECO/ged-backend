@@ -265,7 +265,7 @@ class FornecedorController {
             for (const field of resultFields) {
                 if (field.tabela) {
                     // Monta objeto pra preencher select 
-                    // Ex.: pessoa:{
+                    // Ex.: profissional:{
                     //     id: 1,
                     //     nome: 'Fulano'
                     // }
@@ -966,8 +966,8 @@ class FornecedorController {
         SELECT 
             a.nome,
             b.formacaoCargo AS cargo
-        FROM pessoa AS a 
-            LEFT JOIN pessoa_cargo AS b ON (a.pessoaID = b.pessoaID)
+        FROM profissional AS a 
+            LEFT JOIN profissional_cargo AS b ON (a.profissionalID = b.profissionalID)
         WHERE a.usuarioID = ?
         `
         const [resultSqlProfessional] = await db.promise().query(sqlProfessional, [usuarioID])

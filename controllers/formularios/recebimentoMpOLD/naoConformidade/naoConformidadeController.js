@@ -136,7 +136,7 @@ class NaoConformidadeController {
             for (const field of resultFields) {
                 if (field.tabela) {
                     // Monta objeto pra preencher select 
-                    // Ex.: pessoa:{
+                    // Ex.: profissional:{
                     //     id: 1,
                     //     nome: 'Fulano'
                     // }

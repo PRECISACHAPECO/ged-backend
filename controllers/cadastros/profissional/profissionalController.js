@@ -17,11 +17,11 @@ class ProfissionalController {
         //? Busca usuários da unidade e papel atual 
         const sql = `
         SELECT
-            a.pessoaID AS id,
+            a.profissionalID AS id,
             a.nome,
             e.nome AS status,
             e.cor
-        FROM pessoa AS a 
+        FROM profissional AS a 
             JOIN status AS e ON (a.status = e.statusID)
             WHERE a.unidadeID = ?`
         const [result] = await db.promise().query(sql, [unidadeID])
@@ -37,23 +37,23 @@ class ProfissionalController {
             // Dados do profissional
             const dataUser = `
             SELECT *
-            FROM pessoa AS a 
-            WHERE a.pessoaID = ? AND a.unidadeID = ?;
+            FROM profissional AS a 
+            WHERE a.profissionalID = ? AND a.unidadeID = ?;
             `
             const [resultDataUser] = await db.promise().query(dataUser, [id, unidadeID])
 
             // Cargos do profissional
             const formacaoCargo = `
             SELECT 
-                a.pessoaCargoID AS id,
+                a.profissionalCargoID AS id,
                 a.data,
                 a.formacaoCargo,
                 a.conselho,
                 a.dataInativacao,
                 a.status
-            FROM pessoa_cargo AS a
-                JOIN pessoa AS b ON (a.pessoaID = b.pessoaID)
-            WHERE  a.pessoaID = ? AND b.unidadeID = ? 
+            FROM profissional_cargo AS a
+                JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
+            WHERE  a.profissionalID = ? AND b.unidadeID = ? 
             ORDER BY a.data ASC;
             `
             const [resultFormacaoCargo] = await db.promise().query(formacaoCargo, [id, unidadeID])
@@ -108,7 +108,7 @@ class ProfissionalController {
             const validateConflicts = {
                 columns: ['cpf', 'unidadeID'],
                 values: [data.fields.cpf, data.unidadeID],
-                table: 'pessoa',
+                table: 'profissional',
                 id: null
             }
             if (await hasConflict(validateConflicts)) {
@@ -116,15 +116,15 @@ class ProfissionalController {
             }
 
             // Cadastra novo profisional
-            const InsertUser = `INSERT pessoa SET ? `
+            const InsertUser = `INSERT profissional SET ? `
             const [resultInsertUser] = await db.promise().query(InsertUser, [data.fields])
-            const pessoaID = resultInsertUser.insertId
+            const profissionalID = resultInsertUser.insertId
 
             // Cadastro CARGOS / FUNÇÃO
-            const insertCargo = `INSERT INTO pessoa_cargo (data, formacaoCargo, conselho, dataInativacao, pessoaID) VALUES (?, ?, ?, ?, ?)`
+            const insertCargo = `INSERT INTO profissional_cargo (data, formacaoCargo, conselho, dataInativacao, profissionalID) VALUES (?, ?, ?, ?, ?)`
             if (data.cargosFuncoes.length > 0) {
                 data.cargosFuncoes.map(async (row) => {
-                    const [resultInsertCargo] = await db.promise().query(insertCargo, [row.data, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), pessoaID])
+                    const [resultInsertCargo] = await db.promise().query(insertCargo, [row.data, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), profissionalID])
                 })
             }
 
@@ -138,8 +138,8 @@ class ProfissionalController {
                 const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?, ?)`
                 const [resultInsertUsuarioUnity] = await db.promise().query(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1])
 
-                const UpdateUser = `UPDATE pessoa SET usuarioID = ? WHERE pessoaID = ?`
-                const [resultUpdateUser] = await db.promise().query(UpdateUser, [usuarioID, pessoaID])
+                const UpdateUser = `UPDATE profissional SET usuarioID = ? WHERE profissionalID = ?`
+                const [resultUpdateUser] = await db.promise().query(UpdateUser, [usuarioID, profissionalID])
 
                 //* PERMISSÕES DE ACESSO
                 const newData = {
@@ -152,11 +152,11 @@ class ProfissionalController {
                 console.log("dataaaa update sem isdddddd", newData)
                 accessPermissions(newData)
 
-                return res.status(200).json(pessoaID)
+                return res.status(200).json(profissionalID)
             }
 
 
-            return res.status(200).json(pessoaID)
+            return res.status(200).json(profissionalID)
         } catch (error) {
             console.log("🚀 ~ error:", error)
         }
@@ -169,8 +169,8 @@ class ProfissionalController {
             const pathDestination = req.pathDestination
             const file = req.files[0]; //? Somente 1 arquivo
 
-            const sqlSelectPreviousPhoto = `SELECT imagem FROM pessoa WHERE pessoaID = ?`;
-            const sqlUpdatePhotoProfile = `UPDATE pessoa SET imagem = ? WHERE pessoaID = ?`;
+            const sqlSelectPreviousPhoto = `SELECT imagem FROM profissional WHERE profissionalID = ?`;
+            const sqlUpdatePhotoProfile = `UPDATE profissional SET imagem = ? WHERE profissionalID = ?`;
 
             // Verificar se um arquivo foi enviado
             if (!file) {
@@ -218,8 +218,8 @@ class ProfissionalController {
     async handleDeleteImage(req, res) {
         const { id, unidadeID } = req.params;
 
-        const sqlSelectPreviousPhoto = `SELECT imagem FROM pessoa WHERE pessoaID = ?`;
-        const sqlUpdatePhotoProfile = `UPDATE pessoa SET imagem = ? WHERE pessoaID = ?`;
+        const sqlSelectPreviousPhoto = `SELECT imagem FROM profissional WHERE profissionalID = ?`;
+        const sqlUpdatePhotoProfile = `UPDATE profissional SET imagem = ? WHERE profissionalID = ?`;
 
         try {
             // Obter o nome da foto de perfil anterior
@@ -268,9 +268,9 @@ class ProfissionalController {
             const data = req.body
             // //* Valida conflito
             // const validateConflicts = {
-            //     columns: ['pessoaID', 'cpf', 'unidadeID'],
+            //     columns: ['profissionalID', 'cpf', 'unidadeID'],
             //     values: [id, data.fields.cpf, data.fields.unidadeID],
-            //     table: 'pessoa',
+            //     table: 'profissional',
             //     id: id
             // }
             // if (await hasConflict(validateConflicts)) {
@@ -278,12 +278,12 @@ class ProfissionalController {
             // }
 
             // Atualiza dados do profissional
-            const UpdateUser = `UPDATE pessoa SET ? WHERE pessoaID = ?`
+            const UpdateUser = `UPDATE profissional SET ? WHERE profissionalID = ?`
             const [resultUpdateUser] = await db.promise().query(UpdateUser, [data.fields, id])
 
             // Exclui cargos / função
             if (data.removedItems.length > 0) {
-                const sqlDeleteItens = `DELETE FROM pessoa_cargo WHERE pessoaCargoID IN (${data.removedItems.join(',')})`
+                const sqlDeleteItens = `DELETE FROM profissional_cargo WHERE profissionalCargoID IN (${data.removedItems.join(',')})`
                 const [resultDeleteItens] = await db.promise().query(sqlDeleteItens)
             }
 
@@ -292,13 +292,13 @@ class ProfissionalController {
                 data.cargosFuncoes.map(async (row) => {
                     const formatedData = row.data.substring(0, 10)
                     if (row && row.id > 0) { //? Já existe, atualiza
-                        const sqlUpdateItem = `UPDATE pessoa_cargo SET data = ?, formacaoCargo = ?, conselho = ?,  dataInativacao = ?, status = ?  WHERE pessoaCargoID = ?`
+                        const sqlUpdateItem = `UPDATE profissional_cargo SET data = ?, formacaoCargo = ?, conselho = ?,  dataInativacao = ?, status = ?  WHERE profissionalCargoID = ?`
                         const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [
                             formatedData,
                             row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), (row.status ? '1' : '0'), row.id])
                     } else if (row && !row.id) {    //? Novo, insere
-                        const sqlInsertItem = `INSERT INTO pessoa_cargo (data, formacaoCargo, conselho, dataInativacao, status, pessoaID) VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [formatedData, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), (row.status ? '1' : '0'), data.fields.pessoaID])
+                        const sqlInsertItem = `INSERT INTO profissional_cargo (data, formacaoCargo, conselho, dataInativacao, status, profissionalID) VALUES (?, ?, ?, ?, ?, ?)`
+                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [formatedData, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), (row.status ? '1' : '0'), data.fields.profissionalID])
                     }
                 })
             }
@@ -308,12 +308,12 @@ class ProfissionalController {
                 const sqlCheckCPF = `SELECT * FROM usuario WHERE cpf = "${data.fields.cpf}"`
                 const [resultCheckCPF] = await db.promise().query(sqlCheckCPF)
 
-                //? Já existe usuário com esse CPF, copia usuário id para a tabela pessoa
+                //? Já existe usuário com esse CPF, copia usuário id para a tabela profissional
                 if (resultCheckCPF.length > 0) {
                     const usuarioID = resultCheckCPF[0].usuarioID
 
-                    // Seta usuárioID na tabela pessoa
-                    const UpdateUser = `UPDATE pessoa SET usuarioID = ? WHERE pessoaID = ?`
+                    // Seta usuárioID na tabela profissional
+                    const UpdateUser = `UPDATE profissional SET usuarioID = ? WHERE profissionalID = ?`
                     const [resultUpdateUser] = await db.promise().query(UpdateUser, [usuarioID, id])
 
                     // Verifica se já esta cadastrado na unidade
@@ -341,11 +341,10 @@ class ProfissionalController {
                     const [resultInsertUsuario] = await db.promise().query(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, criptoMd5(data.senha)])
                     const usuarioID = resultInsertUsuario.insertId
 
-                    const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?, ?)`
+                    const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?,?)`
                     const [resultInsertUsuarioUnity] = await db.promise().query(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1])
 
-
-                    const UpdateUser = `UPDATE pessoa SET usuarioID = ? WHERE pessoaID = ?`
+                    const UpdateUser = `UPDATE profissional SET usuarioID = ? WHERE profissionalID = ?`
                     const [resultUpdateUser] = await db.promise().query(UpdateUser, [usuarioID, id])
 
                     //* PERMISSÕES DE ACESSO
@@ -356,7 +355,6 @@ class ProfissionalController {
                             usuarioID
                         },
                     }
-                    console.log("dataaaa update sem isdddddd", newData)
                     accessPermissions(newData)
 
                     res.status(200).json({ message: 'Dados atualizados com sucesso!' })
@@ -364,13 +362,10 @@ class ProfissionalController {
             }
             //* Desmarcou usuário do sistema
             else {
-                console.log("não é usaurio")
-                const UpdateUser = `UPDATE pessoa SET usuarioID = ? WHERE pessoaID = ?`
+                const UpdateUser = `UPDATE profissional SET usuarioID = ? WHERE profissionalID = ?`
                 const [resultUpdateUser] = await db.promise().query(UpdateUser, [0, id])
                 res.status(200).json({ message: 'Dados atualizados com sucesso!' })
-
             }
-
         } catch (error) {
             console.log("🚀 ~ error:", error)
         }

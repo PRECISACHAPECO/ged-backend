@@ -19,7 +19,7 @@ class LimpezaController {
             l.status
         FROM limpeza AS l
             JOIN par_limpeza_modelo AS plm ON (l.parLimpezaModeloID = plm.parLimpezaModeloID)
-            LEFT JOIN pessoa AS p ON (l.pessoaID = p.pessoaID)
+            LEFT JOIN profissional AS p ON (l.profissionalID = p.profissionalID)
         WHERE l.unidadeID = ?
         ORDER BY l.limpezaID DESC, l.status ASC`
         const [result] = await db.promise().query(sql, [unidadeID])
@@ -80,7 +80,7 @@ class LimpezaController {
             for (const field of resultFields) {
                 if (field.tabela) {
                     // Monta objeto pra preencher select 
-                    // Ex.: pessoa:{
+                    // Ex.: profissional:{
                     //     id: 1,
                     //     nome: 'Fulano'
                     // }

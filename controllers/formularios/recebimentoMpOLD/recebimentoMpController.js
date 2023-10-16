@@ -96,7 +96,7 @@ class RecebimentoMpController {
             for (const field of resultFields) {
                 if (field.tabela) {
                     // Monta objeto pra preencher select 
-                    // Ex.: pessoa:{
+                    // Ex.: profissional:{
                     //     id: 1,
                     //     nome: 'Fulano'
                     // }
@@ -135,7 +135,7 @@ class RecebimentoMpController {
                 for (const field of resultFieldsProducts) {
                     if (field.tipo === 'int' && field.tabela) {
                         // Monta objeto pra preencher select 
-                        // Ex.: pessoa:{
+                        // Ex.: profissional:{
                         //     id: 1,
                         //     nome: 'Fulano'
                         // }
