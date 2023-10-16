@@ -894,7 +894,7 @@ class FornecedorController {
         const sqlFornecedor = `
         INSERT INTO fornecedor(parFornecedorModeloID, cnpj, razaoSocial, nome, email, unidadeID, status, atual, dataInicio, profissionalID) 
         VALUES(?, "${values.cnpj}", ?, ?, ?, ?, ?, ?, ?, ?)`
-        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nome, values.email, unidadeID, initialStatus, 1, new Date(), usuarioID])
+        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nomeFantasia, values.email, unidadeID, initialStatus, 1, new Date(), usuarioID])
         const fornecedorID = resultFornecedor.insertId
 
         //? Grava grupos de anexo do fornecedor
@@ -920,7 +920,6 @@ class FornecedorController {
         //? Gera histórico de alteração de status
         const movimentation = await addFormStatusMovimentation(1, fornecedorID, usuarioID, unidadeID, papelID, '0', initialStatus, '')
         if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário!" }) }
-
 
         //! Verifica se CNPJ já tem um usuario cadastrado, se não tiver cadastra
         const userExists = "SELECT * FROM usuario WHERE cnpj = ?"
