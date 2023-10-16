@@ -13,11 +13,11 @@ unidadeRoutes.post(`${route}/updateData/:id`, unidadeController.updateData);
 unidadeRoutes.delete(`${route}/fileReport/:id`, unidadeController.handleDeleteImage);
 unidadeRoutes.delete(`${route}/:id`, unidadeController.deleteData);
 unidadeRoutes.post(`${route}/new/insertData`, unidadeController.insertData);
-
 //? MULTER: Upload de arquivo
-unidadeRoutes.post(`${route}/updateData/report/:id`, (req, res, next) => {
-    const isImage = 'true'
-    configureMulterMiddleware(req, res, next, req.params.id, 'uploads/report', isImage);
+unidadeRoutes.post(`${route}/updateData/report/:id/:usuarioID`, (req, res, next) => {
+    const pathDestination = `uploads/${req.params.id}/unidade/`
+    req.pathDestination = pathDestination
+    configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.id, pathDestination)
 }, unidadeController.updateDataReport);
 
 module.exports = unidadeRoutes;

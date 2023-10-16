@@ -2,18 +2,71 @@ const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class ItemController {
+
+    async getItemConfigs(req, res) {
+        try {
+            const { itemID, alternativaItemID } = req.body
+            if (!itemID || !alternativaItemID) return res.status(400).json({ message: "Dados não informados!" })
+
+            const sql = `
+            SELECT io.itemOpcaoID, io.anexo, io.bloqueiaFormulario, io.observacao
+            FROM item AS i
+                LEFT JOIN item_opcao AS io ON (i.itemID = io.itemID)
+            WHERE i.itemID = ? AND io.alternativaItemID = ?`
+            const [result] = await db.promise().query(sql, [itemID, alternativaItemID])
+
+            result[0]['anexosSolicitados'] = []
+            if (result[0]['anexo'] == 1) { //? Essa resposta solicita anexo
+                const sqlAnexos = `
+                SELECT itemOpcaoAnexoID, nome, obrigatorio
+                FROM item_opcao_anexo
+                WHERE itemID = ? AND itemOpcaoID = ?`
+                const [resultAnexos] = await db.promise().query(sqlAnexos, [itemID, result[0]['itemOpcaoID']])
+                result[0]['anexosSolicitados'] = resultAnexos.length > 0 ? resultAnexos : []
+            }
+
+            return res.status(200).json(result[0])
+
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async getAlternatives(req, res) {
+        const { alternativa } = req.body
+
+        const sql = `
+        SELECT alternativaItemID AS id, nome
+        FROM alternativa_item 
+        WHERE alternativaID = ? `
+        const [result] = await db.promise().query(sql, [alternativa.id])
+
+        for (let i = 0; i < result.length; i++) {
+            result[i].anexo = false
+            result[i].bloqueiaFormulario = false
+            result[i].observacao = false
+            result[i].anexos = [{ nome: '' }]
+        }
+
+        res.status(200).json(result)
+    }
+
     async getList(req, res) {
+        const { unidadeID } = req.params
         try {
             const sqlGetList = `
             SELECT 
-                itemID AS id, 
-                a.nome, 
-                a.status, 
-            b.nome AS formulario 
+                itemID AS id,
+                a.nome,
+                e.nome AS status,
+                    e.cor,
+                    b.nome AS formulario 
             FROM item AS a 
-            LEFT JOIN par_formulario b ON (a.parFormularioID = b.parFormularioID) 
-            ORDER BY b.parFormularioID ASC, a.itemID ASC`
-            const resultSqlGetList = await db.promise().query(sqlGetList)
+            LEFT JOIN par_formulario b ON(a.parFormularioID = b.parFormularioID) 
+            JOIN status e ON(a.status = e.statusID)
+            WHERE a.unidadeID = ?
+                ORDER BY b.parFormularioID ASC, a.itemID ASC`
+            const resultSqlGetList = await db.promise().query(sqlGetList, [unidadeID])
             return res.status(200).json(resultSqlGetList[0])
         } catch (error) {
             console.log(error)
@@ -23,36 +76,59 @@ class ItemController {
     async getData(req, res) {
         try {
             const { id } = req.params;
-            const sqlData = `SELECT * FROM item WHERE itemID = ?`
-            const [resultData] = await db.promise().query(sqlData, id);
+
+            const sql = `
+            SELECT i.itemID AS id, i.nome, i.status, i.ajuda, pf.parFormularioID, pf.nome AS formulario, a.alternativaID, a.nome AS alternativa
+            FROM item AS i
+                JOIN par_formulario AS pf ON(i.parFormularioID = pf.parFormularioID)
+                JOIN alternativa AS a ON(i.alternativaID = a.alternativaID)
+            WHERE i.itemID = ? `
+            const [resultData] = await db.promise().query(sql, [id]);
 
             if (!resultData || resultData.length === 0) return res.status(404).json({ error: "Nenhum dado encontrado." })
 
-            const sqlFormulario = `
-            SELECT pf.nome, pf.parFormularioID AS id
-            FROM item AS gp 
-                JOIN par_formulario AS pf ON (gp.parFormularioID = pf.parFormularioID)
-            WHERE gp.itemID = ?`
-            const [resultFormulario] = await db.promise().query(sqlFormulario, [id]);
-
-            const sqlOptionsFormulario = `SELECT nome, parFormularioID AS id FROM par_formulario`
+            // Opções de seleção de formulário  
+            const sqlOptionsFormulario = `SELECT parFormularioID AS id, nome FROM par_formulario`
             const [resultOptionsFormulario] = await db.promise().query(sqlOptionsFormulario);
 
-            const sqlItens = `
-            SELECT grupoanexoitemID AS id, nome, descricao, obrigatorio, status,
-                (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM anexo AS a 
-                WHERE a.grupoAnexoItemID = grupoanexo_item.grupoanexoitemID) AS hasPending
-            FROM grupoanexo_item 
-            WHERE grupoanexoID = ?`
-            const [resultItens] = await db.promise().query(sqlItens, [id]);
+            // Opções de eleção de alternativa 
+            const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa WHERE status = 1`
+            const [resultOptionsAlternativa] = await db.promise().query(sqlOptionsAlternativa);
+
+            //? Opções do item 
+            const sqlOpcoes = `
+            SELECT io.itemOpcaoID, ai.alternativaItemID AS id, ai.nome, ai.alternativaID, io.anexo, io.bloqueiaFormulario, io.observacao
+            FROM item_opcao AS io 
+                JOIN alternativa_item AS ai ON(io.alternativaItemID = ai.alternativaItemID)
+            WHERE io.itemID = ? `
+            const [resultOpcoes] = await db.promise().query(sqlOpcoes, [id]);
+
+            for (let i = 0; i < resultOpcoes.length; i++) {
+                const sqlAnexos = `
+                SELECT itemOpcaoAnexoID AS id, nome, obrigatorio
+                FROM item_opcao_anexo 
+                WHERE itemID = ? AND itemOpcaoID = ? `
+                const [resultAnexos] = await db.promise().query(sqlAnexos, [id, resultOpcoes[i].itemOpcaoID]);
+                resultOpcoes[i].anexos = resultAnexos.length > 0 ? resultAnexos : [{ nome: '' }]
+            }
 
             const result = {
-                fields: resultData[0],
-                formulario: {
-                    fields: resultFormulario[0],
-                    options: resultOptionsFormulario
-                },
+                fields: {
+                    formulario: {
+                        id: resultData[0].parFormularioID,
+                        nome: resultData[0].formulario,
+                        opcoes: resultOptionsFormulario ?? []
+                    },
+                    nome: resultData[0].nome,
+                    status: resultData[0].status,
+                    alternativa: {
+                        id: resultData[0].alternativaID,
+                        nome: resultData[0].alternativa,
+                        opcoes: resultOptionsAlternativa ?? []
+                    },
+                    ajuda: resultData[0].ajuda ?? '',
+                    opcoes: resultOpcoes ?? []
+                }
             };
             res.status(200).json(result);
         } catch (error) {
@@ -63,18 +139,43 @@ class ItemController {
 
     async getNewData(req, res) {
         try {
-            const sqlForms = 'SELECT parFormularioID AS id, nome FROM par_formulario'
-            const [resultForms] = await db.promise().query(sqlForms)
+            // Opções de seleção de formulário  
+            const sqlOptionsFormulario = `SELECT parFormularioID AS id, nome FROM par_formulario`
+            const [resultOptionsFormulario] = await db.promise().query(sqlOptionsFormulario);
+
+            // Opções de eleção de alternativa 
+            const sqlOptionsAlternativa = `SELECT alternativaID AS id, nome FROM alternativa WHERE status = 1`
+            const [resultOptionsAlternativa] = await db.promise().query(sqlOptionsAlternativa);
+
+            //? Opções do item (já traz aberto as opções da primeira alternativa)
+            const sqlOpcoes = `
+            SELECT ai.alternativaItemID AS id, ai.nome, ai.alternativaID
+            FROM alternativa_item AS ai 
+            WHERE ai.alternativaID = ? `
+            const [resultOpcoes] = await db.promise().query(sqlOpcoes, [resultOptionsAlternativa[0].id]);
+
+            for (let i = 0; i < resultOpcoes.length; i++) {
+                resultOpcoes[i].anexos = [{ nome: '' }]
+            }
 
             const result = {
                 fields: {
-                    status: true
-                },
-                formulario: {
-                    fields: null,
-                    options: resultForms
-                },
-            }
+                    formulario: {
+                        id: resultOptionsFormulario[0].id,
+                        nome: resultOptionsFormulario[0].nome,
+                        opcoes: resultOptionsFormulario ?? []
+                    },
+                    nome: '',
+                    status: 1,
+                    alternativa: {
+                        id: resultOptionsAlternativa[0].id,
+                        nome: resultOptionsAlternativa[0].nome,
+                        opcoes: resultOptionsAlternativa ?? []
+                    },
+                    ajuda: '',
+                    opcoes: resultOpcoes ?? []
+                }
+            };
             res.status(200).json(result);
         } catch (error) {
             console.error("Erro ao buscar dados no banco de dados: ", error);
@@ -88,8 +189,8 @@ class ItemController {
 
             //* Valida conflito
             const validateConflicts = {
-                columns: ['nome', 'parFormularioID'],
-                values: [values.fields.nome, values.formulario.fields.id],
+                columns: ['nome', 'parFormularioID', 'alternativaID', 'unidadeID'],
+                values: [values.fields.nome, values.fields.formulario.id, values.fields.alternativa.id, values.unidadeID],
                 table: 'item',
                 id: null
             }
@@ -97,10 +198,51 @@ class ItemController {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
-            // //? Insere novo item
-            const sqlInsert = `INSERT INTO item (nome, status, parFormularioID) VALUES (?, ?, ?)`
-            const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, (values.fields.status ? '1' : '0'), values.formulario.fields.id])
+            //? Insert item
+            const sqlInsert = `INSERT INTO item(nome, parFormularioID, alternativaID, ajuda, status, unidadeID) VALUES(?, ?, ?, ?, ?, ?)`;
+            const [resultInsert] = await db.promise().query(sqlInsert, [
+                values.fields.nome,
+                values.fields.formulario.id,
+                values.fields.alternativa.id,
+                values.fields.ajuda,
+                (values.fields.status ? '1' : '0'),
+                values.unidadeID
+            ]);
             const id = resultInsert.insertId
+
+            //? Atualiza item_opcao
+            // Insert
+            const sqlInsertOpcao = `INSERT INTO item_opcao(itemID, alternativaItemID, anexo, bloqueiaFormulario, observacao) VALUES(?, ?, ?, ?, ?)`
+            if (values.fields.opcoes && values.fields.opcoes.length > 0) {
+                for (let i = 0; i < values.fields.opcoes.length; i++) {
+                    const element = values.fields.opcoes[i];
+                    const [resultInsertOpcao] = await db.promise().query(sqlInsertOpcao, [
+                        id,
+                        element.id,
+                        (element.anexo ? '1' : '0'),
+                        (element.bloqueiaFormulario ? '1' : '0'),
+                        (element.observacao ? '1' : '0')
+                    ])
+                    const itemOpcaoID = resultInsertOpcao.insertId
+
+                    //? Atualiza item_opcao_anexo
+                    // Insert
+                    const sqlInsertAnexo = `INSERT INTO item_opcao_anexo(itemID, itemOpcaoID, nome, obrigatorio) VALUES(?, ?, ?, ?)`
+                    if (element.anexos && element.anexos.length > 0) {
+                        for (let j = 0; j < element.anexos.length; j++) {
+                            const elementAnexo = element.anexos[j];
+                            if (elementAnexo.nome != '') {
+                                const [resultInsertAnexo] = await db.promise().query(sqlInsertAnexo, [
+                                    id,
+                                    itemOpcaoID,
+                                    elementAnexo.nome,
+                                    (elementAnexo.obrigatorio ? '1' : '0')
+                                ])
+                            }
+                        }
+                    }
+                }
+            }
 
             return res.status(200).json(id)
         } catch (error) {
@@ -117,8 +259,8 @@ class ItemController {
 
             //* Valida conflito
             const validateConflicts = {
-                columns: ['itemID', 'nome', 'parFormularioID'],
-                values: [id, values.fields.nome, values.formulario.fields.id],
+                columns: ['itemID', 'nome', 'parFormularioID', 'alternativaID', 'unidadeID'],
+                values: [id, values.fields.nome, values.fields.formulario.id, values.fields.alternativa.id, values.unidadeID],
                 table: 'item',
                 id: id
             }
@@ -127,10 +269,47 @@ class ItemController {
             }
 
             //? Atualiza item
-            console.log("🚀 ~ values:", values)
-            console.log("🚀 ~ id:", id)
-            const sqlUpdate = `UPDATE item SET nome = ?, parFormularioID = ?,  status = ? WHERE itemID = ?`;
-            const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.formulario.fields.id, (values.fields.status ? '1' : '0'), id]);
+            const sqlUpdate = `UPDATE item SET nome = ?, parFormularioID = ?, alternativaID = ?, ajuda = ?, status = ? WHERE itemID = ? `;
+            const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.formulario.id, values.fields.alternativa.id, values.fields.ajuda, (values.fields.status ? '1' : '0'), id]);
+
+            //? Atualiza item_opcao
+            // Delete
+            const sqlDelete = `DELETE FROM item_opcao WHERE itemID = ? `
+            const [resultDelete] = await db.promise().query(sqlDelete, [id])
+
+            // Delete
+            const sqlDeleteAnexo = `DELETE FROM item_opcao_anexo WHERE itemID = ? `
+            const [resultDeleteAnexo] = await db.promise().query(sqlDeleteAnexo, [id])
+
+            // Insert
+            const sqlInsertOpcao = `INSERT INTO item_opcao(itemID, alternativaItemID, anexo, bloqueiaFormulario, observacao) VALUES(?, ?, ?, ?, ?)`
+            for (let i = 0; i < values.fields.opcoes.length; i++) {
+                const element = values.fields.opcoes[i];
+                console.log("🚀 ~ element:", element)
+                const [resultInsertOpcao] = await db.promise().query(sqlInsertOpcao, [
+                    id,
+                    element.id,
+                    (element.anexo ? '1' : '0'),
+                    (element.bloqueiaFormulario ? '1' : '0'),
+                    (element.observacao ? '1' : '0')
+                ])
+                const itemOpcaoID = resultInsertOpcao.insertId
+
+                //? Atualiza item_opcao_anexo
+                // Insert
+                const sqlInsertAnexo = `INSERT INTO item_opcao_anexo(itemID, itemOpcaoID, nome, obrigatorio) VALUES(?, ?, ?, ?)`
+                for (let j = 0; j < element.anexos.length; j++) {
+                    const elementAnexo = element.anexos[j];
+                    if (elementAnexo.nome != '') {
+                        const [resultInsertAnexo] = await db.promise().query(sqlInsertAnexo, [
+                            id,
+                            itemOpcaoID,
+                            elementAnexo.nome,
+                            (elementAnexo.obrigatorio ? '1' : '0')
+                        ])
+                    }
+                }
+            }
 
             return res.status(200).json({ message: 'Dados atualizados com sucesso!' })
         } catch (error) {
@@ -140,15 +319,14 @@ class ItemController {
 
     deleteData(req, res) {
         const { id } = req.params
-        const objModule = {
-            table: ['item'],
-            column: 'itemID'
-        }
-        const tablesPending = ['fornecedor_resposta', 'par_fornecedor_bloco_item', 'par_recebimentomp_bloco_item', 'recebimentomp_resposta'] // Tabelas que possuem relacionamento com a tabela atual
 
-        if (!tablesPending || tablesPending.length === 0) {
-            return deleteItem(id, objModule.table, objModule.column, res)
-        }
+        // Tabelas que possuem relacionamento com a tabela atual
+        const tablesPending = ['par_fornecedor_modelo_bloco_item', 'par_limpeza_modelo_bloco_item'];
+        // Tabelas que quero deletar
+        const objModule = {
+            table: ['item', 'item_opcao', 'item_opcao_anexo'],
+            column: 'itemID'
+        };
 
         hasPending(id, objModule.column, tablesPending)
             .then((hasPending) => {

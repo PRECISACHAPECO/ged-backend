@@ -12,10 +12,17 @@ class GrupoAnexosController {
             }
 
             const sqlGetGrupoAnexos = `
-            SELECT grupoanexoID AS id, a.nome, a.status, a.descricao
+            SELECT 
+                grupoAnexoID AS id, 
+                a.nome, 
+                e.nome AS status,
+                e.cor,
+                a.descricao
             FROM grupoanexo AS a 
+                LEFT JOIN status AS e ON (a.status = e.statusID)
             WHERE a.unidadeID = ?
-            ORDER BY a.nome ASC`
+            ORDER BY a.nome ASC
+            `
             const [resultSqlGetGrupoAnexos] = await db.promise().query(sqlGetGrupoAnexos, [unidadeID]);
             return res.status(200).json(resultSqlGetGrupoAnexos)
         }
@@ -29,9 +36,9 @@ class GrupoAnexosController {
             const { id } = req.params
 
             const sqlData = `
-            SELECT a.grupoanexoID AS id, a.nome, a.descricao, a.status
+            SELECT a.grupoAnexoID AS id, a.nome, a.descricao, a.status
             FROM grupoanexo AS a 
-            WHERE a.grupoanexoID = ?`
+            WHERE a.grupoAnexoID = ?`
             const [resultData] = await db.promise().query(sqlData, [id]);
 
             if (!resultData || resultData.length === 0) return res.status(404).json({ error: "Nenhum dado encontrado." })
@@ -47,12 +54,12 @@ class GrupoAnexosController {
             const [resultOptionsFormulario] = await db.promise().query(sqlOptionsFormulario);
 
             const sqlItens = `
-            SELECT grupoanexoitemID AS id, nome, descricao, obrigatorio, status,
+            SELECT ai.grupoAnexoItemID AS id, ai.nome, ai.descricao, ai.obrigatorio, ai.status,
                 (SELECT IF(COUNT(*) > 0, 1, 0)
-                FROM anexo AS a 
-                WHERE a.grupoAnexoItemID = grupoanexo_item.grupoanexoitemID) AS hasPending
-            FROM grupoanexo_item 
-            WHERE grupoanexoID = ?`
+                FROM grupoanexo AS a 
+                WHERE a.grupoAnexoID = ai.grupoAnexoID) AS hasPending
+            FROM grupoanexo_item AS ai
+            WHERE ai.grupoAnexoID = ?`
             const [resultItens] = await db.promise().query(sqlItens, [id]);
 
             const result = {
@@ -117,7 +124,7 @@ class GrupoAnexosController {
             //? Itens do grupo de anexos
             if (values.items.length > 0) {
                 values.items.map(async (item) => {
-                    const sqlInsertItem = `INSERT INTO grupoanexo_item (nome, descricao, grupoanexoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?)`
+                    const sqlInsertItem = `INSERT INTO grupoanexo_item (nome, descricao, grupoAnexoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?)`
                     const [resultInsertItem] = await db.promise().query(sqlInsertItem, [item.nome, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')])
                 })
             }
@@ -136,7 +143,7 @@ class GrupoAnexosController {
             if (!id || id == undefined) return res.status(400).json({ message: "ID não informado" })
 
             //? Atualiza grupo_anexo 
-            const sqlUpdate = `UPDATE grupoanexo SET nome = ?, descricao = ?, status = ? WHERE grupoanexoID = ?`;
+            const sqlUpdate = `UPDATE grupoanexo SET nome = ?, descricao = ?, status = ? WHERE grupoAnexoID = ?`;
             const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.descricao, (values.fields.status ? '1' : '0'), id]);
 
             //? Atualizado formulários (+1)
@@ -163,17 +170,17 @@ class GrupoAnexosController {
                     })
                 }
                 //? Remove somente itens que não possuem pendências
-                const sqlDeleteItens = `DELETE FROM grupoanexo_item WHERE grupoanexoitemID IN (${values.removedItems.join(',')})`
+                const sqlDeleteItens = `DELETE FROM grupoanexo_item WHERE grupoAnexoItemID IN (${values.removedItems.join(',')})`
                 const [resultDeleteItens] = await db.promise().query(sqlDeleteItens)
             }
 
             if (values.items.length > 0) {
                 values.items.map(async (item) => {
                     if (item && item.id > 0) { //? Já existe, atualiza
-                        const sqlUpdateItem = `UPDATE grupoanexo_item SET nome = ?, descricao = ?, status = ?, obrigatorio = ? WHERE grupoanexoitemID = ?`
+                        const sqlUpdateItem = `UPDATE grupoanexo_item SET nome = ?, descricao = ?, status = ?, obrigatorio = ? WHERE grupoAnexoItemID = ?`
                         const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [item.nome, item.descricao, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0'), item.id])
                     } else if (item && !item.id) {                   //? Novo, insere
-                        const sqlInsertItem = `INSERT INTO grupoanexo_item (nome, descricao, grupoanexoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?)`
+                        const sqlInsertItem = `INSERT INTO grupoanexo_item (nome, descricao, grupoAnexoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?)`
                         const [resultInsertItem] = await db.promise().query(sqlInsertItem, [item.nome, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')])
                     }
                 })
@@ -188,23 +195,24 @@ class GrupoAnexosController {
     async deleteData(req, res) {
         const { id } = req.params;
 
-        const tablesPending = ['anexo', 'fabrica_fornecedor_grupoanexo', 'grupoanexo_item', 'grupoanexo_parformulario']; // Tabelas que possuem relacionamento com a tabela atual
+        // Tabelas que possuem relacionamento com a tabela atual
+        const tablesPending = ['anexo', 'fabrica_fornecedor_grupoanexo', 'grupoanexo_item', 'grupoanexo_parformulario'];
         // Tabelas que quero deletar
         const objModule = {
             table: ['grupoanexo', 'grupoanexo_item'],
-            column: 'grupoanexoID'
+            column: 'grupoAnexoID'
         };
 
         //? obtém itens do grupo
-        const sqlItems = `SELECT * FROM grupoanexo_item WHERE grupoanexoID = ?`
+        const sqlItems = `SELECT * FROM grupoanexo_item WHERE grupoAnexoID = ?`
         const [resultItems] = await db.promise().query(sqlItems, [id])
 
         let canDelete = true; // Se não houver nenhuma pendência nos itens do grupo, pode apagar o grupo
         if (tablesPending.length > 0) {
             for (const item of resultItems) {
-                if (item.grupoanexoitemID) {
+                if (item.grupoAnexoItemID) {
                     const sqlPending = `SELECT * FROM anexo WHERE grupoAnexoItemID = ?`
-                    const [resultPending] = await db.promise().query(sqlPending, [item.grupoanexoitemID])
+                    const [resultPending] = await db.promise().query(sqlPending, [item.grupoAnexoItemID])
                     if (resultPending.length > 0) {
                         canDelete = false;
                         break; // Encerrar o laço

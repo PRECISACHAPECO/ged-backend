@@ -3,8 +3,8 @@ const rodape = (values) => {
     <div class="box rodape">
         <p class="textSmall">Este é um e-mail automático, não responda.</p>
         <div>
-            <p class="superSmall">${values.nomeFabricaSolicitante}</p>
-            <span class="superSmall">${values.enderecoCompletoFabricaSolicitante}</span>
+            <p class="superSmall">${values.nomeFantasiaFabrica}<br/>
+             ${values.enderecoCompletoFabrica}</p>
         </div>
     </div>`;
     return html;

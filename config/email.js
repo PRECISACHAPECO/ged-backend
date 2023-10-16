@@ -16,7 +16,7 @@ const SendMailConfig = async (destinatario, assunto, html) => {
     });
 
     const mailOptions = {
-        from: 'Gedagro <app@gedagro.com.br>',
+        from: 'GEDagro <app@gedagro.com.br>',
         to: destinatario,
         subject: assunto,
         html: html

@@ -10,7 +10,17 @@ class TransportadorController {
                 return res.status(400).json({ message: "Unidade não informada!" });
             }
 
-            const getList = 'SELECT transportadorID AS id, nome, status FROM transportador WHERE unidadeID = ? ORDER BY nome ASC'
+            const getList = `
+            SELECT 
+                a.transportadorID AS id, 
+                a.nome, 
+                e.nome AS status,
+                e.cor
+            FROM transportador AS a 
+                LEFT JOIN status AS e ON (a.status = e.statusID)
+            WHERE unidadeID = ?
+            ORDER BY a.nome ASC;
+            `
             const [resultGetList] = await db.promise().query(getList, [unidadeID]);
             res.status(200).json(resultGetList);
         } catch (error) {
