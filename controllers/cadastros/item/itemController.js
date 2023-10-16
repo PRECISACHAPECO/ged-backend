@@ -15,14 +15,14 @@ class ItemController {
             WHERE i.itemID = ? AND io.alternativaItemID = ?`
             const [result] = await db.promise().query(sql, [itemID, alternativaItemID])
 
-            result[0]['anexos'] = []
+            result[0]['anexosSolicitados'] = []
             if (result[0]['anexo'] == 1) { //? Essa resposta solicita anexo
                 const sqlAnexos = `
                 SELECT itemOpcaoAnexoID, nome, obrigatorio
                 FROM item_opcao_anexo
                 WHERE itemID = ? AND itemOpcaoID = ?`
                 const [resultAnexos] = await db.promise().query(sqlAnexos, [itemID, result[0]['itemOpcaoID']])
-                result[0]['anexos'] = resultAnexos.length > 0 ? resultAnexos : []
+                result[0]['anexosSolicitados'] = resultAnexos.length > 0 ? resultAnexos : []
             }
 
             return res.status(200).json(result[0])
