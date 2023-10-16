@@ -55,13 +55,13 @@ class UnidadeController {
         try {
             const data = req.body;
             const sqlExist = 'SELECT * FROM unidade'
-            const [resultSqlExist] = await db.promise().query(sqlExist)
+            const [resultSqlExist] = await db.promise().query(sqlExist, [data.fields])
 
             const rows = resultSqlExist.find(row => row.cnpj === data.cnpj);
 
             if (!rows) {
                 const sqlInsert = 'INSERT INTO unidade SET ?'
-                const resultSqlInsert = await db.promise().query(sqlInsert, data)
+                const resultSqlInsert = await db.promise().query(sqlInsert, data.fields)
                 const id = resultSqlInsert[0].insertId
                 res.json(id)
 
