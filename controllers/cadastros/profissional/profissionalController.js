@@ -321,8 +321,7 @@ class ProfissionalController {
                     const [resultUnityCheck] = await db.promise().query(sqlUnityCheck, [usuarioID, data.fields.unidadeID])
 
                     //? Já está cadastrado na unidade
-                    if (resultUnityCheck.length.length > 0) {
-                        // Força status como ativo 
+                    if (resultUnityCheck.length > 0) {
                         const sqlUpdateUsuarioUnity = `UPDATE usuario_unidade SET status = ? WHERE usuarioID = ? AND unidadeID = ? `
                         const [resultUpdateUsuarioUnity] = await db.promise().query(sqlUpdateUsuarioUnity, [1, usuarioID, data.fields.unidadeID])
                     } else {
