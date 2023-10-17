@@ -13,6 +13,9 @@ profissionalRoutes.get(`${route}`, profissionalController.getList);
 profissionalRoutes.post(`${route}/getData/:id`, profissionalController.getData);
 profissionalRoutes.post(`${route}/new/getData`, profissionalController.getNewData);
 
+// troca de senha
+profissionalRoutes.put(`${route}/updatePassword/:id`, profissionalController.updatePassword);
+
 profissionalRoutes.post(`${route}/updateData/:id`, profissionalController.updateData);
 profissionalRoutes.post(`${route}/verifyCPF`, profissionalController.verifyCPF);
 

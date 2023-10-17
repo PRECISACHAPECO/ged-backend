@@ -370,6 +370,30 @@ class ProfissionalController {
         }
     }
 
+    async updatePassword(req, res) {
+        const { id } = req.params;
+        const data = req.body;
+        try {
+            if (!id || id <= 0) {
+                throw new Error("Dados incorretos");
+            }
+            const getProfessional = "SELECT * FROM profissional WHERE usuarioID = ?"
+            const [resultProfessional] = await db.promise().query(getProfessional, [id])
+
+            if (resultProfessional.length > 0) {
+                const getUpdate = "UPDATE usuario SET senha = ? WHERE usuarioID = ?"
+                const [resultUpdate] = await db.promise().query(getUpdate, [criptoMd5(data.senha), id])
+                res.status(200).json({ message: 'Senha atualizada com sucesso!' })
+            } else {
+                res.status(200).json({ message: 'Erro ao atualizar a senha' })
+            }
+
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+
     deleteData(req, res) {
         const { id } = req.params
         const objModule = {
