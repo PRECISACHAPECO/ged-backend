@@ -1,4 +1,5 @@
 const db = require('../../config/db');
+require('dotenv/config')
 
 class fornecedorDashboardController {
 
@@ -22,8 +23,11 @@ class fornecedorDashboardController {
             WHERE f.cnpj = ?
             ORDER BY f.status ASC, f.fornecedorID DESC
             LIMIT 12`
-
             const [resultLastForms] = await db.promise().query(getLastForms, [data.cnpj])
+
+            resultLastForms.forEach((form) => {
+                form.logo = form.logo ? `${process.env.BASE_URL_API}${form.logo}` : null
+            })
 
             const values = {
                 lastForms: resultLastForms
