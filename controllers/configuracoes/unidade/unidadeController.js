@@ -2,6 +2,8 @@ const db = require('../../../config/db');
 const { hasPending, deleteItem, criptoMd5 } = require('../../../config/defaultConfig');
 const path = require('path');
 const fs = require('fs');
+const alterPassword = require('../../../email/template/user/alterPassword');
+const sendMailConfig = require('../../../config/email');
 
 class UnidadeController {
     async getList(req, res) {
@@ -82,9 +84,9 @@ class UnidadeController {
             delete data.fields.cabecalhoRelatorioTitle
 
             const sqlExist = 'SELECT * FROM unidade'
-            const resultSqlExist = await db.promise().query(sqlExist)
+            const [resultSqlExist] = await db.promise().query(sqlExist)
 
-            const rows = resultSqlExist[0].find(row => row.cnpj == data.fields.cnpj && row.unidadeID !== id);
+            const rows = resultSqlExist.find(row => row.cnpj == data.fields.cnpj && row.unidadeID !== id);
             if (rows > 0) return res.status(409).json({ message: "CNPJ já cadastrado!" });
 
             const sqlUpdate = 'UPDATE unidade SET ? WHERE unidadeID = ?'
@@ -103,6 +105,51 @@ class UnidadeController {
             if (data.senha) {
                 const sqlUpdateUser = 'UPDATE usuario SET senha = ? WHERE usuarioID = ?'
                 const [resultSqlUpdateUser] = await db.promise().query(sqlUpdateUser, [criptoMd5(data.senha), data.usuarioID])
+
+                const sqlUnity = `
+                SELECT 
+                    a.*   
+                FROM unidade AS a
+                WHERE a.unidadeID = ?`
+
+                const [resultUnity] = await db.promise().query(sqlUnity, [data.fields.unidadeID])
+
+                const endereco = {
+                    logradouro: resultUnity[0].logradouro,
+                    numero: resultUnity[0].numero,
+                    complemento: resultUnity[0].complemento,
+                    bairro: resultUnity[0].bairro,
+                    cidade: resultUnity[0].cidade,
+                    uf: resultUnity[0].uf,
+                }
+
+                const enderecoCompleto = Object.entries(endereco).map(([key, value]) => {
+                    if (value) {
+                        return `${value}, `;
+                    }
+                }).join('').slice(0, -2) + '.'; // Remove a última vírgula e adiciona um ponto final
+
+                // Chama a função que envia email para o usuário
+                if (data.fields.email) {
+                    const destinatario = data.fields.email
+                    let assunto = 'GEDagro - Senha Alterada'
+                    const values = {
+                        // fabrica
+                        enderecoCompletoFabrica: enderecoCompleto,
+                        nomeFantasiaFabrica: resultUnity[0].nomeFantasia,
+                        cnpjFabrica: resultUnity[0].cnpj,
+
+                        // outros
+                        nome: data.fields.nomeFantasia,
+                        papelID: 2,
+                        noBaseboard: false, // Se falso mostra o rodapé com os dados da fabrica, senão mostra dados do GEDagro,
+                    }
+
+                    const html = await alterPassword(values);
+                    await sendMailConfig(destinatario, assunto, html)
+
+                }
+
             }
 
             res.status(200).json({ message: 'Unidade atualizada com sucesso!' });

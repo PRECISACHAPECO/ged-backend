@@ -5,6 +5,8 @@ const fs = require('fs');
 const { hasPending, deleteItem, getMenuPermissions, hasConflict, criptoMd5 } = require('../../../config/defaultConfig');
 const multer = require('multer');
 const { accessPermissions } = require('../../../defaults/functions');
+const alterPassword = require('../../../email/template/user/alterPassword');
+const sendMailConfig = require('../../../config/email');
 
 class ProfissionalController {
     async getList(req, res) {
@@ -377,12 +379,55 @@ class ProfissionalController {
             if (!id || id <= 0) {
                 throw new Error("Dados incorretos");
             }
+            // dados do profissional
             const getProfessional = "SELECT * FROM profissional WHERE usuarioID = ?"
             const [resultProfessional] = await db.promise().query(getProfessional, [id])
 
-            if (resultProfessional.length > 0) {
+            //   Obtem dados da fabrica
+            const sqlUnity = `
+            SELECT a.*   
+            FROM unidade AS a
+            WHERE a.unidadeID = ?;
+            `
+            const [resultUnity] = await db.promise().query(sqlUnity, [data.unidadeID])
+
+            const endereco = {
+                logradouro: resultUnity[0].logradouro,
+                numero: resultUnity[0].numero,
+                complemento: resultUnity[0].complemento,
+                bairro: resultUnity[0].bairro,
+                cidade: resultUnity[0].cidade,
+                uf: resultUnity[0].uf,
+            }
+
+            const enderecoCompleto = Object.entries(endereco).map(([key, value]) => {
+                if (value) {
+                    return `${value}, `;
+                }
+            }).join('').slice(0, -2) + '.'; // Remove a última vírgula e adiciona um ponto final
+
+            if (resultProfessional.length > 0 || data.papelID == 2) {
                 const getUpdate = "UPDATE usuario SET senha = ? WHERE usuarioID = ?"
                 const [resultUpdate] = await db.promise().query(getUpdate, [criptoMd5(data.senha), id])
+
+                // Chama a função que envia email para o usuário
+                const destinatario = data.papelID == 1 ? resultProfessional[0].email : resultUnity[0].email
+                let assunto = 'GEDagro - Senha Alterada'
+                const values = {
+                    // fabrica
+                    enderecoCompletoFabrica: enderecoCompleto,
+                    nomeFantasiaFabrica: data.papelID == 1 ? resultUnity[0].nomeFantasia : resultUnity[0].nomeFantasia,
+                    cnpjFabrica: data.papelID == 1 ? resultUnity[0].cnpj : resultUnity[0].cnpj,
+
+                    // outros
+                    nome: data.papelID == 1 ? resultProfessional[0].nome : resultUnity[0].nomeFantasia,
+                    papelID: data.papelID,
+                    noBaseboard: false, // Se falso mostra o rodapé com os dados da fabrica, senão mostra dados do GEDagro,
+                }
+
+                const html = await alterPassword(values);
+                await sendMailConfig(destinatario, assunto, html)
+
                 res.status(200).json({ message: 'Senha atualizada com sucesso!' })
             } else {
                 res.status(200).json({ message: 'Erro ao atualizar a senha' })
