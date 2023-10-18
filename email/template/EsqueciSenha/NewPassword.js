@@ -1,10 +1,10 @@
 const cabecalho = require('../defaults/cabecalho');
-const rodape = require('../defaults/rodape');
 const css = require('../defaults/css');
+const selectRodape = require('../defaults/rodape');
 require('dotenv/config');
 const link = process.env.BASE_URL;
 
-async function NewPassword(nome, id, type) {
+async function NewPassword(values) {
     let html = `
     <html>`;
     // CSS
@@ -17,10 +17,10 @@ async function NewPassword(nome, id, type) {
     // Conteúdo
     html += `
                 <div class="content">
-                    <h1 class="title">Olá ${nome},</h1>
+                    <h1 class="title">Olá ${values.nome},</h1>
                     <p>Recebemos uma solicitação para redefinir a senha da sua conta. Para prosseguir com a redefinição, siga as instruções abaixo:</p>
                     <p>Clique no link abaixo para acessar a página de redefinição de senha: </p>
-                    <p><a class="link" href="${link}redefinir-senha?userId=${id}&type=${type}">Redefinir senha</a></p>
+                    <p><a class="link" href="${link}redefinir-senha?userId=${values.usuarioID}&type=${values.type}">Redefinir senha</a></p>
                     <p>Na página de redefinição de senha, você será solicitado a fornecer uma nova senha.</p>
                     <p>Caso você não tenha solicitado a redefinição de senha, recomendamos que você tome as seguintes medidas imediatamente:</p>
                     <ul>
@@ -35,7 +35,7 @@ async function NewPassword(nome, id, type) {
                 </div>
             </div>`;
     // Rodapé
-    html += rodape();
+    html += selectRodape(values);
     html += `
         </body>
     </html>
