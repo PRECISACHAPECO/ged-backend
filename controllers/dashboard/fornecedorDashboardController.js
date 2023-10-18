@@ -5,7 +5,6 @@ class fornecedorDashboardController {
 
     async getData(req, res) {
         const data = req.body
-        console.log("🚀 ~ data:", data)
 
         try {
             const getLastForms = `

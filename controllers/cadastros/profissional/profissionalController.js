@@ -102,7 +102,6 @@ class ProfissionalController {
     async insertData(req, res) {
         try {
             const data = req.body;
-            console.log("🚀 ~ data:", data)
 
             //* Valida conflito
             const validateConflicts = {

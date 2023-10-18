@@ -491,6 +491,7 @@ class FornecedorController {
                 },
                 link: `${process.env.BASE_URL}formularios/fornecedor?id=${id}`
             }
+            console.log("🚀 ~ retornando pro front....")
 
             res.status(200).json(data);
         } catch (error) {

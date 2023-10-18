@@ -49,7 +49,6 @@ class NotificacaoController {
 
     async insertData(req, res) {
         const data = req.body
-        console.log("🚀 ~ data: chegou na função insertData", data)
         try {
             if (data.usuarioID == 0) { //? Gera notificação pra todos os usuários da unidade
                 const sqlUsers = `
