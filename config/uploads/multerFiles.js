@@ -2,6 +2,7 @@ const multer = require('multer');
 const path = require('path');
 const sharp = require('sharp');
 const fs = require('fs').promises;
+const { mkdirSync } = require('fs');
 
 const defineFileName = (originalName, usuarioID) => {
     //? yyyymmdd-hms
@@ -11,11 +12,19 @@ const defineFileName = (originalName, usuarioID) => {
 };
 
 const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOriginalSize, maxSize, allowedUnityExtensions, imageMaxDimensionToResize) => {
+    //* Verifica se o diretório de destino existe, senão cria recursivamente
+    try {
+        mkdirSync(pathDestination, { recursive: true }); // Cria diretórios recursivamente
+    } catch (error) {
+        console.error('Erro ao criar diretório de destino:', error);
+        return res.status(500).send({ message: 'Erro ao criar diretório de destino' });
+    }
+
     const customStorage = multer.diskStorage({
         destination: function (req, file, cb) {
             if (file.mimetype.startsWith('image')) {
                 // Se for uma imagem, coloque na pasta "temp"
-                cb(null, path.join(pathDestination, 'temp'));
+                cb(null, path.join('uploads/temp'));
             } else {
                 // Se não for uma imagem, coloque na pasta de destino principal
                 cb(null, pathDestination);
@@ -101,7 +110,7 @@ const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOrigin
 
                 //? Excluir tudo que estiver na pasta temp/* (imagens originais)
                 try {
-                    const tempPath = path.join(pathDestination, 'temp');
+                    const tempPath = path.join('uploads/temp');
                     const tempFiles = await fs.readdir(tempPath);
                     for (const file of tempFiles) {
                         const filePath = path.join(tempPath, file);
