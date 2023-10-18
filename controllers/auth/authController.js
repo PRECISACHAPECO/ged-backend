@@ -161,10 +161,12 @@ class AuthController {
     //? Função que valida se o CPF é válido e retorna o mesmo para o front / para redefinir senha
     async routeForgotEmailValidation(req, res) {
         const { data } = req.body;
+        console.log("🚀 ~ data:", data)
         const type = req.query.type;
+        console.log("🚀 ~ type:", type)
 
         if (type == 'login') {
-            let sql = `SELECT email, nome, usuarioID FROM usuario WHERE cpf = ?`;
+            let sql = `SELECT * FROM usuario WHERE cpf = ?`;
             const [result] = await db.promise().query(sql, [data]);
             res.status(200).json(result[0]);
         } else if (type == 'fornecedor') {
@@ -179,10 +181,19 @@ class AuthController {
     //? Função que recebe os dados e envia o email com os dados de acesso
     async forgotPassword(req, res) {
         const { data } = req.body;
+        console.log("🚀 ~ data:", data)
         const type = req.query.type;
 
         let assunto = 'Redefinir senha'
-        const html = await NewPassword(data.nome, data.usuarioID, type)
+
+        const values = {
+            nome: data.nome,
+            usuarioID: data.usuarioID,
+            type: type,
+            noBaseboard: true,
+        }
+
+        const html = await NewPassword(values)
         res.status(200).json(sendMailConfig(data.email, assunto, html));
     }
 
