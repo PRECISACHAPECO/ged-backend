@@ -4,10 +4,26 @@ const sharp = require('sharp');
 const fs = require('fs').promises;
 const { mkdirSync } = require('fs');
 
+const removeSpecialCharts = (str) => {
+    //     // remove acentos, cedilha, etc
+    //     str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    //     // remove espaços e troca por -
+    //     str = str.replace(/\s+/g, '-');
+    //     // remove caracteres especiais
+    //     str = str.replace(/[^a-z0-9\-]/gi, '');
+    //     // remove multiplos -
+    //     str = str.replace(/-+/g, '-');
+    //     // remove - do começo e do fim
+    //     str = str.replace(/^-+/, '').replace(/-+$/, '');
+    //     // retorna a string
+    //     return str.toLowerCase();
+    return str;
+};
+
 const defineFileName = (originalName, usuarioID) => {
     //? yyyymmdd-hms
     const dateTimeNow = new Date().toISOString().replace(/[-:.]/g, '').replace('T', '-').split('.')[0].slice(0, 15);
-    const fileName = `${dateTimeNow}-${usuarioID}-${originalName}`;
+    const fileName = `${dateTimeNow}-${usuarioID}-${removeSpecialCharts(originalName)}`;
     return fileName;
 };
 
