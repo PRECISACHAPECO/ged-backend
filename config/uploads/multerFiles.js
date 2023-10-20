@@ -5,19 +5,9 @@ const fs = require('fs').promises;
 const { mkdirSync } = require('fs');
 
 const removeSpecialCharts = (str) => {
-    //     // remove acentos, cedilha, etc
-    //     str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    //     // remove espaços e troca por -
-    //     str = str.replace(/\s+/g, '-');
-    //     // remove caracteres especiais
-    //     str = str.replace(/[^a-z0-9\-]/gi, '');
-    //     // remove multiplos -
-    //     str = str.replace(/-+/g, '-');
-    //     // remove - do começo e do fim
-    //     str = str.replace(/^-+/, '').replace(/-+$/, '');
-    //     // retorna a string
-    //     return str.toLowerCase();
-    return str;
+    // remover acentos e manter formato nome-de-arquivo.extensao
+    const newStr = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9-_.]/g, '-');
+    return newStr;
 };
 
 const defineFileName = (originalName, usuarioID) => {

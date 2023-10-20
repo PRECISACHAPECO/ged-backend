@@ -478,6 +478,13 @@ class FornecedorController {
             LIMIT 1`
             const [resultLastMovimentation] = await db.promise().query(sqlLastMovimentation, [id])
 
+            //? Cabeçalho do modelo do formulário 
+            const sqlCabecalhoModelo = `
+            SELECT cabecalho
+            FROM par_fornecedor_modelo
+            WHERE parFornecedorModeloID = ?`
+            const [resultCabecalhoModelo] = await db.promise().query(sqlCabecalhoModelo, [modeloID])
+
             const data = {
                 unidade: unidade,
                 fields: resultFields,
@@ -488,6 +495,7 @@ class FornecedorController {
                 info: {
                     obs: resultOtherInformations[0].obs,
                     status: resultOtherInformations[0].status,
+                    cabecalhoModelo: resultCabecalhoModelo[0].cabecalho
                 },
                 link: `${process.env.BASE_URL}formularios/fornecedor?id=${id}`
             }
