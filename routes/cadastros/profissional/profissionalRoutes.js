@@ -18,6 +18,7 @@ profissionalRoutes.put(`${route}/updatePassword/:id`, profissionalController.upd
 
 profissionalRoutes.post(`${route}/updateData/:id`, profissionalController.updateData);
 profissionalRoutes.post(`${route}/verifyCPF`, profissionalController.verifyCPF);
+profissionalRoutes.post(`${route}/getProfissionaisAssinatura`, profissionalController.getProfissionaisAssinatura);
 
 profissionalRoutes.delete(`${route}/photo-profile/:id/:unidadeID`, profissionalController.handleDeleteImage);
 profissionalRoutes.delete(`${route}/:id`, profissionalController.deleteData);

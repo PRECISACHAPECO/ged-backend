@@ -209,9 +209,24 @@ class FornecedorController {
 
             //? obtém a unidadeID (fábrica) do formulário, pro formulário ter os campos de preenchimento de acordo com o configurado pra aquela fábrica.
             const sqlUnidade = `
-            SELECT f.parFornecedorModeloID, f.unidadeID, f.cnpj AS cnpjFornecedor, u.nomeFantasia, u.cnpj, u.obrigatorioProdutoFornecedor
+            SELECT 
+                f.parFornecedorModeloID, 
+                f.unidadeID, 
+                f.cnpj AS cnpjFornecedor, 
+                
+                f.dataAvaliacao,
+                f.horaAvaliacao,
+                f.preencheProfissionalID,
+                pp.nome AS profissionalPreenche,
+                f.razaoSocial,
+                f.nome,
+
+                u.nomeFantasia, 
+                u.cnpj, 
+                u.obrigatorioProdutoFornecedor
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
+                LEFT JOIN profissional AS pp ON (f.preencheProfissionalID = pp.profissionalID)
             WHERE f.fornecedorID = ? `
             const [resultFornecedor] = await db.promise().query(sqlUnidade, [id])
             const unidade = {
@@ -487,6 +502,17 @@ class FornecedorController {
 
             const data = {
                 unidade: unidade,
+                fieldsHeader: {
+                    dataAvaliacao: resultFornecedor[0].dataAvaliacao,
+                    horaAvaliacao: resultFornecedor[0].horaAvaliacao,
+                    profissionalPreenche: resultFornecedor[0].preencheProfissionalID > 0 ? {
+                        id: resultFornecedor[0].preencheProfissionalID,
+                        nome: resultFornecedor[0].profissionalPreenche
+                    } : null,
+                    cnpj: resultFornecedor[0].cnpjFornecedor,
+                    razaoSocial: resultFornecedor[0].razaoSocial,
+                    nomeFantasia: resultFornecedor[0].nome,
+                },
                 fields: resultFields,
                 produtos: resultProdutos ?? [],
                 blocos: resultBlocos ?? [],
@@ -499,7 +525,6 @@ class FornecedorController {
                 },
                 link: `${process.env.BASE_URL}formularios/fornecedor?id=${id}`
             }
-            console.log("🚀 ~ retornando pro front....")
 
             res.status(200).json(data);
         } catch (error) {
@@ -611,7 +636,19 @@ class FornecedorController {
         const sqlSelect = `SELECT status FROM fornecedor WHERE fornecedorID = ? `
         const [resultFornecedor] = await db.promise().query(sqlSelect, [id])
 
-        // Atualizar o header e setar o status        
+        //? Atualiza header fixo
+        const sqlStaticlHeader = `
+        UPDATE fornecedor SET dataAvaliacao = ?, horaAvaliacao = ?, preencheProfissionalID = ?, razaoSocial = ?, nome = ? 
+        WHERE fornecedorID = ${id}`
+        const [resultStaticHeader] = await db.promise().query(sqlStaticlHeader, [
+            data.fieldsHeader.dataAvaliacao ?? null,
+            data.fieldsHeader.horaAvaliacao ?? null,
+            data.fieldsHeader?.profissionalPreenche?.id ?? null,
+            data.fieldsHeader.razaoSocial ?? null,
+            data.fieldsHeader.nomeFantasia ?? null
+        ])
+
+        //? Atualizar o header dinâmico e setar o status        
         if (data.fields) {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
             let dataHeader = await formatFieldsToTable('par_fornecedor', data.fields)

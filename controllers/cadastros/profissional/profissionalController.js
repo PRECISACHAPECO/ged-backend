@@ -9,6 +9,57 @@ const alterPassword = require('../../../email/template/user/alterPassword');
 const sendMailConfig = require('../../../config/email');
 
 class ProfissionalController {
+    //? Obtém os profissionais pra assinatura
+    async getProfissionaisAssinatura(req, res) {
+        const { formularioID, modeloID } = req.body
+
+        if (!formularioID || !modeloID) {
+            return res.status(400).json({ message: "Dados inválidos!" });
+        }
+
+        try {
+            let resultProfissionalPreenche = []
+            let resultProfissionalAprova = []
+
+            switch (formularioID) {
+                case 1: //* Fornecedor
+                    //? Profissional que preenche
+                    const sqlProfissionalPreenche = `
+                    SELECT
+                        b.profissionalID AS id, 
+                        b.nome
+                    FROM par_fornecedor_modelo_profissional AS a
+                        JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
+                    WHERE a.parFornecedorModeloID = ? AND a.tipo = 1
+                    ORDER BY b.nome ASC`
+                    const [tempResultPreenche] = await db.promise().query(sqlProfissionalPreenche, [modeloID])
+                    resultProfissionalPreenche = tempResultPreenche
+
+                    //? Profissional que aprova
+                    const sqlProfissionalAprova = `
+                    SELECT
+                        b.profissionalID AS id, 
+                        b.nome
+                    FROM par_fornecedor_modelo_profissional AS a
+                        JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
+                    WHERE a.parFornecedorModeloID = ? AND a.tipo = 2
+                    ORDER BY b.nome ASC`
+                    const [tempResultAprova] = await db.promise().query(sqlProfissionalAprova, [modeloID])
+                    resultProfissionalAprova = tempResultAprova
+                    break;
+            }
+
+            const result = {
+                preenche: resultProfissionalPreenche ?? [],
+                aprova: resultProfissionalAprova ?? []
+            }
+
+            return res.status(200).json(result)
+        } catch (error) {
+            console.log("🚀 ~ error:", error)
+        }
+    }
+
     async getList(req, res) {
         const { unidadeID, papelID } = req.query
 
@@ -436,7 +487,6 @@ class ProfissionalController {
             console.log(e);
         }
     }
-
 
     deleteData(req, res) {
         const { id } = req.params
