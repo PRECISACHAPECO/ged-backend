@@ -48,8 +48,22 @@ class FornecedorController {
                     JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
                 WHERE pfm.parFornecedorModeloID = ${id}
                 LIMIT 1
-                ), 0) AS obrigatorio
-            FROM par_fornecedor AS pf`;
+                ), 0) AS obrigatorio,
+
+                COALESCE((SELECT pfmc.ordem
+                FROM par_fornecedor_modelo AS pfm 
+                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
+                WHERE pfm.parFornecedorModeloID = ${id}
+                LIMIT 1
+                ), 100) AS ordem
+            FROM par_fornecedor AS pf
+            ORDER BY 
+                COALESCE((SELECT pfmc.ordem
+                    FROM par_fornecedor_modelo AS pfm 
+                        JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
+                    WHERE pfm.parFornecedorModeloID = ${id}
+                    LIMIT 1
+                ), 100) ASC`;
             // console.log("🚀 ~ sqlHeader:", sqlHeader)
             const [resultHeader] = await db.promise().query(sqlHeader);
 
@@ -102,9 +116,17 @@ class FornecedorController {
                 blocks.push(objData);
             }
 
+            const sqlProfissionais = `
+            SELECT profissionalID AS id, nome
+            FROM profissional
+            WHERE unidadeID = ? AND status = 1
+            ORDER BY nome ASC`
+            const [resultProfissionais] = await db.promise().query(sqlProfissionais, [unidadeID])
+
             //? Options
             const objOptions = {
                 itens: resultItem ?? [],
+                profissionais: resultProfissionais ?? []
             };
 
             //? Orientações
@@ -157,6 +179,32 @@ class FornecedorController {
             WHERE parFornecedorModeloID = ?`
             const [resultModel] = await db.promise().query(sqlModel, [model?.nome, model?.ciclo, model?.cabecalho ?? '', (model?.status ? '1' : '0'), id])
 
+            //? Atualiza profissionais que aprovam e assinam o modelo. tabela: par_fornecedor_modelo_profissional
+            const sqlDeleteProfissionaisModelo = `DELETE FROM par_fornecedor_modelo_profissional WHERE parFornecedorModeloID = ?`
+            const [resultDeleteProfissionaisModelo] = await db.promise().query(sqlDeleteProfissionaisModelo, [id])
+            //? Insere profissionais que aprovam
+            if (model && model.profissionaisPreenchem && model.profissionaisPreenchem.length > 0) {
+                for (let i = 0; i < model.profissionaisPreenchem.length; i++) {
+                    if (model.profissionaisPreenchem[i].id > 0) {
+                        const sqlInsertProfissionalModelo = `
+                        INSERT INTO par_fornecedor_modelo_profissional(parFornecedorModeloID, profissionalID, tipo) 
+                        VALUES (?, ?, ?)`
+                        const [resultInsertProfissionalModelo] = await db.promise().query(sqlInsertProfissionalModelo, [id, model.profissionaisPreenchem[i].id, 1])
+                    }
+                }
+            }
+            //? Insere profissionais que aprovam
+            if (model && model.profissionaisAprovam && model.profissionaisAprovam.length > 0) {
+                for (let i = 0; i < model.profissionaisAprovam.length; i++) {
+                    if (model.profissionaisAprovam[i].id > 0) {
+                        const sqlInsertProfissionalModelo = `
+                        INSERT INTO par_fornecedor_modelo_profissional(parFornecedorModeloID, profissionalID, tipo) 
+                        VALUES (?, ?, ?)`
+                        const [resultInsertProfissionalModelo] = await db.promise().query(sqlInsertProfissionalModelo, [id, model.profissionaisAprovam[i].id, 2])
+                    }
+                }
+            }
+
             //? Header
             header && header.forEach(async (item) => {
                 if (item && item.mostra == true) {
@@ -171,14 +219,14 @@ class FornecedorController {
                     if (resultHeader[0].count > 0) { // Update
                         const sqlUpdate = `
                         UPDATE par_fornecedor_modelo_cabecalho
-                        SET obrigatorio = ?
+                        SET obrigatorio = ?, ordem = ?
                         WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
-                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? '1' : '0'), id, item.parFornecedorID]);
+                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? '1' : '0'), (item.ordem ?? '0'), id, item.parFornecedorID]);
                     } else {                            // Insert
                         const sqlInsert = `
-                        INSERT INTO par_fornecedor_modelo_cabecalho (parFornecedorModeloID, parFornecedorID, obrigatorio)
-                        VALUES (?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parFornecedorID, (item.obrigatorio ? '1' : '0')]);
+                        INSERT INTO par_fornecedor_modelo_cabecalho (parFornecedorModeloID, parFornecedorID, obrigatorio, ordem)
+                        VALUES (?, ?, ?, ?)`
+                        const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parFornecedorID, (item.obrigatorio ? '1' : '0'), (item.ordem ?? '0')]);
                     }
                 } else if (item) { // Deleta
                     const sqlDelete = `

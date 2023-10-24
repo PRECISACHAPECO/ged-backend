@@ -159,7 +159,7 @@ class FornecedorController {
             const sql = `
             SELECT
                 f.fornecedorID AS id,
-                IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
+                IF(MONTH(f.dataInicio) > 0, DATE_FORMAT(f.dataInicio, "%d/%m/%Y"), '--') AS data,
                 IF(uf.nomeFantasia <> '', uf.nomeFantasia, '--') AS fornecedor,
                 IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,
                 IF(uf.cidade <> '', CONCAT(uf.cidade, '/', uf.uf), '--') AS cidade,
@@ -180,7 +180,7 @@ class FornecedorController {
             const sql = `
             SELECT
                 f.fornecedorID AS id,
-                IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
+                IF(MONTH(f.dataInicio) > 0, DATE_FORMAT(f.dataInicio, "%d/%m/%Y"), '--') AS data,
                 IF(u.nomeFantasia <> '', u.nomeFantasia, '--') AS fabrica,
                 IF(u.cnpj <> '', u.cnpj, '--') AS cnpj,
                 IF(u.cidade <> '', CONCAT(u.cidade, '/', u.uf), '--') AS cidade,
@@ -209,9 +209,30 @@ class FornecedorController {
 
             //? obtém a unidadeID (fábrica) do formulário, pro formulário ter os campos de preenchimento de acordo com o configurado pra aquela fábrica.
             const sqlUnidade = `
-            SELECT f.parFornecedorModeloID, f.unidadeID, f.cnpj AS cnpjFornecedor, u.nomeFantasia, u.cnpj, u.obrigatorioProdutoFornecedor
+            SELECT 
+                f.parFornecedorModeloID, 
+                f.unidadeID, 
+                f.cnpj AS cnpjFornecedor, 
+                
+                DATE_FORMAT(f.dataInicio, '%Y-%m-%d') AS dataAvaliacao, 
+                DATE_FORMAT(f.dataInicio, '%H:%i') AS horaAvaliacao, 
+                f.preencheProfissionalID,
+                pp.nome AS profissionalPreenche,
+                f.razaoSocial,
+                f.nome,
+                
+                DATE_FORMAT(f.dataFim, '%Y-%m-%d') AS dataAvaliacaoFim, 
+                DATE_FORMAT(f.dataFim, '%H:%i') AS horaAvaliacaoFim, 
+                f.aprovaProfissionalID,
+                pa.nome AS profissionalAprova,
+
+                u.nomeFantasia, 
+                u.cnpj, 
+                u.obrigatorioProdutoFornecedor
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
+                LEFT JOIN profissional AS pp ON (f.preencheProfissionalID = pp.profissionalID)
+                LEFT JOIN profissional AS pa ON (f.aprovaProfissionalID = pa.profissionalID)
             WHERE f.fornecedorID = ? `
             const [resultFornecedor] = await db.promise().query(sqlUnidade, [id])
             const unidade = {
@@ -478,8 +499,34 @@ class FornecedorController {
             LIMIT 1`
             const [resultLastMovimentation] = await db.promise().query(sqlLastMovimentation, [id])
 
+            //? Cabeçalho do modelo do formulário 
+            const sqlCabecalhoModelo = `
+            SELECT cabecalho
+            FROM par_fornecedor_modelo
+            WHERE parFornecedorModeloID = ?`
+            const [resultCabecalhoModelo] = await db.promise().query(sqlCabecalhoModelo, [modeloID])
+
             const data = {
                 unidade: unidade,
+                fieldsHeader: {
+                    dataAvaliacao: resultFornecedor[0].dataAvaliacao,
+                    horaAvaliacao: resultFornecedor[0].horaAvaliacao,
+                    profissionalPreenche: resultFornecedor[0].preencheProfissionalID > 0 ? {
+                        id: resultFornecedor[0].preencheProfissionalID,
+                        nome: resultFornecedor[0].profissionalPreenche
+                    } : null,
+                    cnpj: resultFornecedor[0].cnpjFornecedor,
+                    razaoSocial: resultFornecedor[0].razaoSocial,
+                    nomeFantasia: resultFornecedor[0].nome,
+                },
+                fieldsFooter: {
+                    dataAvaliacao: resultFornecedor[0].dataAvaliacaoFim,
+                    horaAvaliacao: resultFornecedor[0].horaAvaliacaoFim,
+                    profissionalAprova: resultFornecedor[0].aprovaProfissionalID > 0 ? {
+                        id: resultFornecedor[0].aprovaProfissionalID,
+                        nome: resultFornecedor[0].profissionalAprova
+                    } : null
+                },
                 fields: resultFields,
                 produtos: resultProdutos ?? [],
                 blocos: resultBlocos ?? [],
@@ -488,6 +535,7 @@ class FornecedorController {
                 info: {
                     obs: resultOtherInformations[0].obs,
                     status: resultOtherInformations[0].status,
+                    cabecalhoModelo: resultCabecalhoModelo[0].cabecalho
                 },
                 link: `${process.env.BASE_URL}formularios/fornecedor?id=${id}`
             }
@@ -602,7 +650,18 @@ class FornecedorController {
         const sqlSelect = `SELECT status FROM fornecedor WHERE fornecedorID = ? `
         const [resultFornecedor] = await db.promise().query(sqlSelect, [id])
 
-        // Atualizar o header e setar o status        
+        //? Atualiza header fixo
+        const sqlStaticlHeader = `
+        UPDATE fornecedor SET dataInicio = ?, preencheProfissionalID = ?, razaoSocial = ?, nome = ? 
+        WHERE fornecedorID = ${id}`
+        const [resultStaticHeader] = await db.promise().query(sqlStaticlHeader, [
+            data.fieldsHeader?.dataAvaliacao ? `${data.fieldsHeader.dataAvaliacao} ${data.fieldsHeader.horaAvaliacao}` : null,
+            data.fieldsHeader?.profissionalPreenche?.id ?? null,
+            data.fieldsHeader.razaoSocial ?? null,
+            data.fieldsHeader.nomeFantasia ?? null
+        ])
+
+        //? Atualizar o header dinâmico e setar o status        
         if (data.fields) {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
             let dataHeader = await formatFieldsToTable('par_fornecedor', data.fields)
@@ -667,6 +726,15 @@ class FornecedorController {
         const sqlUpdateObs = `UPDATE fornecedor SET obs = ?, obsConclusao = ? WHERE fornecedorID = ? `
         const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.info?.obs, data?.obsConclusao, id])
         if (resultUpdateObs.length === 0) { return res.json('Error'); }
+
+        //? Atualiza footer fixo
+        const sqlStaticlFooter = `
+        UPDATE fornecedor SET dataFim = ?, aprovaProfissionalID = ?
+        WHERE fornecedorID = ${id}`
+        const [resultStaticFooter] = await db.promise().query(sqlStaticlFooter, [
+            data.fieldsFooter?.dataAvaliacao ? `${data.fieldsFooter.dataAvaliacao} ${data.fieldsFooter.horaAvaliacao}` : null,
+            data.fieldsFooter?.profissionalAprova?.id ?? null
+        ])
 
         //* Status
         //? É um fornecedor e é um status anterior, seta status pra "Em preenchimento" (30)
@@ -798,7 +866,7 @@ class FornecedorController {
             f.fornecedorID, 
             pfm.parFornecedorModeloID,
             pfm.nome AS modelo,
-            DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y") AS dataAvaliacao,
+            DATE_FORMAT(f.dataInicio, "%d/%m/%Y") AS dataAvaliacao,
             (
                 SELECT GROUP_CONCAT(p.nome SEPARATOR ', ')
                 FROM fornecedor_produto AS fp 

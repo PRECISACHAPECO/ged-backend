@@ -274,7 +274,6 @@ class UsuarioController {
         try {
             const { id } = req.params
             const data = req.body
-            console.log("🚀 ~ data:", data)
 
             //* USUÁRIO
             //? Atualiza os dados do usuário
