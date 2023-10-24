@@ -116,9 +116,17 @@ class FornecedorController {
                 blocks.push(objData);
             }
 
+            const sqlProfissionais = `
+            SELECT profissionalID AS id, nome
+            FROM profissional
+            WHERE unidadeID = ? AND status = 1
+            ORDER BY nome ASC`
+            const [resultProfissionais] = await db.promise().query(sqlProfissionais, [unidadeID])
+
             //? Options
             const objOptions = {
                 itens: resultItem ?? [],
+                profissionais: resultProfissionais ?? []
             };
 
             //? Orientações
@@ -170,6 +178,32 @@ class FornecedorController {
             SET nome = ?, ciclo = ?, cabecalho = ?, status = ?
             WHERE parFornecedorModeloID = ?`
             const [resultModel] = await db.promise().query(sqlModel, [model?.nome, model?.ciclo, model?.cabecalho ?? '', (model?.status ? '1' : '0'), id])
+
+            //? Atualiza profissionais que aprovam e assinam o modelo. tabela: par_fornecedor_modelo_profissional
+            const sqlDeleteProfissionaisModelo = `DELETE FROM par_fornecedor_modelo_profissional WHERE parFornecedorModeloID = ?`
+            const [resultDeleteProfissionaisModelo] = await db.promise().query(sqlDeleteProfissionaisModelo, [id])
+            //? Insere profissionais que aprovam
+            if (model && model.profissionaisPreenchem && model.profissionaisPreenchem.length > 0) {
+                for (let i = 0; i < model.profissionaisPreenchem.length; i++) {
+                    if (model.profissionaisPreenchem[i].id > 0) {
+                        const sqlInsertProfissionalModelo = `
+                        INSERT INTO par_fornecedor_modelo_profissional(parFornecedorModeloID, profissionalID, tipo) 
+                        VALUES (?, ?, ?)`
+                        const [resultInsertProfissionalModelo] = await db.promise().query(sqlInsertProfissionalModelo, [id, model.profissionaisPreenchem[i].id, 1])
+                    }
+                }
+            }
+            //? Insere profissionais que aprovam
+            if (model && model.profissionaisAprovam && model.profissionaisAprovam.length > 0) {
+                for (let i = 0; i < model.profissionaisAprovam.length; i++) {
+                    if (model.profissionaisAprovam[i].id > 0) {
+                        const sqlInsertProfissionalModelo = `
+                        INSERT INTO par_fornecedor_modelo_profissional(parFornecedorModeloID, profissionalID, tipo) 
+                        VALUES (?, ?, ?)`
+                        const [resultInsertProfissionalModelo] = await db.promise().query(sqlInsertProfissionalModelo, [id, model.profissionaisAprovam[i].id, 2])
+                    }
+                }
+            }
 
             //? Header
             header && header.forEach(async (item) => {

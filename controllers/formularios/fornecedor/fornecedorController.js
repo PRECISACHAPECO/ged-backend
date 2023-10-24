@@ -159,7 +159,7 @@ class FornecedorController {
             const sql = `
             SELECT
                 f.fornecedorID AS id,
-                IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
+                IF(MONTH(f.dataInicio) > 0, DATE_FORMAT(f.dataInicio, "%d/%m/%Y"), '--') AS data,
                 IF(uf.nomeFantasia <> '', uf.nomeFantasia, '--') AS fornecedor,
                 IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,
                 IF(uf.cidade <> '', CONCAT(uf.cidade, '/', uf.uf), '--') AS cidade,
@@ -180,7 +180,7 @@ class FornecedorController {
             const sql = `
             SELECT
                 f.fornecedorID AS id,
-                IF(MONTH(f.dataAvaliacao) > 0, DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y"), '--') AS data,
+                IF(MONTH(f.dataInicio) > 0, DATE_FORMAT(f.dataInicio, "%d/%m/%Y"), '--') AS data,
                 IF(u.nomeFantasia <> '', u.nomeFantasia, '--') AS fabrica,
                 IF(u.cnpj <> '', u.cnpj, '--') AS cnpj,
                 IF(u.cidade <> '', CONCAT(u.cidade, '/', u.uf), '--') AS cidade,
@@ -214,12 +214,17 @@ class FornecedorController {
                 f.unidadeID, 
                 f.cnpj AS cnpjFornecedor, 
                 
-                f.dataAvaliacao,
-                f.horaAvaliacao,
+                DATE_FORMAT(f.dataInicio, '%Y-%m-%d') AS dataAvaliacao, 
+                DATE_FORMAT(f.dataInicio, '%H:%i') AS horaAvaliacao, 
                 f.preencheProfissionalID,
                 pp.nome AS profissionalPreenche,
                 f.razaoSocial,
                 f.nome,
+                
+                DATE_FORMAT(f.dataFim, '%Y-%m-%d') AS dataAvaliacaoFim, 
+                DATE_FORMAT(f.dataFim, '%H:%i') AS horaAvaliacaoFim, 
+                f.aprovaProfissionalID,
+                pa.nome AS profissionalAprova,
 
                 u.nomeFantasia, 
                 u.cnpj, 
@@ -227,6 +232,7 @@ class FornecedorController {
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
                 LEFT JOIN profissional AS pp ON (f.preencheProfissionalID = pp.profissionalID)
+                LEFT JOIN profissional AS pa ON (f.aprovaProfissionalID = pa.profissionalID)
             WHERE f.fornecedorID = ? `
             const [resultFornecedor] = await db.promise().query(sqlUnidade, [id])
             const unidade = {
@@ -513,6 +519,14 @@ class FornecedorController {
                     razaoSocial: resultFornecedor[0].razaoSocial,
                     nomeFantasia: resultFornecedor[0].nome,
                 },
+                fieldsFooter: {
+                    dataAvaliacao: resultFornecedor[0].dataAvaliacaoFim,
+                    horaAvaliacao: resultFornecedor[0].horaAvaliacaoFim,
+                    profissionalAprova: resultFornecedor[0].aprovaProfissionalID > 0 ? {
+                        id: resultFornecedor[0].aprovaProfissionalID,
+                        nome: resultFornecedor[0].profissionalAprova
+                    } : null
+                },
                 fields: resultFields,
                 produtos: resultProdutos ?? [],
                 blocos: resultBlocos ?? [],
@@ -638,11 +652,10 @@ class FornecedorController {
 
         //? Atualiza header fixo
         const sqlStaticlHeader = `
-        UPDATE fornecedor SET dataAvaliacao = ?, horaAvaliacao = ?, preencheProfissionalID = ?, razaoSocial = ?, nome = ? 
+        UPDATE fornecedor SET dataInicio = ?, preencheProfissionalID = ?, razaoSocial = ?, nome = ? 
         WHERE fornecedorID = ${id}`
         const [resultStaticHeader] = await db.promise().query(sqlStaticlHeader, [
-            data.fieldsHeader.dataAvaliacao ?? null,
-            data.fieldsHeader.horaAvaliacao ?? null,
+            data.fieldsHeader?.dataAvaliacao ? `${data.fieldsHeader.dataAvaliacao} ${data.fieldsHeader.horaAvaliacao}` : null,
             data.fieldsHeader?.profissionalPreenche?.id ?? null,
             data.fieldsHeader.razaoSocial ?? null,
             data.fieldsHeader.nomeFantasia ?? null
@@ -713,6 +726,15 @@ class FornecedorController {
         const sqlUpdateObs = `UPDATE fornecedor SET obs = ?, obsConclusao = ? WHERE fornecedorID = ? `
         const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.info?.obs, data?.obsConclusao, id])
         if (resultUpdateObs.length === 0) { return res.json('Error'); }
+
+        //? Atualiza footer fixo
+        const sqlStaticlFooter = `
+        UPDATE fornecedor SET dataFim = ?, aprovaProfissionalID = ?
+        WHERE fornecedorID = ${id}`
+        const [resultStaticFooter] = await db.promise().query(sqlStaticlFooter, [
+            data.fieldsFooter?.dataAvaliacao ? `${data.fieldsFooter.dataAvaliacao} ${data.fieldsFooter.horaAvaliacao}` : null,
+            data.fieldsFooter?.profissionalAprova?.id ?? null
+        ])
 
         //* Status
         //? É um fornecedor e é um status anterior, seta status pra "Em preenchimento" (30)
@@ -844,7 +866,7 @@ class FornecedorController {
             f.fornecedorID, 
             pfm.parFornecedorModeloID,
             pfm.nome AS modelo,
-            DATE_FORMAT(f.dataAvaliacao, "%d/%m/%Y") AS dataAvaliacao,
+            DATE_FORMAT(f.dataInicio, "%d/%m/%Y") AS dataAvaliacao,
             (
                 SELECT GROUP_CONCAT(p.nome SEPARATOR ', ')
                 FROM fornecedor_produto AS fp 
