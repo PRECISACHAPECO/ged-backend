@@ -3,12 +3,7 @@ const path = require('path');
 const sharp = require('sharp');
 const fs = require('fs').promises;
 const { mkdirSync } = require('fs');
-
-const removeSpecialCharts = (str) => {
-    // remover acentos e manter formato nome-de-arquivo.extensao
-    const newStr = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9-_.]/g, '-');
-    return newStr;
-};
+const { removeSpecialCharts } = require('../defaultConfig');
 
 const defineFileName = (originalName, usuarioID) => {
     //? yyyymmdd-hms

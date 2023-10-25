@@ -169,6 +169,50 @@ function gerarSenhaCaracteresIniciais(value, numCaracteres) {
     return senha
 }
 
+const removeSpecialCharts = (str) => {
+    let newStr = ''
+    const arr = str.split(' ')
+
+    arr.map((item, index) => {
+        let onlyLetters = ''
+        onlyLetters = item.replace(/Ã£/g, 'a')
+        onlyLetters = onlyLetters.replace(/Ã¡/g, 'a')
+        onlyLetters = onlyLetters.replace(/Ã¢/g, 'a')
+        onlyLetters = onlyLetters.replace(/Ãª/g, 'e')
+        onlyLetters = onlyLetters.replace(/Ã©/g, 'e')
+        onlyLetters = onlyLetters.replace(/Ã­/g, 'i')
+        onlyLetters = onlyLetters.replace(/Ã³/g, 'o')
+        onlyLetters = onlyLetters.replace(/Ã´/g, 'o')
+        onlyLetters = onlyLetters.replace(/Ãµ/g, 'o')
+        onlyLetters = onlyLetters.replace(/Ãº/g, 'u')
+        onlyLetters = onlyLetters.replace(/Ã¼/g, 'u')
+        onlyLetters = onlyLetters.replace(/Ã§/g, 'c')
+        onlyLetters = onlyLetters.replace(/Ã±/g, 'n')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'A')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'A')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'A')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'E')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'I')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'O')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'O')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'O')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'U')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'U')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'C')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'N')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'E')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'I')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'O')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'O')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'O')
+        // separa cada palavra com _
+        newStr += index === 0 ? onlyLetters : `_${onlyLetters}`
+    })
+
+    console.log("🚀 ~ removeSpecialCharts:", newStr)
+    return newStr ?? 'undefined...'
+}
+
 const deleteItem = async (id, table, column, res) => {
     for (const item of table) {
         console.log("🚀 ~ item:", id, item, column)
@@ -188,4 +232,4 @@ const onlyNumbers = (string) => {
     return string.replace(/[^0-9]/g, '');
 }
 
-module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict, gerarSenha, gerarSenhaCaracteresIniciais };
+module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts };

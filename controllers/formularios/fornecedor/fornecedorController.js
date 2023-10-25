@@ -2,7 +2,7 @@ const db = require('../../../config/db');
 const fs = require('fs');
 const path = require('path');
 require('dotenv/config')
-const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais } = require('../../../config/defaultConfig');
+const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts } = require('../../../config/defaultConfig');
 const conclusionFormFornecedor = require('../../../email/template/fornecedor/conclusionFormFornecedor');
 const sendMailConfig = require('../../../config/email');
 const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
@@ -85,7 +85,7 @@ class FornecedorController {
                 //? Insere em anexo
                 const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
                 const [resultInsert] = await db.promise().query(sqlInsert, [
-                    file.originalname,
+                    removeSpecialCharts(file.originalname),
                     pathDestination,
                     file.filename,
                     file.size,

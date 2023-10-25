@@ -2,6 +2,7 @@ const db = require('../db')
 const multerFiles = require('./multerFiles')
 
 const getExtensions = async (usuarioID, unidadeID) => {
+    console.log("🚀 ~ usuarioID, unidadeID:", usuarioID, unidadeID)
     //? Verifica papel, se for fornecedor, habilita todas as extensoes
     const sqlPapel = `
     SELECT papelID
@@ -9,17 +10,17 @@ const getExtensions = async (usuarioID, unidadeID) => {
     WHERE usuarioID = ? AND unidadeID = ?`
     const [resultPapel] = await db.promise().query(sqlPapel, [usuarioID, unidadeID])
 
-    if (resultPapel[0].papelID == 2) {
-        const sql = `SELECT * FROM extensao`
-        const [result] = await db.promise().query(sql)
-        return result
-    } else {
+    if (resultPapel && resultPapel.length > 0 && resultPapel[0]['papelID'] == 1) {
         const sql = `
         SELECT * 
         FROM unidade_extensao AS ue 
-            JOIN extensao AS e ON (ue.extensaoID = e.extensaoID)
+        JOIN extensao AS e ON (ue.extensaoID = e.extensaoID)
         WHERE ue.unidadeID = ?`
         const [result] = await db.promise().query(sql, [unidadeID])
+        return result
+    } else {
+        const sql = `SELECT * FROM extensao`
+        const [result] = await db.promise().query(sql)
         return result
     }
 }
