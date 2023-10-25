@@ -7,8 +7,6 @@ const FornecedorController = require('../../../controllers/formularios/fornecedo
 const fornecedorController = new FornecedorController();
 const route = '/formularios/fornecedor';
 
-console.log('no routes........')
-
 // Padrões
 fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
 fornecedorRoutes.post(`${route}/getData/:id`, fornecedorController.getData);

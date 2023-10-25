@@ -163,6 +163,11 @@ function gerarSenha() {
     return senha;
 }
 
+function gerarSenhaCaracteresIniciais(value, numCaracteres) {
+    const numeros = value.replace(/[^0-9]/g, '')
+    const senha = numeros.substring(0, numCaracteres)
+    return senha
+}
 
 const deleteItem = async (id, table, column, res) => {
     for (const item of table) {
@@ -183,4 +188,4 @@ const onlyNumbers = (string) => {
     return string.replace(/[^0-9]/g, '');
 }
 
-module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict, gerarSenha };
+module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict, gerarSenha, gerarSenhaCaracteresIniciais };

@@ -2,7 +2,7 @@ const db = require('../../../config/db');
 const fs = require('fs');
 const path = require('path');
 require('dotenv/config')
-const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha } = require('../../../config/defaultConfig');
+const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais } = require('../../../config/defaultConfig');
 const conclusionFormFornecedor = require('../../../email/template/fornecedor/conclusionFormFornecedor');
 const sendMailConfig = require('../../../config/email');
 const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
@@ -23,10 +23,13 @@ class FornecedorController {
     async getProducts(req, res) {
         const { unidadeID } = req.body
         const sql = `
-        SELECT produtoID AS id, nome
-        FROM produto
-        WHERE unidadeID = ? AND status = 1 
-        ORDER BY nome ASC`;
+        SELECT 
+            a.produtoID AS id, 
+            CONCAT(a.nome, ' (', b.nome, ')') AS nome
+        FROM produto AS a
+            JOIN unidademedida AS b ON (a.unidadeMedidaID = b.unidadeMedidaID)
+        WHERE a.unidadeID = ? AND a.status = 1 
+        ORDER BY a.nome ASC`;
         const [result] = await db.promise().query(sql, [unidadeID])
         return res.status(200).json(result);
     }
@@ -212,17 +215,21 @@ class FornecedorController {
             SELECT 
                 f.parFornecedorModeloID, 
                 f.unidadeID, 
-                f.cnpj AS cnpjFornecedor, 
+                f.cnpj AS cnpjFornecedor,                 
+                DATE_FORMAT(f.dataInicio, '%d/%m/%Y') AS dataInicio, 
+                DATE_FORMAT(f.dataInicio, '%H:%i') AS horaInicio, 
+                pab.profissionalID AS profissionalAbriuID,
+                pab.nome AS profissionalAbriuNome,
                 
-                DATE_FORMAT(f.dataInicio, '%Y-%m-%d') AS dataAvaliacao, 
-                DATE_FORMAT(f.dataInicio, '%H:%i') AS horaAvaliacao, 
-                f.preencheProfissionalID,
-                pp.nome AS profissionalPreenche,
+                DATE_FORMAT(f.data, '%Y-%m-%d') AS data, 
+                DATE_FORMAT(f.data, '%H:%i') AS hora, 
+                us.usuarioID,
+                us.nome AS preenche,
                 f.razaoSocial,
-                f.nome,
+                f.nome,                
                 
-                DATE_FORMAT(f.dataFim, '%Y-%m-%d') AS dataAvaliacaoFim, 
-                DATE_FORMAT(f.dataFim, '%H:%i') AS horaAvaliacaoFim, 
+                DATE_FORMAT(f.dataFim, '%d/%m/%Y') AS dataFim, 
+                DATE_FORMAT(f.dataFim, '%H:%i') AS horaFim, 
                 f.aprovaProfissionalID,
                 pa.nome AS profissionalAprova,
 
@@ -231,12 +238,13 @@ class FornecedorController {
                 u.obrigatorioProdutoFornecedor
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
-                LEFT JOIN profissional AS pp ON (f.preencheProfissionalID = pp.profissionalID)
+                LEFT JOIN usuario AS us ON (f.usuarioID = us.usuarioID)
+                LEFT JOIN profissional AS pab ON (f.profissionalID = pab.profissionalID)
                 LEFT JOIN profissional AS pa ON (f.aprovaProfissionalID = pa.profissionalID)
             WHERE f.fornecedorID = ? `
             const [resultFornecedor] = await db.promise().query(sqlUnidade, [id])
             const unidade = {
-                parFornecedorModeloID: resultFornecedor[0]['parFornecedorModeloID'],
+                parFornecedorModeloID: resultFornecedor[0]['parFornecedorModeloID'] ?? 0,
                 unidadeID: resultFornecedor[0]['unidadeID'],
                 nomeFantasia: resultFornecedor[0]['nomeFantasia'],
                 cnpj: resultFornecedor[0]['cnpj'],
@@ -509,19 +517,31 @@ class FornecedorController {
             const data = {
                 unidade: unidade,
                 fieldsHeader: {
-                    dataAvaliacao: resultFornecedor[0].dataAvaliacao,
-                    horaAvaliacao: resultFornecedor[0].horaAvaliacao,
-                    profissionalPreenche: resultFornecedor[0].preencheProfissionalID > 0 ? {
-                        id: resultFornecedor[0].preencheProfissionalID,
-                        nome: resultFornecedor[0].profissionalPreenche
+                    //? Fixos
+                    abertoPor: {
+                        dataInicio: resultFornecedor[0].dataInicio,
+                        horaInicio: resultFornecedor[0].horaInicio,
+                        profissional: resultFornecedor[0].profissionalAbriuID > 0 ? {
+                            id: resultFornecedor[0].profissionalAbriuID,
+                            nome: resultFornecedor[0].profissionalAbriuNome
+                        } : null
+                    },
+                    //? Fields                    
+                    data: resultFornecedor[0].data,
+                    hora: resultFornecedor[0].hora,
+                    profissional: resultFornecedor[0].usuarioID > 0 ? {
+                        id: resultFornecedor[0].usuarioID,
+                        nome: resultFornecedor[0].preenche
                     } : null,
                     cnpj: resultFornecedor[0].cnpjFornecedor,
                     razaoSocial: resultFornecedor[0].razaoSocial,
                     nomeFantasia: resultFornecedor[0].nome,
+
                 },
                 fieldsFooter: {
-                    dataAvaliacao: resultFornecedor[0].dataAvaliacaoFim,
-                    horaAvaliacao: resultFornecedor[0].horaAvaliacaoFim,
+                    concluded: resultFornecedor[0].dataFim ? true : false,
+                    dataFim: resultFornecedor[0].dataFim,
+                    horaFim: resultFornecedor[0].horaFim,
                     profissionalAprova: resultFornecedor[0].aprovaProfissionalID > 0 ? {
                         id: resultFornecedor[0].aprovaProfissionalID,
                         nome: resultFornecedor[0].profissionalAprova
@@ -647,16 +667,22 @@ class FornecedorController {
 
         if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
 
+        const sqlProfissional = `
+        SELECT profissionalID
+        FROM profissional
+        WHERE usuarioID = ? `
+        const [resultProfissional] = await db.promise().query(sqlProfissional, [usuarioID])
+
         const sqlSelect = `SELECT status FROM fornecedor WHERE fornecedorID = ? `
         const [resultFornecedor] = await db.promise().query(sqlSelect, [id])
 
         //? Atualiza header fixo
         const sqlStaticlHeader = `
-        UPDATE fornecedor SET dataInicio = ?, preencheProfissionalID = ?, razaoSocial = ?, nome = ? 
+        UPDATE fornecedor SET data = ?, usuarioID = ?, razaoSocial = ?, nome = ? 
         WHERE fornecedorID = ${id}`
         const [resultStaticHeader] = await db.promise().query(sqlStaticlHeader, [
-            data.fieldsHeader?.dataAvaliacao ? `${data.fieldsHeader.dataAvaliacao} ${data.fieldsHeader.horaAvaliacao}` : null,
-            data.fieldsHeader?.profissionalPreenche?.id ?? null,
+            data.fieldsHeader?.data ? `${data.fieldsHeader.data} ${data.fieldsHeader.hora}` : null,
+            usuarioID,
             data.fieldsHeader.razaoSocial ?? null,
             data.fieldsHeader.nomeFantasia ?? null
         ])
@@ -727,21 +753,23 @@ class FornecedorController {
         const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.info?.obs, data?.obsConclusao, id])
         if (resultUpdateObs.length === 0) { return res.json('Error'); }
 
-        //? Atualiza footer fixo
-        const sqlStaticlFooter = `
-        UPDATE fornecedor SET dataFim = ?, aprovaProfissionalID = ?
-        WHERE fornecedorID = ${id}`
-        const [resultStaticFooter] = await db.promise().query(sqlStaticlFooter, [
-            data.fieldsFooter?.dataAvaliacao ? `${data.fieldsFooter.dataAvaliacao} ${data.fieldsFooter.horaAvaliacao}` : null,
-            data.fieldsFooter?.profissionalAprova?.id ?? null
-        ])
-
         //* Status
         //? É um fornecedor e é um status anterior, seta status pra "Em preenchimento" (30)
         const newStatus = papelID == 2 && data.status != 40 ? 30 : data.status
 
         const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ? `
         const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])
+
+        if (newStatus > 40) {
+            const sqlStaticlFooter = `
+            UPDATE fornecedor SET dataFim = ?, aprovaProfissionalID = ?
+            WHERE fornecedorID = ?`
+            const [resultStaticFooter] = await db.promise().query(sqlStaticlFooter, [
+                new Date(),
+                resultProfissional[0].profissionalID ?? 0,
+                id
+            ])
+        }
 
         //? Gera histórico de alteração de status (se houve alteração)
         if (resultFornecedor[0]['status'] != newStatus) {
@@ -790,7 +818,7 @@ class FornecedorController {
         res.status(200).json(result);
     }
 
-    //? Atualiza resultado (aprovador, aprovado parcial, reprovado)
+    //? Atualiza resultado (aprovado, aprovado parcial, reprovado)
     async changeFormStatus(req, res) {
         const { id } = req.params
         const { status, observacao } = req.body
@@ -801,8 +829,8 @@ class FornecedorController {
 
         // //? É uma fábrica, e formulário já foi concluído pelo fornecedor
         if (status && papelID == 1) {
-            const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ? `
-            const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [status, id])
+            const sqlUpdateStatus = `UPDATE fornecedor SET status = ?, dataFim = ?, aprovaProfissionalID = ? WHERE fornecedorID = ? `
+            const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [status, null, null, id])
 
             //? Gera histórico de alteração de status
             const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultFornecedor[0]['status'] ?? '0', status, observacao)
@@ -941,7 +969,8 @@ class FornecedorController {
     async makeFornecedor(req, res) {
         const { usuarioID, unidadeID, papelID, values } = req.body;
 
-        const password = gerarSenha()
+        //? Senha gerada será os 4 primeiros caracteres do CNPJ
+        const password = gerarSenhaCaracteresIniciais(values.cnpj, 4)
 
         //? Verifica se cnpj já é um fornecedor apto
         const sqlVerify = `

@@ -7,16 +7,15 @@ class ProdutoController {
         try {
             const sqlGetList = `
             SELECT 
-            a.produtoID AS id,
-            a.nome,
-            b.nome AS unidadeMedida,
-            c.nome as status,
-            c.cor
+                a.produtoID AS id,
+                CONCAT(a.nome, ' (', b.nome, ')') AS nome,
+                b.nome AS unidadeMedida,
+                c.nome as status,
+                c.cor
             FROM produto AS a 
-            JOIN unidademedida AS b ON (a.unidadeMedidaID = b.unidadeMedidaID)
-            JOIN status AS c ON (a.status =  c.statusID)
-            WHERE a.unidadeID = ?
-            `
+                JOIN unidademedida AS b ON (a.unidadeMedidaID = b.unidadeMedidaID)
+                JOIN status AS c ON (a.status = c.statusID)
+            WHERE a.unidadeID = ?`
             const resultSqlGetList = await db.promise().query(sqlGetList, [unidadeID])
             return res.status(200).json(resultSqlGetList[0])
         } catch (error) {
