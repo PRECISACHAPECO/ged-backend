@@ -39,7 +39,11 @@ class AuthControllerFornecedor {
 
             const response = {
                 accessToken,
-                userData: { ...result[0], senha: undefined },
+                userData: {
+                    ...result[0],
+                    imagem: result[0].cabecalhoRelatorio ? `${process.env.BASE_URL_API}${result[0].cabecalhoRelatorio}` : null,
+                    senha: undefined
+                },
                 unidades: [
                     result[0] // objeto com todos os dados da unidade
                 ]

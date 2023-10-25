@@ -25,11 +25,12 @@ class AuthController {
 
         // LEFT JOIN profissao AS pr ON (uu.profissaoID = pr.profissaoID) , pr.nome as profissao
         const sql = `
-        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel
+        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel, pr.imagem
         FROM usuario AS u 
             LEFT JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
             LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
             LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
+            LEFT JOIN profissional AS pr ON (u.usuarioID = pr.usuarioID)
         WHERE u.cpf = ? AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
 
@@ -43,14 +44,13 @@ class AuthController {
             const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
 
             // +1 UNIDADE, SELECIONA UNIDADE ANTES DE LOGAR
-
             if (result.length > 1) {
                 const response = {
                     accessToken,
                     userData: {
                         ...result[0],
                         senha: undefined,
-                        imagem: result[0].imagem ? `${process.env.BASE_URL_UPLOADS}profile/${result[0].imagem}` : null,
+                        imagem: result[0].imagem ? `${process.env.BASE_URL_API}${result[0].imagem}` : null,
                     },
                     unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.nomeFantasia, papelID: unidade.papelID, papel: unidade.papel }))
                 }
@@ -61,7 +61,11 @@ class AuthController {
             else if (result.length === 1) {
                 const response = {
                     accessToken,
-                    userData: { ...result[0], senha: undefined },
+                    userData: {
+                        ...result[0],
+                        imagem: result[0].imagem ? `${process.env.BASE_URL_API}${result[0].imagem}` : null,
+                        senha: undefined
+                    },
                     unidades: [{ unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia, papelID: result[0].papelID, papel: result[0].papel }]
                 }
                 res.status(200).json(response);
