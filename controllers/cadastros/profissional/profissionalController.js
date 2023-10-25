@@ -184,8 +184,8 @@ class ProfissionalController {
             // Se for usuario
             //* Marcou usuário do sistema
             if (data.isUsuario) {
-                const sqlInsertUsuario = `INSERT INTO usuario (cpf, nome, senha) VALUES (?,?,?)`
-                const [resultInsertUsuario] = await db.promise().query(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, criptoMd5(data.senha)])
+                const sqlInsertUsuario = `INSERT INTO usuario (cpf, nome, email, senha) VALUES (?,?,?, ?)`
+                const [resultInsertUsuario] = await db.promise().query(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, data.fields.email, criptoMd5(data.senha)])
                 const usuarioID = resultInsertUsuario.insertId
 
                 const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?, ?)`
@@ -202,8 +202,67 @@ class ProfissionalController {
                         usuarioID
                     },
                 }
-                console.log("dataaaa update sem isdddddd", newData)
                 accessPermissions(newData)
+
+                // Envia email para email do profissional avisando que o mesmo agora é um usuário
+                // Dados do profissional
+                const sqlProfessional = `
+                    SELECT 
+                        a.nome,
+                        b.formacaoCargo AS cargo
+                    FROM profissional AS a 
+                        LEFT JOIN profissional_cargo AS b ON (a.profissionalID = b.profissionalID)
+                    WHERE a.profissionalID = ?
+                    `
+                const [resultSqlProfessional] = await db.promise().query(sqlProfessional, [data.usualioLogado])
+
+                //   Obtem dados da fabrica
+                const sqlUnity = `
+                    SELECT a.*   
+                    FROM unidade AS a
+                    WHERE a.unidadeID = ?;
+                    `
+                const [resultUnity] = await db.promise().query(sqlUnity, [data.fields.unidadeID])
+
+                const endereco = {
+                    logradouro: resultUnity[0].logradouro,
+                    numero: resultUnity[0].numero,
+                    complemento: resultUnity[0].complemento,
+                    bairro: resultUnity[0].bairro,
+                    cidade: resultUnity[0].cidade,
+                    uf: resultUnity[0].uf,
+                }
+
+                const enderecoCompleto = Object.entries(endereco).map(([key, value]) => {
+                    if (value) {
+                        return `${value}, `;
+                    }
+                }).join('').slice(0, -2) + '.'; // Remove a última vírgula e adiciona um ponto final
+
+                const destinatario = data.fields.email
+                let assunto = `GEDagro - Login de Acesso ${resultUnity[0].nomeFantasia}`
+                const values = {
+                    // fabrica
+                    enderecoCompletoFabrica: enderecoCompleto,
+                    nomeFantasiaFabrica: resultUnity[0].nomeFantasia,
+                    cnpjFabrica: resultUnity[0].cnpj,
+
+                    // new user 
+                    nome: data.fields.nome,
+                    cpf: data.fields.cpf,
+                    senha: data.senha,
+
+                    // professional
+                    nomeProfissional: resultSqlProfessional[0]?.nome,
+                    cargoProfissional: resultSqlProfessional[0]?.cargo,
+                    papelID: data.papelID,
+
+                    // outros
+                    noBaseboard: false, // Se falso mostra o rodapé com os dados da fabrica, senão mostra dados do GEDagro,
+                }
+
+                const html = await newUser(values);
+                await sendMailConfig(destinatario, assunto, html)
 
                 return res.status(200).json(profissionalID)
             }
@@ -319,7 +378,6 @@ class ProfissionalController {
         try {
             const { id } = req.params
             const data = req.body
-            console.log("🚀 ~ data:", data.usualioLogado)
             // //* Valida conflito
             // const validateConflicts = {
             //     columns: ['profissionalID', 'cpf', 'unidadeID'],
@@ -412,8 +470,6 @@ class ProfissionalController {
                     accessPermissions(newData)
 
                     // Envia email para email do profissional avisando que o mesmo agora é um usuário
-
-                    // Dados do profissional
                     const sqlProfessional = `
                     SELECT 
                         a.nome,
@@ -423,7 +479,6 @@ class ProfissionalController {
                     WHERE a.profissionalID = ?
                     `
                     const [resultSqlProfessional] = await db.promise().query(sqlProfessional, [data.usualioLogado])
-                    console.log("🚀 ~ resultSqlProfessional:", resultSqlProfessional)
 
                     //   Obtem dados da fabrica
                     const sqlUnity = `
@@ -432,7 +487,6 @@ class ProfissionalController {
                     WHERE a.unidadeID = ?;
                     `
                     const [resultUnity] = await db.promise().query(sqlUnity, [data.fields.unidadeID])
-                    console.log("🚀 ~ resultUnity:", resultUnity)
 
                     const endereco = {
                         logradouro: resultUnity[0].logradouro,
@@ -558,11 +612,12 @@ class ProfissionalController {
 
     deleteData(req, res) {
         const { id } = req.params
+
         const objModule = {
-            table: ['usuario'],
-            column: 'usuarioID'
+            table: ['profissional'],
+            column: 'profissionalID'
         }
-        const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
+        const tablesPending = ["anexo_busca", "fornecedor", "fornecedor", "limpeza", "par_fornecedor_modelo_profissionaL", "par_fornecedor_modelo_profissional", "recebimentomp"] // Tabelas que possuem relacionamento com a tabela atual
 
         if (!tablesPending || tablesPending.length === 0) {
             return deleteItem(id, objModule.table, objModule.column, res)
