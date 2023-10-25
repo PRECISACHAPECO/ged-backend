@@ -156,7 +156,6 @@ class ProfissionalController {
     async insertData(req, res) {
         try {
             const data = req.body;
-            console.log("🚀 ~ data:", data)
 
             //* Valida conflito
             const validateConflicts = {
@@ -185,8 +184,8 @@ class ProfissionalController {
             // Se for usuario
             //* Marcou usuário do sistema
             if (data.isUsuario) {
-                const sqlInsertUsuario = `INSERT INTO usuario (cpf, nome, senha) VALUES (?,?,?)`
-                const [resultInsertUsuario] = await db.promise().query(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, criptoMd5(data.senha)])
+                const sqlInsertUsuario = `INSERT INTO usuario (cpf, nome, email, senha) VALUES (?,?,?, ?)`
+                const [resultInsertUsuario] = await db.promise().query(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, data.fields.email, criptoMd5(data.senha)])
                 const usuarioID = resultInsertUsuario.insertId
 
                 const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?, ?)`
@@ -216,7 +215,6 @@ class ProfissionalController {
                     WHERE a.profissionalID = ?
                     `
                 const [resultSqlProfessional] = await db.promise().query(sqlProfessional, [data.usualioLogado])
-                console.log("🚀 ~ resultSqlProfessional:", resultSqlProfessional)
 
                 //   Obtem dados da fabrica
                 const sqlUnity = `
@@ -225,7 +223,6 @@ class ProfissionalController {
                     WHERE a.unidadeID = ?;
                     `
                 const [resultUnity] = await db.promise().query(sqlUnity, [data.fields.unidadeID])
-                console.log("🚀 ~ resultUnity:", resultUnity)
 
                 const endereco = {
                     logradouro: resultUnity[0].logradouro,
@@ -615,11 +612,12 @@ class ProfissionalController {
 
     deleteData(req, res) {
         const { id } = req.params
+
         const objModule = {
-            table: ['usuario'],
-            column: 'usuarioID'
+            table: ['profissional'],
+            column: 'profissionalID'
         }
-        const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
+        const tablesPending = ["anexo_busca", "fornecedor", "fornecedor", "limpeza", "par_fornecedor_modelo_profissionaL", "par_fornecedor_modelo_profissional", "recebimentomp"] // Tabelas que possuem relacionamento com a tabela atual
 
         if (!tablesPending || tablesPending.length === 0) {
             return deleteItem(id, objModule.table, objModule.column, res)
