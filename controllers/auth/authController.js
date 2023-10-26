@@ -17,6 +17,10 @@ const jwtConfig = {
 class AuthController {
     //* Login da fábrica (CPF)
     login(req, res) {
+
+
+        return res.status(200).json({ message: 'Retornando mais cedo!' });
+
         const { cpf, password } = req.body;
 
         let error = {
