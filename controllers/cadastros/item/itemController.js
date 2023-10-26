@@ -210,6 +210,10 @@ class ItemController {
             ]);
             const id = resultInsert.insertId
 
+            // Busca dados do item inserido
+            const getItem = "SELECT * FROM item WHERE itemID = ? "
+            const [resultItem] = await db.promise().query(getItem, [id]);
+
             //? Atualiza item_opcao
             // Insert
             const sqlInsertOpcao = `INSERT INTO item_opcao(itemID, alternativaItemID, anexo, bloqueiaFormulario, observacao) VALUES(?, ?, ?, ?, ?)`
@@ -244,7 +248,13 @@ class ItemController {
                 }
             }
 
-            return res.status(200).json(id)
+            const data = {
+                id: resultItem[0].itemID,
+                nome: resultItem[0].nome,
+            }
+
+
+            return res.status(200).json(data)
         } catch (error) {
             console.log(error)
         }
