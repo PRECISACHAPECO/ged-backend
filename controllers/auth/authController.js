@@ -31,14 +31,11 @@ class AuthController {
             LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
             LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
             LEFT JOIN profissional AS pr ON (u.usuarioID = pr.usuarioID)
-        WHERE u.cpf = "${cpf}" AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
+        WHERE u.cpf = ? AND u.senha = ? AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
 
-        console.log("🚀 ~ criptoMd5(password):", criptoMd5(password))
-
         try {
-            const [result] = await db.promise().query(sql);
-            console.log("🚀 ~ result:", result)
+            const [result] = await db.promise().query(sql, [cpf, criptoMd5(password)]);
 
             if (result.length === 0) {
                 return res.status(401).json({ message: 'CPF ou senha incorretos!' });
