@@ -31,10 +31,10 @@ class AuthController {
             LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
             LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
             LEFT JOIN profissional AS pr ON (u.usuarioID = pr.usuarioID)
-        WHERE u.cpf = ? AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
+        WHERE u.cpf = "${cpf}" AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
 
-        db.query(sql, [cpf], (err, result) => {
+        db.query(sql, (err, result) => {
             if (err) { res.status(500).json({ message: err.message }); }
 
             if (result.length === 0) {
