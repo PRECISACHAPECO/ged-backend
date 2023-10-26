@@ -18,7 +18,7 @@ class AuthController {
     //* Login da fábrica (CPF)
     login(req, res) {
         const { cpf, password } = req.body;
-        console.log("🚀 ~ cpf, password:", cpf, password)
+        alert("🚀 ~ cpf, password:", cpf, password)
 
         let error = {
             email: ['Algo está errado!!']
