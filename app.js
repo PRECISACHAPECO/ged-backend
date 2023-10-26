@@ -1,3 +1,4 @@
+require('dotenv/config')
 const express = require('express');
 const cors = require('cors');
 const app = express();
@@ -10,7 +11,7 @@ app.use(routes);
 app.use(routerReports);
 app.use('/api/uploads', express.static('uploads'));
 
-const port = process.env.NODE_ENV === 'development' ? process.env.PORT : 3333;
+const port = process.env.PORT ?? 3333;
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);

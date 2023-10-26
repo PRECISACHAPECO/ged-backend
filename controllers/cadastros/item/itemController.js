@@ -244,7 +244,13 @@ class ItemController {
                 }
             }
 
-            return res.status(200).json(id)
+            const data = {
+                id,
+                nome: resultInsert[0].nome
+            }
+
+
+            return res.status(200).json(data)
         } catch (error) {
             console.log(error)
         }
