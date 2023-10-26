@@ -31,11 +31,11 @@ class AuthController {
             LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
             LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
             LEFT JOIN profissional AS pr ON (u.usuarioID = pr.usuarioID)
-        WHERE u.cpf = "${cpf}" AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
+        WHERE u.cpf = "012.345.678-90" AND u.senha = "81dc9bdb52d04dc20036dbd8313ed055" AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
 
         await db.promise().query(sql, (err, result) => {
-            if (err) { return res.status(500).json({ message: '==> ' + err.message }); }
+            if (err) { return res.status(500).json({ message: err.message }); }
 
             if (result.length === 0) {
                 return res.status(401).json({ message: 'CPF ou senha incorretos' });
@@ -54,7 +54,7 @@ class AuthController {
                     },
                     unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.nomeFantasia, papelID: unidade.papelID, papel: unidade.papel }))
                 }
-                res.status(202).json(response);
+                return res.status(202).json(response);
             }
 
             // 1 UNIDADE, LOGA DIRETO
@@ -68,7 +68,7 @@ class AuthController {
                     },
                     unidades: [{ unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia, papelID: result[0].papelID, papel: result[0].papel }]
                 }
-                res.status(200).json(response);
+                return res.status(200).json(response);
             }
 
             // ERRO AO FAZER LOGIN
@@ -77,7 +77,7 @@ class AuthController {
                     email: ['CPF ou senha inválidos!']
                 }
 
-                res.status(400).json(error);
+                return res.status(400).json(error);
             }
         })
     }
