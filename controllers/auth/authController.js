@@ -34,6 +34,8 @@ class AuthController {
         WHERE u.cpf = "${cpf}" AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
 
+        console.log("🚀 ~ criptoMd5(password):", criptoMd5(password))
+
         try {
             const [result] = await db.promise().query(sql);
             console.log("🚀 ~ result:", result)
