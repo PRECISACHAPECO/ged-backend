@@ -16,7 +16,7 @@ const jwtConfig = {
 
 class AuthController {
     //* Login da fábrica (CPF)
-    login(req, res) {
+    async login(req, res) {
         const { cpf, password } = req.body;
 
         let error = {
@@ -34,14 +34,12 @@ class AuthController {
         WHERE u.cpf = "${cpf}" AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
 
-        db.query(sql, (err, result) => {
-
-            return res.status(200).json({ message: 'Retornando antes...' })
-
-            if (err) { return res.status(500).json({ message: err.message }); }
+        try {
+            const [result] = await db.promise().query(sql);
+            console.log("🚀 ~ result:", result)
 
             if (result.length === 0) {
-                return res.status(401).json({ message: 'CPF ou senha incorretos' });
+                return res.status(401).json({ message: 'CPF ou senha incorretos!' });
             }
 
             const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
@@ -82,7 +80,58 @@ class AuthController {
 
                 return res.status(400).json(error);
             }
-        })
+        } catch (err) {
+            console.log(err)
+        }
+
+        // db.query(sql, (err, result) => {
+        //     if (err) { return res.status(500).json({ message: err.message }); }
+
+        //     return res.status(200).json({ message: 'Retornando antes...' })
+
+        //     if (result.length === 0) {
+        //         return res.status(401).json({ message: 'CPF ou senha incorretos' });
+        //     }
+
+        //     const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
+
+        //     // +1 UNIDADE, SELECIONA UNIDADE ANTES DE LOGAR
+        //     if (result.length > 1) {
+        //         const response = {
+        //             accessToken,
+        //             userData: {
+        //                 ...result[0],
+        //                 senha: undefined,
+        //                 imagem: result[0].imagem ? `${process.env.BASE_URL_API}${result[0].imagem}` : null,
+        //             },
+        //             unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.nomeFantasia, papelID: unidade.papelID, papel: unidade.papel }))
+        //         }
+        //         return res.status(202).json(response);
+        //     }
+
+        //     // 1 UNIDADE, LOGA DIRETO
+        //     else if (result.length === 1) {
+        //         const response = {
+        //             accessToken,
+        //             userData: {
+        //                 ...result[0],
+        //                 imagem: result[0].imagem ? `${process.env.BASE_URL_API}${result[0].imagem}` : null,
+        //                 senha: undefined
+        //             },
+        //             unidades: [{ unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia, papelID: result[0].papelID, papel: result[0].papel }]
+        //         }
+        //         return res.status(200).json(response);
+        //     }
+
+        //     // ERRO AO FAZER LOGIN
+        //     else {
+        //         error = {
+        //             email: ['CPF ou senha inválidos!']
+        //         }
+
+        //         return res.status(400).json(error);
+        //     }
+        // })
     }
 
     async getAvailableRoutes(req, res) {
