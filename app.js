@@ -10,8 +10,8 @@ app.use(routes);
 app.use(routerReports);
 app.use('/api/uploads', express.static('uploads'));
 
-const port = process.env.NODE_ENV === 'development' ? process.env.PORT : 3333
+const port = process.env.NODE_ENV === 'development' ? process.env.PORT : 3333;
 
-app.listen(3333, () => {
-    console.log(`Server is running on port 3333`);
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });

@@ -16,9 +16,8 @@ const jwtConfig = {
 
 class AuthController {
     //* Login da fábrica (CPF)
-    login(req, res) {
+    async login(req, res) {
         const { cpf, password } = req.body;
-        alert("🚀 ~ cpf, password:", cpf, password)
 
         let error = {
             email: ['Algo está errado!!']
@@ -35,8 +34,8 @@ class AuthController {
         WHERE u.cpf = "${cpf}" AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
 
-        db.query(sql, (err, result) => {
-            if (err) { res.status(500).json({ message: err.message }); }
+        await db.promise().query(sql, (err, result) => {
+            if (err) { return res.status(500).json({ message: '==> ' + err.message }); }
 
             if (result.length === 0) {
                 return res.status(401).json({ message: 'CPF ou senha incorretos' });
