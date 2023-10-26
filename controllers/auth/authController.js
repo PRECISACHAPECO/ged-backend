@@ -17,10 +17,6 @@ const jwtConfig = {
 class AuthController {
     //* Login da fábrica (CPF)
     login(req, res) {
-
-
-        return res.status(200).json({ message: 'Retornando mais cedo!' });
-
         const { cpf, password } = req.body;
 
         let error = {
@@ -35,10 +31,13 @@ class AuthController {
             LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
             LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
             LEFT JOIN profissional AS pr ON (u.usuarioID = pr.usuarioID)
-        WHERE u.cpf = "012.345.678-90" AND u.senha = "81dc9bdb52d04dc20036dbd8313ed055" AND uu.status = 1
+        WHERE u.cpf = "${cpf}" AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
 
         db.query(sql, (err, result) => {
+
+            return res.status(200).json({ message: 'Retornando antes...' })
+
             if (err) { return res.status(500).json({ message: err.message }); }
 
             if (result.length === 0) {
