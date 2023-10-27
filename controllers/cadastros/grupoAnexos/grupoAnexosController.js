@@ -110,8 +110,17 @@ class GrupoAnexosController {
 
             //? Atualiza grupo_anexo 
             const sqlInsert = `INSERT INTO grupoanexo (nome, descricao, unidadeID, status) VALUES (?, ?, ?, ?)`
-            const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.descricao, values.unidade, (values.fields.status ? '1' : '0')])
+            const [resultInsert] = await db.promise().query(sqlInsert, [values.fields?.nome, values.fields.descricao, values.unidade, (values.fields.status ? '1' : '0')])
             const id = resultInsert.insertId
+
+            //? Dados do grupo inserido,
+            const sqlGetGrupoAnexos = `
+            SELECT 
+                grupoAnexoID AS id, 
+                a.nome
+            FROM grupoanexo AS a  
+            WHERE a. grupoAnexoID = ?`
+            const [resultSqlGetGrupoAnexos] = await db.promise().query(sqlGetGrupoAnexos, [id]);
 
             //? Atualizado formulários (+1)
             if (values.formulario.fields.length > 0) {
@@ -129,7 +138,13 @@ class GrupoAnexosController {
                 })
             }
 
-            return res.status(200).json(id)
+            const data = {
+                id: resultSqlGetGrupoAnexos[0].id,
+                nome: resultSqlGetGrupoAnexos[0].nome,
+
+            }
+
+            return res.status(200).json(data)
         } catch (error) {
             console.log(error)
         }

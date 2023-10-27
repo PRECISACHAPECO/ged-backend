@@ -146,6 +146,15 @@ class ProdutoController {
             const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, (values.fields.status ? '1' : '0'), values.unidadeMedida.fields.id, values.unidadeID])
             const id = resultInsert.insertId
 
+            //? Dados do grupo inserido,
+            const sqlGetProduto = `
+            SELECT 
+                produtoID AS id, 
+                a.nome
+            FROM produto AS a  
+            WHERE a. produtoID = ?`
+            const [resultSqlGetProduto] = await db.promise().query(sqlGetProduto, [id]);
+
             //? Adiciona anexos
             if (values.anexos.length > 0) {
                 const sqlInsertAnexo = 'INSERT INTO produto_anexo (nome, descricao, obrigatorio, status, produtoID) VALUES (?, ?, ?, ?, ?)'
@@ -154,7 +163,13 @@ class ProdutoController {
                 })
             }
 
-            return res.status(200).json(id)
+            const data = {
+                id: resultSqlGetProduto[0].id,
+                nome: resultSqlGetProduto[0].nome,
+
+            }
+
+            return res.status(200).json(data)
         } catch (error) {
             console.log(error)
         }
