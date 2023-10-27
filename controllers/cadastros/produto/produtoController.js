@@ -2,6 +2,32 @@ const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class ProdutoController {
+    async getProdutosFornecedor(req, res) {
+        const { fornecedorID } = req.body
+
+        //? Obtém o CNPJ do fornecedor
+        const sqlFornecedor = `SELECT cnpj, unidadeID FROM fornecedor WHERE fornecedorID = ?`
+        const [resultFornecedor] = await db.promise().query(sqlFornecedor, [fornecedorID])
+        const cnpj = resultFornecedor[0].cnpj
+        const unidadeID = resultFornecedor[0].unidadeID
+
+        //? Busca os produtos habilitados por esse fornecedor (cnpj)
+        const sqlProduto = `
+        SELECT 
+            p.produtoID AS id, 
+            CONCAT(p.nome, " (", um.nome, ")") AS nome
+        FROM fornecedor_produto AS fp 
+            JOIN fornecedor AS f ON (fp.fornecedorID = f.fornecedorID)
+            JOIN produto AS p ON (fp.produtoID = p.produtoID)
+            JOIN unidademedida AS um ON (p.unidadeMedidaID = um.unidadeMedidaID)
+        WHERE f.cnpj = "${cnpj}" AND f.unidadeID = ${unidadeID} AND p.status = 1
+        GROUP BY p.produtoID
+        ORDER BY p.nome ASC`
+        const [resultProduto] = await db.promise().query(sqlProduto)
+
+        return res.status(200).json(resultProduto)
+    }
+
     async getList(req, res) {
         const { unidadeID } = req.params
         try {

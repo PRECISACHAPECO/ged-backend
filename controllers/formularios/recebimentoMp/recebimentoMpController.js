@@ -19,7 +19,7 @@ class RecebimentoMpController {
             l.status
         FROM recebimentomp AS l
             JOIN par_recebimentomp_modelo AS plm ON (l.parRecebimentoMpModeloID = plm.parRecebimentoMpModeloID)
-            LEFT JOIN profissional AS p ON (l.profissionalID = p.profissionalID)
+            LEFT JOIN profissional AS p ON (l.preencheProfissionalID = p.profissionalID)
         WHERE l.unidadeID = ?
         ORDER BY l.recebimentoMpID DESC, l.status ASC`
         const [result] = await db.promise().query(sql, [unidadeID])
@@ -28,55 +28,86 @@ class RecebimentoMpController {
     }
 
     async getData(req, res) {
-        const { id } = req.params;
-        const { type, unidadeID } = req.body;
+        try {
+            const { id } = req.params; // id do formulário
 
-        if (!id || id == 'undefined') return res.json({ message: 'Erro ao listar recebimento de MP!' })
+            if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar formulário!' }) }
 
-        //? Obtém o modelo do formulário
-        const sql = `
-        SELECT parRecebimentoMpModeloID
-        FROM recebimentomp 
-        WHERE recebimentoMpID = ?`
-        const [result] = await db.promise().query(sql, [id])
+            const sqlResult = `
+            SELECT 
+                r.parRecebimentoMpModeloID, 
+                r.unidadeID, 
+                DATE_FORMAT(r.dataInicio, '%d/%m/%Y') AS dataInicio, 
+                DATE_FORMAT(r.dataInicio, '%H:%i') AS horaInicio, 
+                r.abreProfissionalID,
+                pa.nome AS abreProfissionalNome,
 
-        //? Fields do header
-        const resultFields = await getFields(result[0].parRecebimentoMpModeloID, unidadeID)
+                -- Fornecedor
+                f.fornecedorID,
+                CONCAT(f.nome, " (", f.cnpj, ")") AS nomeFornecedor,
+                f.telefone AS telefoneFornecedor,
+                CONCAT(f.cidade, "/", f.estado) AS cidadeFornecedor,
+                
+                DATE_FORMAT(r.data, '%Y-%m-%d') AS data, 
+                DATE_FORMAT(r.data, '%H:%i') AS hora,    
+                r.preencheProfissionalID, 
+                pp.nome AS preencheProfissionalNome,
+                
+                DATE_FORMAT(r.dataFim, '%d/%m/%Y') AS dataFim, 
+                DATE_FORMAT(r.dataFim, '%H:%i') AS horaFim, 
+                r.aprovaProfissionalID,
+                pap.nome AS aprovaProfissionalNome,
 
-        // Varre fields, verificando se há tipo == 'int', se sim, busca opções pra selecionar no select 
-        for (const alternatives of resultFields) {
-            if (alternatives.tipo === 'int' && alternatives.tabela) {
-                // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
-                let sqlOptions = ``
-                if (alternatives.tabela == 'fornecedor') { //? Fornecedor: busca aprovados e com a avaliação mais recente
-                    sqlOptions = `
-                    SELECT MAX(fornecedorID) AS id, nome, cnpj
-                    FROM fornecedor
-                    WHERE status >= 60 AND unidadeID = ${unidadeID}
-                    GROUP BY cnpj
-                    ORDER BY nome ASC`
-                } else {                                   //? Não é fornecedor: busca ativos e da unidade
-                    sqlOptions = `
+                u.nomeFantasia, 
+                u.cnpj
+            FROM recebimentomp AS r
+                LEFT JOIN unidade AS u ON(r.unidadeID = u.unidadeID)
+                LEFT JOIN profissional AS pa ON (r.abreProfissionalID = pa.profissionalID)
+                LEFT JOIN profissional AS pp ON (r.preencheProfissionalID = pp.profissionalID)
+                LEFT JOIN profissional AS pap ON (r.aprovaProfissionalID = pap.profissionalID)
+                LEFT JOIN fornecedor AS f ON (r.fornecedorID = f.fornecedorID)
+            WHERE r.recebimentoMpID = ? `
+            const [result] = await db.promise().query(sqlResult, [id])
+            const unidade = {
+                parFornecedorModeloID: result[0]['parRecebimentoMpModeloID'] ?? 0,
+                unidadeID: result[0]['unidadeID'],
+                nomeFantasia: result[0]['nomeFantasia'],
+                cnpj: result[0]['cnpj']
+            }
+            const modeloID = result[0].parRecebimentoMpModeloID
+
+            // Fields do header
+            const sqlFields = `
+            SELECT *
+            FROM par_recebimentomp AS pr
+                LEFT JOIN par_recebimentomp_modelo_cabecalho AS prmc ON (pr.parRecebimentoMpID = prmc.parRecebimentoMpID)
+            WHERE prmc.parRecebimentoMpModeloID = ? 
+            ORDER BY prmc.ordem ASC`
+            const [resultFields] = await db.promise().query(sqlFields, [modeloID])
+
+            // Varre fields, verificando se há tipo == 'int', se sim, busca opções pra selecionar no select 
+            for (const alternatives of resultFields) {
+                if (alternatives.tipo === 'int' && alternatives.tabela) {
+                    // Busca cadastros ativos e da unidade (se houver unidadeID na tabela)
+                    const sqlOptions = `
                     SELECT ${alternatives.tabela}ID AS id, nome
                     FROM ${alternatives.tabela} 
-                    WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidadeID} ` : ``}
+                    WHERE status = 1 ${await hasUnidadeID(alternatives.tabela) ? ` AND unidadeID = ${unidade.unidadeID} ` : ``}
                     ORDER BY nome ASC`
+
+                    // Executar select e inserir no objeto alternatives
+                    const [resultOptions] = await db.promise().query(sqlOptions)
+                    alternatives.options = resultOptions
                 }
-                // Executar select e inserir no objeto alternatives
-                const [resultOptions] = await db.promise().query(sqlOptions)
-                alternatives.options = resultOptions
             }
-        }
 
-        // Varrer result, pegando nomeColuna e inserir em um array se row.tabela == null
-        let columns = []
-        for (const row of resultFields) {
-            if (!row.tabela) { columns.push(row.nomeColuna) }
-        }
+            // Varrer result, pegando nomeColuna e inserir em um array se row.tabela == null
+            let columns = []
+            for (const row of resultFields) {
+                if (!row.tabela) { columns.push(row.nomeColuna) }
+            }
 
-        // varrer resultFields 
-        let sqlData = ``
-        if (type == 'edit') {
+            // varrer resultFields 
             for (const field of resultFields) {
                 if (field.tabela) {
                     // Monta objeto pra preencher select 
@@ -84,50 +115,271 @@ class RecebimentoMpController {
                     //     id: 1,
                     //     nome: 'Fulano'
                     // }
-                    sqlData = `
-                    SELECT t.${field.nomeColuna} AS id, t.nome ${field.tabela == 'fornecedor' ? `, t.cnpj` : ``}
-                    FROM recebimentomp AS l
-                        JOIN ${field.tabela} AS t ON (l.${field.nomeColuna} = t.${field.nomeColuna}) 
-                    WHERE l.recebimentoMpID = ${id}`
-
-                    let [temp] = await db.promise().query(sqlData)
+                    const sqlFieldData = `
+                    SELECT t.${field.nomeColuna} AS id, t.nome
+                    FROM recebimentomp AS r
+                        JOIN ${field.tabela} AS t ON(r.${field.nomeColuna} = t.${field.nomeColuna}) 
+                    WHERE r.recebimentoMpID = ${id} `
+                    let [temp] = await db.promise().query(sqlFieldData)
                     if (temp) {
                         field[field.tabela] = temp[0]
                     }
                 } else {
                     const sqlFieldData = `SELECT ${field.nomeColuna} AS coluna FROM recebimentomp WHERE recebimentoMpID = ? `;
                     let [resultFieldData] = await db.promise().query(sqlFieldData, [id])
-                    field[field.nomeColuna] = resultFieldData[0].coluna
+                    field[field.nomeColuna] = resultFieldData[0].coluna ?? ''
                 }
             }
-        }
 
-        // Dados (linhas)
-        if (type == 'edit') {
-            //? Blocos 
-            const resultBlocos = await getBlocks(id, result[0].parRecebimentoMpModeloID)
+            //* PRODUTOS
+            // const sqlProdutos = `
+            // SELECT fp.fornecedorProdutoID, p.*, um.nome AS unidadeMedida 
+            // FROM fornecedor_produto AS fp 
+            //     JOIN produto AS p ON (fp.produtoID = p.produtoID)
+            //     LEFT JOIN unidademedida AS um ON (p.unidadeMedidaID = um.unidadeMedidaID)
+            // WHERE fp.fornecedorID = ? AND p.status = 1`
+            // const [resultProdutos] = await db.promise().query(sqlProdutos, [id])
+
+            // // Varre produtos verificando tabela produto_anexo
+            // if (resultProdutos.length > 0) {
+            //     for (const produto of resultProdutos) {
+            //         const sqlProdutoAnexo = `
+            //         SELECT * 
+            //         FROM produto_anexo 
+            //         WHERE produtoID = ? AND status = 1`
+            //         const [resultProdutoAnexo] = await db.promise().query(sqlProdutoAnexo, [produto.produtoID])
+
+            //         for (const produtoTituloAnexo of resultProdutoAnexo) {
+            //             const sqlAnexo = `
+            //             SELECT a.*
+            //             FROM anexo AS a
+            //                 JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
+            //             WHERE ab.fornecedorID = ? AND ab.produtoAnexoID = ?`
+            //             const [resultAnexo] = await db.promise().query(sqlAnexo, [id, produtoTituloAnexo.produtoAnexoID])
+
+            //             const arrayAnexos = []
+            //             for (const anexo of resultAnexo) {
+            //                 if (anexo && anexo.anexoID > 0) {
+            //                     const objAnexo = {
+            //                         exist: true,
+            //                         anexoID: anexo.anexoID,
+            //                         path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
+            //                         nome: anexo.titulo,
+            //                         tipo: anexo.tipo,
+            //                         size: anexo.tamanho,
+            //                         time: anexo.dataHora
+            //                     }
+            //                     arrayAnexos.push(objAnexo)
+            //                 }
+            //             }
+            //             produtoTituloAnexo['anexos'] = arrayAnexos
+            //         }
+
+            //         produto['produtoAnexosDescricao'] = resultProdutoAnexo ?? []
+            //     }
+            // }
+
+            //* GRUPOS DE ANEXO
+            // const sqlGruposAnexo = `
+            // SELECT *
+            // FROM fornecedor_grupoanexo AS fg
+            //     LEFT JOIN grupoanexo AS ga ON(fg.grupoAnexoID = ga.grupoAnexoID)
+            // WHERE fg.fornecedorID = ? AND ga.status = 1`;
+            // const [resultGruposAnexo] = await db.promise().query(sqlGruposAnexo, [id]);
+
+            // const gruposAnexo = [];
+            // if (resultGruposAnexo.length > 0) {
+            //     for (const grupo of resultGruposAnexo) {
+            //         //? Pega os itens do grupo atual
+            //         const sqlItens = `SELECT * FROM grupoanexo_item WHERE grupoAnexoID = ? AND status = 1`;
+            //         const [resultGrupoItens] = await db.promise().query(sqlItens, [grupo.grupoAnexoID]);
+
+            //         //? Varre itens do grupo, verificando se tem anexo
+            //         for (const item of resultGrupoItens) {
+            //             const sqlAnexo = `
+            //             SELECT a.* 
+            //             FROM anexo AS a 
+            //                 JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
+            //             WHERE ab.fornecedorID = ? AND ab.grupoAnexoItemID = ? `
+            //             const [resultAnexo] = await db.promise().query(sqlAnexo, [id, item.grupoAnexoItemID]);
+
+            //             const arrayAnexos = []
+            //             for (const anexo of resultAnexo) {
+            //                 if (anexo && anexo.anexoID > 0) {
+            //                     const objAnexo = {
+            //                         exist: true,
+            //                         anexoID: anexo.anexoID,
+            //                         path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
+            //                         nome: anexo.titulo,
+            //                         tipo: anexo.tipo,
+            //                         size: anexo.tamanho,
+            //                         time: anexo.dataHora
+            //                     }
+            //                     arrayAnexos.push(objAnexo)
+            //                 }
+            //             }
+            //             item['anexos'] = arrayAnexos
+            //         }
+
+            //         grupo['itens'] = resultGrupoItens
+            //         gruposAnexo.push(grupo)
+            //     }
+            // }
+
+            const sqlBlocos = `
+            SELECT *
+            FROM par_recebimentomp_modelo_bloco
+            WHERE parRecebimentoMpModeloID = ? AND status = 1
+            ORDER BY ordem ASC`
+            const [resultBlocos] = await db.promise().query(sqlBlocos, [modeloID])
+
+            //? Blocos
+            const sqlBloco = getSqlBloco()
+            for (const bloco of resultBlocos) {
+                const [resultBloco] = await db.promise().query(sqlBloco, [id, id, id, bloco.parRecebimentoMpModeloBlocoID])
+
+                //? Itens
+                for (const item of resultBloco) {
+                    const sqlAlternativa = getAlternativasSql()
+                    const [resultAlternativa] = await db.promise().query(sqlAlternativa, [item['parRecebimentoMpModeloBlocoItemID']])
+                    item.alternativas = resultAlternativa
+
+                    // Cria objeto da resposta (se for de selecionar)
+                    if (item?.respostaID > 0) {
+                        item.resposta = {
+                            id: item.respostaID,
+                            nome: item.resposta
+                        }
+                    }
+
+                    // Obter os anexos vinculados a essa resposta
+                    const sqlRespostaAnexos = `
+                    SELECT io.itemOpcaoID, io.anexo, io.bloqueiaFormulario, io.observacao, ioa.itemOpcaoAnexoID, ioa.nome, ioa.obrigatorio
+                    FROM item_opcao AS io 
+                        LEFT JOIN item_opcao_anexo AS ioa ON (io.itemOpcaoID = ioa.itemOpcaoID)
+                    WHERE io.itemID = ? AND io.alternativaItemID = ?`
+                    const [resultRespostaAnexos] = await db.promise().query(sqlRespostaAnexos, [item.itemID, item?.respostaID ?? 0])
+
+                    if (resultRespostaAnexos.length > 0) {
+                        for (const respostaAnexo of resultRespostaAnexos) {
+                            //? Verifica se cada anexo exigido existe 1 ou mais arquivos anexados
+                            const sqlArquivosAnexadosResposta = `
+                            SELECT * 
+                            FROM anexo AS a 
+                                JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
+                            WHERE ab.recebimentoMpID = ? AND ab.parRecebimentoMpModeloBlocoID = ? AND ab.itemOpcaoAnexoID = ?`
+                            const [resultArquivosAnexadosResposta] = await db.promise().query(sqlArquivosAnexadosResposta, [id, bloco.parRecebimentoMpModeloBlocoID, respostaAnexo.itemOpcaoAnexoID])
+
+                            let anexos = []
+                            for (const anexo of resultArquivosAnexadosResposta) {
+                                const objAnexo = {
+                                    exist: true,
+                                    anexoID: anexo.anexoID,
+                                    path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
+                                    nome: anexo.titulo,
+                                    tipo: anexo.tipo,
+                                    size: anexo.tamanho,
+                                    time: anexo.dataHora
+                                }
+                                anexos.push(objAnexo)
+                            }
+
+                            respostaAnexo['anexos'] = anexos ?? []
+                        }
+                    }
+
+                    item['respostaConfig'] = {
+                        'anexo': resultRespostaAnexos[0]?.anexo ?? 0,
+                        'bloqueiaFormulario': resultRespostaAnexos[0]?.bloqueiaFormulario ?? 0,
+                        'observacao': resultRespostaAnexos[0]?.observacao ?? 0,
+                        'anexosSolicitados': resultRespostaAnexos ?? []
+                    }
+                }
+
+                bloco.itens = resultBloco
+            }
 
             // Observação e status
-            let resultOtherInformations = null
-            if (type == 'edit') {
-                const sqlOtherInformations = `
-                SELECT obs, status
-                FROM recebimentomp
-                WHERE recebimentoMpID = ?`
-                const [temp] = await db.promise().query(sqlOtherInformations, [id])
-                resultOtherInformations = temp[0]
-            }
+            const sqlOtherInformations = getSqlOtherInfos()
+            const [resultOtherInformations] = await db.promise().query(sqlOtherInformations, [id])
+
+            //* Última movimentação do formulário
+            const sqlLastMovimentation = `
+            SELECT 
+                u.nome, 
+                un.nomeFantasia, 
+                s1.nome AS statusAnterior, 
+                s2.nome AS statusAtual,
+                DATE_FORMAT(m.dataHora, '%d/%m/%Y %H:%i') AS dataHora, 
+                m.observacao
+            FROM movimentacaoformulario AS m
+                JOIN usuario AS u ON (m.usuarioID = u.usuarioID)
+                JOIN unidade AS un ON (m.unidadeID = un.unidadeID)
+                LEFT JOIN status AS s1 ON (s1.statusID = m.statusAnterior)
+                LEFT JOIN status AS s2 ON (s2.statusID = m.statusAtual)
+            WHERE m.parFormularioID = 2 AND m.id = ?
+            ORDER BY m.movimentacaoFormularioID DESC 
+            LIMIT 1`
+            const [resultLastMovimentation] = await db.promise().query(sqlLastMovimentation, [id])
+
+            //? Cabeçalho do modelo do formulário 
+            const sqlCabecalhoModelo = `
+            SELECT cabecalho
+            FROM par_recebimentomp_modelo
+            WHERE parRecebimentoMpModeloID = ?`
+            const [resultCabecalhoModelo] = await db.promise().query(sqlCabecalhoModelo, [modeloID])
 
             const data = {
+                unidade: unidade,
+                fieldsHeader: {
+                    //? Fixos
+                    abertoPor: {
+                        dataInicio: result[0].dataInicio,
+                        horaInicio: result[0].horaInicio,
+                        profissional: result[0].abreProfissionalID > 0 ? {
+                            id: result[0].abreProfissionalID,
+                            nome: result[0].abreProfissionalNome
+                        } : null
+                    },
+                    //? Fields                    
+                    data: result[0].data,
+                    hora: result[0].hora,
+                    profissional: result[0].preencheProfissionalID > 0 ? {
+                        id: result[0].preencheProfissionalID,
+                        nome: result[0].preencheProfissionalNome
+                    } : null,
+                    fornecedor: result[0].fornecedorID > 0 ? {
+                        id: result[0].fornecedorID,
+                        nome: result[0].nomeFornecedor,
+                        telefone: result[0].telefoneFornecedor,
+                        cidade: result[0].cidadeFornecedor
+                    } : null
+                },
+                fieldsFooter: {
+                    concluded: result[0].dataFim ? true : false,
+                    dataFim: result[0].dataFim,
+                    horaFim: result[0].horaFim,
+                    profissional: result[0].aprovaProfissionalID > 0 ? {
+                        id: result[0].aprovaProfissionalID,
+                        nome: result[0].aprovaProfissionalNome
+                    } : null
+                },
                 fields: resultFields,
-                blocos: resultBlocos,
+                produtos: [],
+                blocos: resultBlocos ?? [],
+                grupoAnexo: [],
+                ultimaMovimentacao: resultLastMovimentation[0] ?? null,
                 info: {
-                    obs: resultOtherInformations?.obs,
-                    status: resultOtherInformations?.status,
-                }
+                    obs: resultOtherInformations[0].obs,
+                    status: resultOtherInformations[0].status,
+                    cabecalhoModelo: resultCabecalhoModelo[0].cabecalho
+                },
+                link: `${process.env.BASE_URL}formularios/recebimento-mp?id=${id}`
             }
 
             res.status(200).json(data);
+        } catch (error) {
+            console.log(error)
         }
     }
 
@@ -350,6 +602,49 @@ const getBlocks = async (id, parRecebimentoMpModeloID) => {
     }
 
     return resultBlocos
+}
+
+const getSqlBloco = () => {
+    const sql = `
+    SELECT prbi.*, i.*, a.nome AS alternativa,
+
+        (SELECT rr.respostaID
+        FROM recebimentomp_resposta AS rr 
+        WHERE rr.recebimentoMpID = ? AND rr.parRecebimentoMpModeloBlocoID = prbi.parRecebimentoMpModeloBlocoID AND rr.itemID = prbi.itemID) AS respostaID,
+
+        (SELECT rr.resposta
+        FROM recebimentomp_resposta AS rr 
+        WHERE rr.recebimentoMpID = ? AND rr.parRecebimentoMpModeloBlocoID = prbi.parRecebimentoMpModeloBlocoID AND rr.itemID = prbi.itemID) AS resposta,
+
+        (SELECT rr.obs
+        FROM recebimentomp_resposta AS rr 
+        WHERE rr.recebimentoMpID = ? AND rr.parRecebimentoMpModeloBlocoID = prbi.parRecebimentoMpModeloBlocoID AND rr.itemID = prbi.itemID) AS observacao
+
+    FROM par_recebimentomp_modelo_bloco_item AS prbi 
+        LEFT JOIN item AS i ON(prbi.itemID = i.itemID)
+        LEFT JOIN alternativa AS a ON(i.alternativaID = a.alternativaID)
+    WHERE prbi.parRecebimentoMpModeloBlocoID = ? AND prbi.status = 1
+    ORDER BY prbi.ordem ASC`
+    return sql
+}
+
+const getAlternativasSql = () => {
+    const sql = `
+    SELECT ai.alternativaItemID AS id, ai.nome
+    FROM par_recebimentomp_modelo_bloco_item AS prbi 
+    	JOIN item AS i ON (prbi.itemID = i.itemID)
+        JOIN alternativa AS a ON(i.alternativaID = a.alternativaID)
+        JOIN alternativa_item AS ai ON(a.alternativaID = ai.alternativaID)
+    WHERE prbi.parRecebimentoMpModeloBlocoItemID = ? AND prbi.status = 1`
+    return sql
+}
+
+const getSqlOtherInfos = () => {
+    const sql = `
+    SELECT obs, status
+    FROM recebimentomp
+    WHERE recebimentoMpID = ? `
+    return sql
 }
 
 module.exports = RecebimentoMpController;

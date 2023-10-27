@@ -14,6 +14,7 @@ produtoRoutes.delete(`${route}/:id`, produtoController.deleteData);
 
 produtoRoutes.post(`${route}/new/getData`, produtoController.getNewData);
 produtoRoutes.post(`${route}/new/insertData`, produtoController.insertData);
+produtoRoutes.post(`${route}/getProdutosFornecedor`, produtoController.getProdutosFornecedor);
 
 
 module.exports = produtoRoutes;

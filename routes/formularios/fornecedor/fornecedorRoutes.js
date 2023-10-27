@@ -33,6 +33,7 @@ fornecedorRoutes.post(`${route}/verifyFormPending/:id`, fornecedorController.ver
 fornecedorRoutes.post(`${route}/changeFormStatus/:id`, fornecedorController.changeFormStatus);
 fornecedorRoutes.post(`${route}/getGruposAnexo`, fornecedorController.getGruposAnexo);
 fornecedorRoutes.post(`${route}/sendNotification`, fornecedorController.sendNotification);
+fornecedorRoutes.post(`${route}/getFornecedoresAprovados`, fornecedorController.getFornecedoresAprovados);
 
 // Anexos
 fornecedorRoutes.delete(`${route}/deleteAnexo/:id/:anexoID/:unidadeID/:usuarioID/:folder`, fornecedorController.deleteAnexo);

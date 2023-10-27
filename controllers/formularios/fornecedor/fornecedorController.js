@@ -13,6 +13,22 @@ const instructionsNewFornecedor = require('../../../email/template/fornecedor/in
 const instructionsExistFornecedor = require('../../../email/template/fornecedor/instructionsExistFornecedor');
 
 class FornecedorController {
+    async getFornecedoresAprovados(req, res) {
+        const { unidadeID } = req.body
+        const sql = `
+            SELECT 
+                f.fornecedorID AS id,
+                CONCAT(f.nome, " (", f.cnpj, ")") AS nome,
+                f.telefone,
+                CONCAT(f.cidade, "/", f.estado) AS cidade
+            FROM fornecedor AS f
+            WHERE f.unidadeID = ? AND f.status IN (60, 70)
+            GROUP BY f.fornecedorID
+            ORDER BY f.nome ASC`
+        const [result] = await db.promise().query(sql, [unidadeID])
+        return res.status(200).json(result)
+    }
+
     async getModels(req, res) {
         const { unidadeID } = req.body
         const sql = `SELECT parFornecedorModeloID AS id, nome FROM par_fornecedor_modelo WHERE unidadeID = ? AND status = 1 ORDER BY nome ASC`;
@@ -23,11 +39,11 @@ class FornecedorController {
     async getProducts(req, res) {
         const { unidadeID } = req.body
         const sql = `
-        SELECT 
-            a.produtoID AS id, 
+        SELECT
+        a.produtoID AS id,
             CONCAT(a.nome, ' (', b.nome, ')') AS nome
         FROM produto AS a
-            JOIN unidademedida AS b ON (a.unidadeMedidaID = b.unidadeMedidaID)
+            JOIN unidademedida AS b ON(a.unidadeMedidaID = b.unidadeMedidaID)
         WHERE a.unidadeID = ? AND a.status = 1 
         ORDER BY a.nome ASC`;
         const [result] = await db.promise().query(sql, [unidadeID])
@@ -110,7 +126,7 @@ class FornecedorController {
                 const objAnexo = {
                     exist: true,
                     anexoID: anexoID,
-                    path: `${process.env.BASE_URL_API}${pathDestination}${file.filename}`,
+                    path: `${process.env.BASE_URL_API}${pathDestination}${file.filename} `,
                     nome: file.originalname,
                     tipo: file.mimetype,
                     size: file.size,
@@ -129,13 +145,13 @@ class FornecedorController {
         const { id, anexoID, unidadeID, usuarioID, folder } = req.params;
 
         //? Obtém o caminho do anexo atual
-        const sqlCurrentFile = `SELECT arquivo FROM anexo WHERE anexoID = ?`;
+        const sqlCurrentFile = `SELECT arquivo FROM anexo WHERE anexoID = ? `;
         const [tempResultCurrentFile] = await db.promise().query(sqlCurrentFile, [anexoID])
         const resultCurrentFile = tempResultCurrentFile[0]?.arquivo;
 
         //? Remover arquivo do diretório
         if (resultCurrentFile) {
-            const pathFile = `uploads/${unidadeID}/fornecedor/${folder}/`
+            const pathFile = `uploads / ${unidadeID} /fornecedor/${folder} /`
             const previousFile = path.resolve(pathFile, resultCurrentFile);
             fs.unlink(previousFile, (error) => {
                 if (error) {

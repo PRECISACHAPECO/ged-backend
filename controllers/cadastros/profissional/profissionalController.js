@@ -48,6 +48,32 @@ class ProfissionalController {
                     const [tempResultAprova] = await db.promise().query(sqlProfissionalAprova, [modeloID])
                     resultProfissionalAprova = tempResultAprova
                     break;
+
+                case 2: //* Recebimento de MP
+                    //? Profissional que preenche
+                    const sqlProfissionalPreencheMP = `
+                    SELECT
+                        b.profissionalID AS id, 
+                        b.nome
+                    FROM par_recebimentomp_modelo_profissional AS a
+                        JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
+                    WHERE a.parRecebimentoMpModeloID = ? AND a.tipo = 1
+                    ORDER BY b.nome ASC`
+                    const [tempResultPreencheMP] = await db.promise().query(sqlProfissionalPreencheMP, [modeloID])
+                    resultProfissionalPreenche = tempResultPreencheMP
+
+                    //? Profissional que aprova
+                    const sqlProfissionalAprovaMP = `
+                    SELECT
+                        b.profissionalID AS id, 
+                        b.nome
+                    FROM par_recebimentomp_modelo_profissional AS a
+                        JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
+                    WHERE a.parRecebimentoMpModeloID = ? AND a.tipo = 2
+                    ORDER BY b.nome ASC`
+                    const [tempResultAprovaMP] = await db.promise().query(sqlProfissionalAprovaMP, [modeloID])
+                    resultProfissionalAprova = tempResultAprovaMP
+                    break;
             }
 
             const result = {
