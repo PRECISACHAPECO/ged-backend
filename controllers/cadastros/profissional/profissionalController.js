@@ -108,8 +108,7 @@ class ProfissionalController {
             FROM profissional_cargo AS a
                 JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
             WHERE  a.profissionalID = ? AND b.unidadeID = ? 
-            ORDER BY a.data ASC;
-            `
+            ORDER BY a.data ASC`
             const [resultFormacaoCargo] = await db.promise().query(formacaoCargo, [id, unidadeID])
 
             const values = {
@@ -390,6 +389,7 @@ class ProfissionalController {
             // }
 
             // Atualiza dados do profissional
+            delete data.fields.imagem
             const UpdateUser = `UPDATE profissional SET ? WHERE profissionalID = ?`
             const [resultUpdateUser] = await db.promise().query(UpdateUser, [data.fields, id])
 

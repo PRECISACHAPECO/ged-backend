@@ -89,6 +89,7 @@ class UnidadeController {
             const rows = resultSqlExist.find(row => row.cnpj == data.fields.cnpj && row.unidadeID !== id);
             if (rows > 0) return res.status(409).json({ message: "CNPJ já cadastrado!" });
 
+            delete data.fields.cabecalhoRelatorio
             const sqlUpdate = 'UPDATE unidade SET ? WHERE unidadeID = ?'
             const resultSqlUpdate = await db.promise().query(sqlUpdate, [data.fields, id])
 
