@@ -6,21 +6,35 @@ class ProdutoController {
         const { fornecedorID } = req.body
 
         //? Obtém o CNPJ do fornecedor
-        const sqlFornecedor = `SELECT cnpj, unidadeID FROM fornecedor WHERE fornecedorID = ?`
+        const sqlFornecedor = `SELECT parFornecedorModeloID, cnpj, unidadeID FROM fornecedor WHERE fornecedorID = ?`
         const [resultFornecedor] = await db.promise().query(sqlFornecedor, [fornecedorID])
         const cnpj = resultFornecedor[0].cnpj
         const unidadeID = resultFornecedor[0].unidadeID
+        const parFornecedorModeloID = resultFornecedor[0].parFornecedorModeloID
 
         //? Busca os produtos habilitados por esse fornecedor (cnpj)
         const sqlProduto = `
         SELECT 
             p.produtoID AS id, 
-            CONCAT(p.nome, " (", um.nome, ")") AS nome
+            CONCAT(p.nome, " (", um.nome, ")") AS nome,
+            (
+                -- Busca a ultima avaliação do produto
+                SELECT DATE_FORMAT(b.dataFim, "%d/%m/%Y") AS dataFim
+                FROM fornecedor_produto AS a
+                    JOIN fornecedor AS b ON (a.fornecedorID = b.fornecedorID)
+                WHERE a.produtoID = fp.produtoID AND b.cnpj = "${cnpj}" AND b.status IN (60, 70) AND b.unidadeID = ${unidadeID}
+                ORDER BY b.data DESC
+                LIMIT 1
+            ) AS ultimaAvaliacao,
+
+            "25/12/2023" AS proximaAvailacao,
+            29 AS diasRestantes
+
         FROM fornecedor_produto AS fp 
             JOIN fornecedor AS f ON (fp.fornecedorID = f.fornecedorID)
             JOIN produto AS p ON (fp.produtoID = p.produtoID)
             JOIN unidademedida AS um ON (p.unidadeMedidaID = um.unidadeMedidaID)
-        WHERE f.cnpj = "${cnpj}" AND f.unidadeID = ${unidadeID} AND p.status = 1
+        WHERE f.cnpj = "${cnpj}" AND f.status IN (60, 70) AND f.unidadeID = ${unidadeID} AND p.status = 1
         GROUP BY p.produtoID
         ORDER BY p.nome ASC`
         const [resultProduto] = await db.promise().query(sqlProduto)
