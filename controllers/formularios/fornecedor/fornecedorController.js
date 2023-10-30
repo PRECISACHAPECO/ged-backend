@@ -23,7 +23,7 @@ class FornecedorController {
                 CONCAT(f.cidade, "/", f.estado) AS cidade
             FROM fornecedor AS f
             WHERE f.unidadeID = ? AND f.status IN (60, 70)
-            GROUP BY f.fornecedorID
+            GROUP BY f.cnpj
             ORDER BY f.nome ASC`
         const [result] = await db.promise().query(sql, [unidadeID])
         return res.status(200).json(result)

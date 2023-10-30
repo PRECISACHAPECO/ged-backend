@@ -12,23 +12,47 @@ class ProdutoController {
         const unidadeID = resultFornecedor[0].unidadeID
         const parFornecedorModeloID = resultFornecedor[0].parFornecedorModeloID
 
+        //? Prazo do modelo do formulário
+        const sqlModelo = `
+        SELECT ciclo 
+        FROM par_fornecedor_modelo
+        WHERE parFornecedorModeloID = ${parFornecedorModeloID}`
+        const [resultModelo] = await db.promise().query(sqlModelo)
+
         //? Busca os produtos habilitados por esse fornecedor (cnpj)
         const sqlProduto = `
         SELECT 
             p.produtoID AS id, 
             CONCAT(p.nome, " (", um.nome, ")") AS nome,
             (
-                -- Busca a ultima avaliação do produto
                 SELECT DATE_FORMAT(b.dataFim, "%d/%m/%Y") AS dataFim
                 FROM fornecedor_produto AS a
                     JOIN fornecedor AS b ON (a.fornecedorID = b.fornecedorID)
                 WHERE a.produtoID = fp.produtoID AND b.cnpj = "${cnpj}" AND b.status IN (60, 70) AND b.unidadeID = ${unidadeID}
-                ORDER BY b.data DESC
+                ORDER BY b.dataFim DESC
                 LIMIT 1
             ) AS ultimaAvaliacao,
+            
+            (
+                SELECT DATE_FORMAT(DATE_ADD(b.dataFim, INTERVAL ${resultModelo[0].ciclo} DAY), "%d/%m/%Y") AS dataFim
+                FROM fornecedor_produto AS a
+                    JOIN fornecedor AS b ON (a.fornecedorID = b.fornecedorID)
+                WHERE a.produtoID = fp.produtoID AND b.cnpj = "${cnpj}" AND b.status IN (60, 70) AND b.unidadeID = ${unidadeID}
+                ORDER BY b.dataFim DESC
+                LIMIT 1
+            ) AS proximaAvialacao,
 
-            "25/12/2023" AS proximaAvailacao,
-            29 AS diasRestantes
+            DATEDIFF(
+                (
+                    SELECT DATE_ADD(b.dataFim, INTERVAL ${resultModelo[0].ciclo} DAY) AS dataFim
+                    FROM fornecedor_produto AS a
+                        JOIN fornecedor AS b ON (a.fornecedorID = b.fornecedorID)
+                    WHERE a.produtoID = fp.produtoID AND b.cnpj = "${cnpj}" AND b.status IN (60, 70) AND b.unidadeID = ${unidadeID}
+                    ORDER BY b.dataFim DESC
+                    LIMIT 1
+                ),
+                NOW()
+            ) AS diasRestantes            
 
         FROM fornecedor_produto AS fp 
             JOIN fornecedor AS f ON (fp.fornecedorID = f.fornecedorID)
@@ -38,6 +62,10 @@ class ProdutoController {
         GROUP BY p.produtoID
         ORDER BY p.nome ASC`
         const [resultProduto] = await db.promise().query(sqlProduto)
+
+        for (let i = 0; i < resultProduto.length; i++) {
+            resultProduto[i].apresentacao = null
+        }
 
         return res.status(200).json(resultProduto)
     }
