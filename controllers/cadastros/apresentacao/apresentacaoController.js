@@ -6,13 +6,13 @@ class ApresentacaoController {
         try {
             const getList = `
             SELECT 
-            a.apresentacaoID AS id, 
-            a.nome, 
-            e.nome AS status,
-            e.cor 
+                a.apresentacaoID AS id, 
+                a.nome, 
+                e.nome AS status,
+                e.cor 
             FROM apresentacao AS a
-            JOIN status AS e ON (a.status = e.statusID)
-            `
+                JOIN status AS e ON (a.status = e.statusID)
+            ORDER BY a.nome ASC`
             const [resultGetList] = await db.promise().query(getList);
             res.status(200).json(resultGetList);
         } catch (error) {

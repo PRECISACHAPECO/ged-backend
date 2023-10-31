@@ -69,7 +69,7 @@ class RecebimentoMpController {
             WHERE r.recebimentoMpID = ? `
             const [result] = await db.promise().query(sqlResult, [id])
             const unidade = {
-                parFornecedorModeloID: result[0]['parRecebimentoMpModeloID'] ?? 0,
+                parRecebimentoMpModeloID: result[0]['parRecebimentoMpModeloID'] ?? 0,
                 unidadeID: result[0]['unidadeID'],
                 nomeFantasia: result[0]['nomeFantasia'],
                 cnpj: result[0]['cnpj']
@@ -131,100 +131,33 @@ class RecebimentoMpController {
                 }
             }
 
-            //* PRODUTOS
-            // const sqlProdutos = `
-            // SELECT fp.fornecedorProdutoID, p.*, um.nome AS unidadeMedida 
-            // FROM fornecedor_produto AS fp 
-            //     JOIN produto AS p ON (fp.produtoID = p.produtoID)
-            //     LEFT JOIN unidademedida AS um ON (p.unidadeMedidaID = um.unidadeMedidaID)
-            // WHERE fp.fornecedorID = ? AND p.status = 1`
-            // const [resultProdutos] = await db.promise().query(sqlProdutos, [id])
+            //? Produtos
+            const sqlProdutos = `
+            SELECT
+                rp.recebimentoMpProdutoID,
+                rp.quantidade,
+                DATE_FORMAT(rp.dataFabricacao, '%Y-%m-%d') AS dataFabricacao,
+                rp.lote,
+                rp.nf,
+                DATE_FORMAT(rp.dataValidade, '%Y-%m-%d') AS dataValidade,
+                
+                a.apresentacaoID,
+                a.nome AS apresentacao
+                
+            FROM recebimentomp_produto AS rp
+                JOIN produto AS p ON (rp.produtoID = p.produtoID)
+                JOIN unidademedida AS um ON (p.unidadeMedidaID = um.unidadeMedidaID)
+                LEFT JOIN apresentacao AS a ON (rp.apresentacaoID = a.apresentacaoID)
+            WHERE rp.recebimentoMpID = ?
+            ORDER BY p.nome ASC`
+            const [resultProdutos] = await db.promise().query(sqlProdutos, [id])
 
-            // // Varre produtos verificando tabela produto_anexo
-            // if (resultProdutos.length > 0) {
-            //     for (const produto of resultProdutos) {
-            //         const sqlProdutoAnexo = `
-            //         SELECT * 
-            //         FROM produto_anexo 
-            //         WHERE produtoID = ? AND status = 1`
-            //         const [resultProdutoAnexo] = await db.promise().query(sqlProdutoAnexo, [produto.produtoID])
-
-            //         for (const produtoTituloAnexo of resultProdutoAnexo) {
-            //             const sqlAnexo = `
-            //             SELECT a.*
-            //             FROM anexo AS a
-            //                 JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
-            //             WHERE ab.fornecedorID = ? AND ab.produtoAnexoID = ?`
-            //             const [resultAnexo] = await db.promise().query(sqlAnexo, [id, produtoTituloAnexo.produtoAnexoID])
-
-            //             const arrayAnexos = []
-            //             for (const anexo of resultAnexo) {
-            //                 if (anexo && anexo.anexoID > 0) {
-            //                     const objAnexo = {
-            //                         exist: true,
-            //                         anexoID: anexo.anexoID,
-            //                         path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
-            //                         nome: anexo.titulo,
-            //                         tipo: anexo.tipo,
-            //                         size: anexo.tamanho,
-            //                         time: anexo.dataHora
-            //                     }
-            //                     arrayAnexos.push(objAnexo)
-            //                 }
-            //             }
-            //             produtoTituloAnexo['anexos'] = arrayAnexos
-            //         }
-
-            //         produto['produtoAnexosDescricao'] = resultProdutoAnexo ?? []
-            //     }
-            // }
-
-            //* GRUPOS DE ANEXO
-            // const sqlGruposAnexo = `
-            // SELECT *
-            // FROM fornecedor_grupoanexo AS fg
-            //     LEFT JOIN grupoanexo AS ga ON(fg.grupoAnexoID = ga.grupoAnexoID)
-            // WHERE fg.fornecedorID = ? AND ga.status = 1`;
-            // const [resultGruposAnexo] = await db.promise().query(sqlGruposAnexo, [id]);
-
-            // const gruposAnexo = [];
-            // if (resultGruposAnexo.length > 0) {
-            //     for (const grupo of resultGruposAnexo) {
-            //         //? Pega os itens do grupo atual
-            //         const sqlItens = `SELECT * FROM grupoanexo_item WHERE grupoAnexoID = ? AND status = 1`;
-            //         const [resultGrupoItens] = await db.promise().query(sqlItens, [grupo.grupoAnexoID]);
-
-            //         //? Varre itens do grupo, verificando se tem anexo
-            //         for (const item of resultGrupoItens) {
-            //             const sqlAnexo = `
-            //             SELECT a.* 
-            //             FROM anexo AS a 
-            //                 JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
-            //             WHERE ab.fornecedorID = ? AND ab.grupoAnexoItemID = ? `
-            //             const [resultAnexo] = await db.promise().query(sqlAnexo, [id, item.grupoAnexoItemID]);
-
-            //             const arrayAnexos = []
-            //             for (const anexo of resultAnexo) {
-            //                 if (anexo && anexo.anexoID > 0) {
-            //                     const objAnexo = {
-            //                         exist: true,
-            //                         anexoID: anexo.anexoID,
-            //                         path: `${process.env.BASE_URL_API}${anexo.diretorio}${anexo.arquivo} `,
-            //                         nome: anexo.titulo,
-            //                         tipo: anexo.tipo,
-            //                         size: anexo.tamanho,
-            //                         time: anexo.dataHora
-            //                     }
-            //                     arrayAnexos.push(objAnexo)
-            //                 }
-            //             }
-            //             item['anexos'] = arrayAnexos
-            //         }
-
-            //         grupo['itens'] = resultGrupoItens
-            //         gruposAnexo.push(grupo)
-            //     }
-            // }
+            for (const produto of resultProdutos) {
+                produto['apresentacao'] = produto['apresentacaoID'] > 0 ? {
+                    id: produto['apresentacaoID'],
+                    nome: produto['apresentacao']
+                } : null
+            }
 
             const sqlBlocos = `
             SELECT *
@@ -365,7 +298,7 @@ class RecebimentoMpController {
                     } : null
                 },
                 fields: resultFields,
-                produtos: [],
+                produtos: resultProdutos ?? [],
                 blocos: resultBlocos ?? [],
                 grupoAnexo: [],
                 ultimaMovimentacao: resultLastMovimentation[0] ?? null,
