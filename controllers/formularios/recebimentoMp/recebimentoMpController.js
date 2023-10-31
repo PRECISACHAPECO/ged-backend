@@ -481,7 +481,7 @@ class RecebimentoMpController {
         if (resultUpdateObs.length === 0) { return res.json('Error'); }
 
         //* Status
-        const newStatus = data.status < 30 ? 30 : data.status
+        const newStatus = !data.status || data.status < 30 ? 30 : data.status
 
         const sqlUpdateStatus = `UPDATE recebimentomp SET status = ?, dataFim = ?, finalizaProfissionalID = ? WHERE recebimentoMpID = ? `
         const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [
