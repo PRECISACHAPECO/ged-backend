@@ -53,10 +53,15 @@ class RecebimentoMpController {
                 r.preencheProfissionalID, 
                 pp.nome AS preencheProfissionalNome,
                 
-                DATE_FORMAT(r.dataFim, '%d/%m/%Y') AS dataFim, 
-                DATE_FORMAT(r.dataFim, '%H:%i') AS horaFim, 
+                DATE_FORMAT(r.dataConclusao, '%Y-%m-%d') AS dataConclusao, 
+                DATE_FORMAT(r.dataConclusao, '%H:%i') AS horaConclusao, 
                 r.aprovaProfissionalID,
                 pap.nome AS aprovaProfissionalNome,
+
+                DATE_FORMAT(r.dataFim, '%d/%m/%Y') AS dataFim, 
+                DATE_FORMAT(r.dataFim, '%H:%i') AS horaFim, 
+                r.finalizaProfissionalID,
+                pf.nome AS finalizaProfissionalNome,
 
                 u.nomeFantasia, 
                 u.cnpj
@@ -65,6 +70,7 @@ class RecebimentoMpController {
                 LEFT JOIN profissional AS pa ON (r.abreProfissionalID = pa.profissionalID)
                 LEFT JOIN profissional AS pp ON (r.preencheProfissionalID = pp.profissionalID)
                 LEFT JOIN profissional AS pap ON (r.aprovaProfissionalID = pap.profissionalID)
+                LEFT JOIN profissional AS pf ON (r.finalizaProfissionalID = pf.profissionalID)
                 LEFT JOIN fornecedor AS f ON (r.fornecedorID = f.fornecedorID)
             WHERE r.recebimentoMpID = ? `
             const [result] = await db.promise().query(sqlResult, [id])
@@ -290,12 +296,22 @@ class RecebimentoMpController {
                 },
                 fieldsFooter: {
                     concluded: result[0].dataFim ? true : false,
-                    dataFim: result[0].dataFim,
-                    horaFim: result[0].horaFim,
+
+                    dataConclusao: result[0].dataConclusao,
+                    horaConclusao: result[0].horaConclusao,
                     profissional: result[0].aprovaProfissionalID > 0 ? {
                         id: result[0].aprovaProfissionalID,
                         nome: result[0].aprovaProfissionalNome
-                    } : null
+                    } : null,
+
+                    conclusion: {
+                        dataFim: result[0].dataFim,
+                        horaFim: result[0].horaFim,
+                        profissional: result[0].finalizaProfissionalID > 0 ? {
+                            id: result[0].finalizaProfissionalID,
+                            nome: result[0].finalizaProfissionalNome
+                        } : null
+                    }
                 },
                 fields: resultFields,
                 produtos: resultProdutos ?? [],
@@ -323,75 +339,78 @@ class RecebimentoMpController {
 
         if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
 
-        const sqlStatus = `SELECT status FROM recebimentomp WHERE recebimentoMpID = ?`
-        const [resultStatus] = await db.promise().query(sqlStatus, [id])
+        const sqlSelect = `SELECT status FROM recebimentomp WHERE recebimentoMpID = ? `
+        const [resultStatus] = await db.promise().query(sqlSelect, [id])
 
-        // Header         
-        let dataHeader
+        //? Atualiza header e footer fixos
+        const sqlStaticlHeader = `
+        UPDATE recebimentomp SET data = ?, profissionalID = ?, fornecedorID = ?, 
+        WHERE recebimentoMpID = ${id}`
+        const [resultStaticHeader] = await db.promise().query(sqlStaticlHeader, [
+            data.fieldsHeader?.data ? `${data.fieldsHeader.data} ${data.fieldsHeader.hora}` : null,
+            data.fieldsHeader.profissional.id ?? null,
+            data.fieldsHeader.fornecedor.id ?? null
+        ])
+
+        //? Atualizar o header dinâmico e setar o status        
         if (data.fields) {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
-            dataHeader = await formatFieldsToTable('par_recebimentomp', data.fields)
-            console.log("🚀 ~ dataHeader:", dataHeader)
-            const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentoMpID = ${id}`;
+            let dataHeader = await formatFieldsToTable('par_recebimentomp', data.fields)
+            const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentoMpID = ${id} `;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
         }
 
-        // Blocos 
+        //? Blocos 
         for (const bloco of data.blocos) {
-            if (bloco && bloco.parRecebimentoMpModeloBlocoID && bloco.parRecebimentoMpModeloBlocoID > 0) {
-                // Itens 
+            // Itens 
+            if (bloco && bloco.parRecebimentoMpModeloBlocoID && bloco.parRecebimentoMpModeloBlocoID > 0 && bloco.itens) {
                 for (const item of bloco.itens) {
                     if (item && item.itemID && item.itemID > 0) {
-                        if (item.resposta || item.observacao) {
-                            // Verifica se já existe registro em fornecedor_resposta, com o fornecedorID, parFornecedorBlocoID e itemID, se houver, faz update, senao faz insert 
-                            const sqlVerificaResposta = `SELECT * FROM recebimentomp_resposta WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ?`
-                            const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parRecebimentoMpModeloBlocoID, item.itemID])
+                        // Verifica se já existe registro em recebimentomp_resposta, com o recebimentompID, parRecebimentoMpModeloBlocoID e itemID, se houver, faz update, senao faz insert 
+                        const sqlVerificaResposta = `SELECT * FROM recebimentomp_resposta WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
+                        const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parRecebimentoMpModeloBlocoID, item.itemID])
 
-                            const resposta = item.resposta?.id > 0 ? item.resposta.nome : item.resposta ? item.resposta : ''
-                            const respostaID = item.resposta?.id > 0 ? item.resposta.id : null
-                            const observacao = item.observacao != undefined ? item.observacao : ''
+                        const resposta = item.resposta && item.resposta.nome ? item.resposta.nome : item.resposta
+                        const respostaID = item.resposta && item.resposta.id > 0 ? item.resposta.id : null
+                        const observacao = item.observacao != undefined ? item.observacao : ''
 
-                            if (resultVerificaResposta.length === 0) {
-                                // insert na tabela fornecedor_resposta
-                                const sqlInsert = `INSERT INTO recebimentomp_resposta (recebimentoMpID, parRecebimentoMpModeloBlocoID, itemID, resposta, respostaID, obs) VALUES (?, ?, ?, ?, ?, ?)`
-                                const [resultInsert] = await db.promise().query(sqlInsert, [
-                                    id,
-                                    bloco.parRecebimentoMpModeloBlocoID,
-                                    item.itemID,
-                                    resposta,
-                                    respostaID,
-                                    observacao,
-                                ])
-                                if (resultInsert.length === 0) { return res.status(500).json('Error'); }
-                            } else {
-                                // update na tabela fornecedor_resposta
-                                const sqlUpdate = `
-                                UPDATE 
-                                    recebimentomp_resposta 
-                                SET resposta = ?,
-                                    respostaID = ?,
-                                    obs = ?,
-                                    recebimentoMpID = ?
-                                WHERE recebimentoMpID = ? 
-                                    AND parRecebimentoMpModeloBlocoID = ? 
-                                    AND itemID = ?`
-                                const [resultUpdate] = await db.promise().query(sqlUpdate, [
-                                    resposta,
-                                    respostaID,
-                                    observacao,
-                                    id,
-                                    id,
-                                    bloco.parRecebimentoMpModeloBlocoID,
-                                    item.itemID
-                                ])
-                                if (resultUpdate.length === 0) { return res.json('Error'); }
-                            }
+                        if (resposta && resultVerificaResposta.length === 0) {
+                            const sqlInsert = `INSERT INTO recebimentomp_resposta(recebimentoMpID, parRecebimentoMpModeloBlocoID, itemID, resposta, respostaID, obs) VALUES(?, ?, ?, ?, ?, ?)`
+                            const [resultInsert] = await db.promise().query(sqlInsert, [
+                                id,
+                                bloco.parRecebimentoMpModeloBlocoID,
+                                item.itemID,
+                                resposta,
+                                respostaID,
+                                observacao
+                            ])
+                            if (resultInsert.length === 0) { return res.json('Error'); }
+                        } else if (resposta && resultVerificaResposta.length > 0) {
+                            const sqlUpdate = `
+                            UPDATE recebimentomp_resposta 
+                            SET resposta = ?, respostaID = ?, obs = ?, recebimentoMpID = ?
+                            WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
+                            const [resultUpdate] = await db.promise().query(sqlUpdate, [
+                                resposta,
+                                respostaID,
+                                observacao,
+                                id,
+                                id,
+                                bloco.parRecebimentoMpModeloBlocoID,
+                                item.itemID
+                            ])
+                            if (resultUpdate.length === 0) { return res.json('Error'); }
+                        }
+                        else if (!resposta) {
+                            const sqlDelete = `DELETE FROM recebimentomp_resposta WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
+                            const [resultDelete] = await db.promise().query(sqlDelete, [id, bloco.parRecebimentoMpModeloBlocoID, item.itemID])
                         }
                     }
                 }
+
             }
-        }
+        } // laço blocos..
 
         // Observação
         const sqlUpdateObs = `UPDATE recebimentomp SET obs = ?, obsConclusao = ? WHERE recebimentoMpID = ? `
@@ -399,36 +418,19 @@ class RecebimentoMpController {
         if (resultUpdateObs.length === 0) { return res.json('Error'); }
 
         //* Status
-        //? 10->Pendente (ainda não concluiu) 50->Reprovado 60->Aprovado Parcial 70->Aprovado	
-        const newStatus = data.status > 30 ? data.status : 30
+        //? É um recebimentomp e é um status anterior, seta status pra "Em preenchimento" (30)
+        const newStatus = data.status < 30 ? 30 : data.status
 
         const sqlUpdateStatus = `UPDATE recebimentomp SET status = ? WHERE recebimentoMpID = ? `
         const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])
 
         //? Gera histórico de alteração de status (se houve alteração)
         if (resultStatus[0]['status'] != newStatus) {
-            const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, resultStatus[0]['status'] ?? '0', newStatus, data?.obsConclusao)
+            const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultStatus[0]['status'] ?? '0', newStatus, data?.obsConclusao)
             if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
         }
 
-        //* Verifica se está concluindo e se irá gerar uma não conformidade
-        // if ((newStatus == 50 || newStatus == 60) && data.naoConformidade && dataHeader.fornecedorID > 0) {
-        //     const sqlNC = `INSERT INTO recebimentomp_naoconformidade (recebimentoMpID, fornecedorID, unidadeID, status, dataCadastro) VALUES (?, ?, ?, ?, ?)`
-        //     const [resultNC] = await db.promise().query(sqlNC, [id, dataHeader.fornecedorID, unidadeID, 10, new Date()])
-        //     const recebimentompNaoconformidadeID = resultNC.insertId //? ID da não conformidade gerada
-
-        //     const movimentation = await addFormStatusMovimentation(3, recebimentompNaoconformidadeID, usuarioID, unidadeID, papelID, '0', '30', data?.obsConclusao)
-        //     if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
-
-        //     //? Retorna com o id da não conformidade pra já redirecionar pra não conformidade gerada
-        //     return res.status(200).json({
-        //         naoConformidade: true,
-        //         id: recebimentompNaoconformidadeID
-        //     })
-        // }
-
         res.status(200).json({})
-
     }
 }
 
