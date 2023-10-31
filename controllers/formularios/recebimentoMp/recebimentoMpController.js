@@ -28,9 +28,36 @@ class RecebimentoMpController {
         return res.json(result);
     }
 
-    async getNewData(req, res) {
-        const { unidadeID } = req.body
+    async getModels(req, res) {
+        const { unidadeID } = req.params;
+        console.log("🚀 ~ unidadeID:", unidadeID)
 
+        const sql = `
+        SELECT a.parRecebimentoMpModeloID AS id, CONCAT(a.nome, " (ciclo de ", a.ciclo, " dias)") AS nome, a.ciclo, a.cabecalho
+        FROM par_recebimentomp_modelo AS a 
+        WHERE a.unidadeID = ? AND a.status = 1 
+        ORDER BY a.nome ASC`
+        const [result] = await db.promise().query(sql, [unidadeID])
+
+        return res.status(200).json(result)
+    }
+
+    async insertData(req, res) {
+        const data = req.body
+
+        if (!data.model.id || !data.profissionalID || !data.unidadeID) return res.status(400).json({ message: 'Erro ao inserir formulário!' })
+
+        const sqlInsert = `INSERT INTO recebimentomp SET parRecebimentoMpModeloID = ?, data = ?, dataInicio = ?, abreProfissionalID = ?, unidadeID = ?`
+        const [resultInsert] = await db.promise().query(sqlInsert, [
+            data.model.id,
+            new Date(),
+            new Date(),
+            data.profissionalID,
+            data.unidadeID
+        ])
+        const recebimentoMpID = resultInsert.insertId
+
+        return res.status(200).json({ recebimentoMpID })
     }
 
     async getData(req, res) {
@@ -40,44 +67,44 @@ class RecebimentoMpController {
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar formulário!' }) }
 
             const sqlResult = `
-            SELECT 
-                r.parRecebimentoMpModeloID, 
-                r.unidadeID, 
-                DATE_FORMAT(r.dataInicio, '%d/%m/%Y') AS dataInicio, 
-                DATE_FORMAT(r.dataInicio, '%H:%i') AS horaInicio, 
-                r.abreProfissionalID,
-                pa.nome AS abreProfissionalNome,
+        SELECT
+        r.parRecebimentoMpModeloID,
+            r.unidadeID,
+            DATE_FORMAT(r.dataInicio, '%d/%m/%Y') AS dataInicio,
+                DATE_FORMAT(r.dataInicio, '%H:%i') AS horaInicio,
+                    r.abreProfissionalID,
+                    pa.nome AS abreProfissionalNome,
 
-                -- Fornecedor
+                        -- Fornecedor
                 f.fornecedorID,
-                CONCAT(f.nome, " (", f.cnpj, ")") AS nomeFornecedor,
+            CONCAT(f.nome, " (", f.cnpj, ")") AS nomeFornecedor,
                 f.telefone AS telefoneFornecedor,
-                CONCAT(f.cidade, "/", f.estado) AS cidadeFornecedor,
-                
-                DATE_FORMAT(r.data, '%Y-%m-%d') AS data, 
-                DATE_FORMAT(r.data, '%H:%i') AS hora,    
-                r.preencheProfissionalID, 
-                pp.nome AS preencheProfissionalNome,
-                
-                DATE_FORMAT(r.dataConclusao, '%Y-%m-%d') AS dataConclusao, 
-                DATE_FORMAT(r.dataConclusao, '%H:%i') AS horaConclusao, 
-                r.aprovaProfissionalID,
-                pap.nome AS aprovaProfissionalNome,
+                    CONCAT(f.cidade, "/", f.estado) AS cidadeFornecedor,
 
-                DATE_FORMAT(r.dataFim, '%d/%m/%Y') AS dataFim, 
-                DATE_FORMAT(r.dataFim, '%H:%i') AS horaFim, 
-                r.finalizaProfissionalID,
-                pf.nome AS finalizaProfissionalNome,
+                        DATE_FORMAT(r.data, '%Y-%m-%d') AS data,
+                            DATE_FORMAT(r.data, '%H:%i') AS hora,
+                                r.preencheProfissionalID,
+                                pp.nome AS preencheProfissionalNome,
 
-                u.nomeFantasia, 
-                u.cnpj
+                                    DATE_FORMAT(r.dataConclusao, '%Y-%m-%d') AS dataConclusao,
+                                        DATE_FORMAT(r.dataConclusao, '%H:%i') AS horaConclusao,
+                                            r.aprovaProfissionalID,
+                                            pap.nome AS aprovaProfissionalNome,
+
+                                                DATE_FORMAT(r.dataFim, '%d/%m/%Y') AS dataFim,
+                                                    DATE_FORMAT(r.dataFim, '%H:%i') AS horaFim,
+                                                        r.finalizaProfissionalID,
+                                                        pf.nome AS finalizaProfissionalNome,
+
+                                                            u.nomeFantasia,
+                                                            u.cnpj
             FROM recebimentomp AS r
                 LEFT JOIN unidade AS u ON(r.unidadeID = u.unidadeID)
-                LEFT JOIN profissional AS pa ON (r.abreProfissionalID = pa.profissionalID)
-                LEFT JOIN profissional AS pp ON (r.preencheProfissionalID = pp.profissionalID)
-                LEFT JOIN profissional AS pap ON (r.aprovaProfissionalID = pap.profissionalID)
-                LEFT JOIN profissional AS pf ON (r.finalizaProfissionalID = pf.profissionalID)
-                LEFT JOIN fornecedor AS f ON (r.fornecedorID = f.fornecedorID)
+                LEFT JOIN profissional AS pa ON(r.abreProfissionalID = pa.profissionalID)
+                LEFT JOIN profissional AS pp ON(r.preencheProfissionalID = pp.profissionalID)
+                LEFT JOIN profissional AS pap ON(r.aprovaProfissionalID = pap.profissionalID)
+                LEFT JOIN profissional AS pf ON(r.finalizaProfissionalID = pf.profissionalID)
+                LEFT JOIN fornecedor AS f ON(r.fornecedorID = f.fornecedorID)
             WHERE r.recebimentoMpID = ? `
             const [result] = await db.promise().query(sqlResult, [id])
             const unidade = {
@@ -92,8 +119,8 @@ class RecebimentoMpController {
             const sqlFields = `
             SELECT *
             FROM par_recebimentomp AS pr
-                LEFT JOIN par_recebimentomp_modelo_cabecalho AS prmc ON (pr.parRecebimentoMpID = prmc.parRecebimentoMpID)
-            WHERE prmc.parRecebimentoMpModeloID = ? 
+                LEFT JOIN par_recebimentomp_modelo_cabecalho AS prmc ON(pr.parRecebimentoMpID = prmc.parRecebimentoMpID)
+            WHERE prmc.parRecebimentoMpModeloID = ?
             ORDER BY prmc.ordem ASC`
             const [resultFields] = await db.promise().query(sqlFields, [modeloID])
 
@@ -146,20 +173,20 @@ class RecebimentoMpController {
             //? Produtos
             const sqlProdutos = `
             SELECT
-                rp.recebimentoMpProdutoID,
-                rp.quantidade,
-                DATE_FORMAT(rp.dataFabricacao, '%Y-%m-%d') AS dataFabricacao,
+        rp.recebimentoMpProdutoID,
+            rp.quantidade,
+            DATE_FORMAT(rp.dataFabricacao, '%Y-%m-%d') AS dataFabricacao,
                 rp.lote,
                 rp.nf,
                 DATE_FORMAT(rp.dataValidade, '%Y-%m-%d') AS dataValidade,
-                
-                a.apresentacaoID,
-                a.nome AS apresentacao
+
+                    a.apresentacaoID,
+                    a.nome AS apresentacao
                 
             FROM recebimentomp_produto AS rp
-                JOIN produto AS p ON (rp.produtoID = p.produtoID)
-                JOIN unidademedida AS um ON (p.unidadeMedidaID = um.unidadeMedidaID)
-                LEFT JOIN apresentacao AS a ON (rp.apresentacaoID = a.apresentacaoID)
+                JOIN produto AS p ON(rp.produtoID = p.produtoID)
+                JOIN unidademedida AS um ON(p.unidadeMedidaID = um.unidadeMedidaID)
+                LEFT JOIN apresentacao AS a ON(rp.apresentacaoID = a.apresentacaoID)
             WHERE rp.recebimentoMpID = ?
             ORDER BY p.nome ASC`
             const [resultProdutos] = await db.promise().query(sqlProdutos, [id])
@@ -172,7 +199,7 @@ class RecebimentoMpController {
             }
 
             const sqlBlocos = `
-            SELECT *
+        SELECT *
             FROM par_recebimentomp_modelo_bloco
             WHERE parRecebimentoMpModeloID = ? AND status = 1
             ORDER BY ordem ASC`
@@ -201,18 +228,18 @@ class RecebimentoMpController {
                     const sqlRespostaAnexos = `
                     SELECT io.itemOpcaoID, io.anexo, io.bloqueiaFormulario, io.observacao, ioa.itemOpcaoAnexoID, ioa.nome, ioa.obrigatorio
                     FROM item_opcao AS io 
-                        LEFT JOIN item_opcao_anexo AS ioa ON (io.itemOpcaoID = ioa.itemOpcaoID)
-                    WHERE io.itemID = ? AND io.alternativaItemID = ?`
+                        LEFT JOIN item_opcao_anexo AS ioa ON(io.itemOpcaoID = ioa.itemOpcaoID)
+                    WHERE io.itemID = ? AND io.alternativaItemID = ? `
                     const [resultRespostaAnexos] = await db.promise().query(sqlRespostaAnexos, [item.itemID, item?.respostaID ?? 0])
 
                     if (resultRespostaAnexos.length > 0) {
                         for (const respostaAnexo of resultRespostaAnexos) {
                             //? Verifica se cada anexo exigido existe 1 ou mais arquivos anexados
                             const sqlArquivosAnexadosResposta = `
-                            SELECT * 
-                            FROM anexo AS a 
-                                JOIN anexo_busca AS ab ON (a.anexoID = ab.anexoID)
-                            WHERE ab.recebimentoMpID = ? AND ab.parRecebimentoMpModeloBlocoID = ? AND ab.itemOpcaoAnexoID = ?`
+                            SELECT *
+            FROM anexo AS a 
+                                JOIN anexo_busca AS ab ON(a.anexoID = ab.anexoID)
+                            WHERE ab.recebimentoMpID = ? AND ab.parRecebimentoMpModeloBlocoID = ? AND ab.itemOpcaoAnexoID = ? `
                             const [resultArquivosAnexadosResposta] = await db.promise().query(sqlArquivosAnexadosResposta, [id, bloco.parRecebimentoMpModeloBlocoID, respostaAnexo.itemOpcaoAnexoID])
 
                             let anexos = []
@@ -250,18 +277,18 @@ class RecebimentoMpController {
 
             //* Última movimentação do formulário
             const sqlLastMovimentation = `
-            SELECT 
-                u.nome, 
-                un.nomeFantasia, 
-                s1.nome AS statusAnterior, 
+        SELECT
+        u.nome,
+            un.nomeFantasia,
+            s1.nome AS statusAnterior,
                 s2.nome AS statusAtual,
-                DATE_FORMAT(m.dataHora, '%d/%m/%Y %H:%i') AS dataHora, 
-                m.observacao
+                    DATE_FORMAT(m.dataHora, '%d/%m/%Y %H:%i') AS dataHora,
+                        m.observacao
             FROM movimentacaoformulario AS m
-                JOIN usuario AS u ON (m.usuarioID = u.usuarioID)
-                JOIN unidade AS un ON (m.unidadeID = un.unidadeID)
-                LEFT JOIN status AS s1 ON (s1.statusID = m.statusAnterior)
-                LEFT JOIN status AS s2 ON (s2.statusID = m.statusAtual)
+                JOIN usuario AS u ON(m.usuarioID = u.usuarioID)
+                JOIN unidade AS un ON(m.unidadeID = un.unidadeID)
+                LEFT JOIN status AS s1 ON(s1.statusID = m.statusAnterior)
+                LEFT JOIN status AS s2 ON(s2.statusID = m.statusAtual)
             WHERE m.parFormularioID = 2 AND m.id = ?
             ORDER BY m.movimentacaoFormularioID DESC 
             LIMIT 1`
@@ -271,7 +298,7 @@ class RecebimentoMpController {
             const sqlCabecalhoModelo = `
             SELECT cabecalho
             FROM par_recebimentomp_modelo
-            WHERE parRecebimentoMpModeloID = ?`
+            WHERE parRecebimentoMpModeloID = ? `
             const [resultCabecalhoModelo] = await db.promise().query(sqlCabecalhoModelo, [modeloID])
 
             const data = {
@@ -329,7 +356,7 @@ class RecebimentoMpController {
                     status: resultOtherInformations[0].status,
                     cabecalhoModelo: resultCabecalhoModelo[0].cabecalho
                 },
-                link: `${process.env.BASE_URL}formularios/recebimento-mp?id=${id}`
+                link: `${process.env.BASE_URL} formularios / recebimento - mp ? id = ${id} `
             }
 
             res.status(200).json(data);
@@ -351,13 +378,13 @@ class RecebimentoMpController {
         //? Atualiza header e footer fixos
         const sqlStaticlHeader = `
         UPDATE recebimentomp SET data = ?, preencheProfissionalID = ?, fornecedorID = ?, dataConclusao = ?, aprovaProfissionalID = ?
-        WHERE recebimentoMpID = ?`
+            WHERE recebimentoMpID = ? `
         const [resultStaticHeader] = await db.promise().query(sqlStaticlHeader, [
-            data.fieldsHeader?.data ? `${data.fieldsHeader.data} ${data.fieldsHeader.hora}` : null,
-            data.fieldsHeader.profissional.id ?? null,
-            data.fieldsHeader.fornecedor.id ?? null,
-            data.fieldsFooter?.dataConclusao ? `${data.fieldsFooter.dataConclusao} ${data.fieldsFooter.horaConclusao}` : null,
-            data.fieldsFooter.profissional.id ?? null,
+            data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora} ` : null,
+            data.fieldsHeader?.profissional?.id ?? null,
+            data.fieldsHeader?.fornecedor?.id ?? null,
+            data.fieldsFooter?.dataConclusao ? `${data.fieldsFooter.dataConclusao} ${data.fieldsFooter.horaConclusao} ` : null,
+            data.fieldsFooter?.profissional?.id ?? null,
             id
         ])
 
@@ -373,13 +400,13 @@ class RecebimentoMpController {
         //? Produtos
         if (data.produtos && data.produtos.length > 0) {
             // Deleta produtos do recebimento
-            const sqlDeleteProduto = `DELETE FROM recebimentomp_produto WHERE recebimentoMpID = ?`
+            const sqlDeleteProduto = `DELETE FROM recebimentomp_produto WHERE recebimentoMpID = ? `
             const [resultDeleteProduto] = await db.promise().query(sqlDeleteProduto, [id])
             for (const produto of data.produtos) {
                 if (produto && produto.checked) { //? Marcou o produto no checkbox
                     if (produto && produto.produtoID > 0) {
                         const sqlInsertProduto = `
-                        INSERT INTO recebimentomp_produto(recebimentoMpID, produtoID, quantidade, dataFabricacao, lote, nf, dataValidade, apresentacaoID) 
+                        INSERT INTO recebimentomp_produto(recebimentoMpID, produtoID, quantidade, dataFabricacao, lote, nf, dataValidade, apresentacaoID)
                         VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
                         const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [
                             id,
@@ -426,7 +453,7 @@ class RecebimentoMpController {
                             const sqlUpdate = `
                             UPDATE recebimentomp_resposta 
                             SET resposta = ?, respostaID = ?, obs = ?, recebimentoMpID = ?
-                            WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
+            WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
                             const [resultUpdate] = await db.promise().query(sqlUpdate, [
                                 resposta,
                                 respostaID,
@@ -545,7 +572,7 @@ class RecebimentoMpController {
 
         //? Remover arquivo do diretório
         if (resultCurrentFile) {
-            const pathFile = `uploads/${unidadeID}/recebimento-mp/${folder} /`
+            const pathFile = `uploads / ${unidadeID} /recebimento-mp/${folder} /`
             const previousFile = path.resolve(pathFile, resultCurrentFile);
             fs.unlink(previousFile, (error) => {
                 if (error) {
