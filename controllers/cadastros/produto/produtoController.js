@@ -98,10 +98,10 @@ class ProdutoController {
 
         for (let i = 0; i < resultProduto.length; i++) {
             resultProduto[i].checked = resultProduto[i].checked == '1' ? true : false
-            resultProduto[i].apresentacao = {
+            resultProduto[i].apresentacao = resultProduto[i].apresentacaoID > 0 ? {
                 id: resultProduto[i].apresentacaoID,
                 nome: resultProduto[i].apresentacaoNome
-            }
+            } : null
         }
 
         return res.status(200).json(resultProduto)

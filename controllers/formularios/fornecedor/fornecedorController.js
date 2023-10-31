@@ -166,6 +166,9 @@ class FornecedorController {
         const sqlDelete = `DELETE FROM anexo WHERE anexoID = ?`;
         const [resultDelete] = await db.promise().query(sqlDelete, [anexoID])
 
+        const sqlDeleteBusca = `DELETE FROM anexo_busca WHERE anexoID = ?`;
+        const [resultDeleteBusca] = await db.promise().query(sqlDeleteBusca, [anexoID])
+
         res.status(200).json(anexoID);
     }
 

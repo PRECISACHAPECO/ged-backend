@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv/config')
 const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
+const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts } = require('../../../config/defaultConfig');
 
 class RecebimentoMpController {
     async getList(req, res) {
@@ -25,6 +26,11 @@ class RecebimentoMpController {
         const [result] = await db.promise().query(sql, [unidadeID])
 
         return res.json(result);
+    }
+
+    async getNewData(req, res) {
+        const { unidadeID } = req.body
+
     }
 
     async getData(req, res) {
@@ -370,22 +376,23 @@ class RecebimentoMpController {
             const sqlDeleteProduto = `DELETE FROM recebimentomp_produto WHERE recebimentoMpID = ?`
             const [resultDeleteProduto] = await db.promise().query(sqlDeleteProduto, [id])
             for (const produto of data.produtos) {
-                console.log("🚀 ~ produto:", produto)
                 if (produto && produto.checked) { //? Marcou o produto no checkbox
-                    const sqlInsertProduto = `
-                    INSERT INTO recebimentomp_produto(recebimentoMpID, produtoID, quantidade, dataFabricacao, lote, nf, dataValidade, apresentacaoID) 
-                    VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
-                    const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [
-                        id,
-                        produto.produtoID,
-                        produto.quantidade ?? null,
-                        produto.dataFabricacao ?? null,
-                        produto.lote ?? null,
-                        produto.nf ?? null,
-                        produto.dataValidade ?? null,
-                        produto.apresentacao?.id ?? null
-                    ])
-                    if (resultInsertProduto.length === 0) { return res.json('Error'); }
+                    if (produto && produto.produtoID > 0) {
+                        const sqlInsertProduto = `
+                        INSERT INTO recebimentomp_produto(recebimentoMpID, produtoID, quantidade, dataFabricacao, lote, nf, dataValidade, apresentacaoID) 
+                        VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
+                        const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [
+                            id,
+                            produto.produtoID,
+                            produto.quantidade ?? null,
+                            produto.dataFabricacao ?? null,
+                            produto.lote ?? null,
+                            produto.nf ?? null,
+                            produto.dataValidade ?? null,
+                            produto.apresentacao?.id ?? null
+                        ])
+                        if (resultInsertProduto.length === 0) { return res.json('Error'); }
+                    }
                 }
             }
         }
@@ -464,6 +471,99 @@ class RecebimentoMpController {
         }
 
         res.status(200).json({})
+    }
+
+    //* Salva os anexos do formulário na pasta uploads/anexo e insere os dados na tabela anexo
+    async saveAnexo(req, res) {
+        try {
+            const { id } = req.params;
+            const pathDestination = req.pathDestination
+            const files = req.files; //? Array de arquivos
+
+            const { usuarioID, unidadeID, produtoAnexoID, grupoAnexoItemID, parRecebimentoMpModeloBlocoID, itemOpcaoAnexoID } = req.body;
+            console.log("🚀 ~ parRecebimentoMpModeloBlocoID:", parRecebimentoMpModeloBlocoID)
+
+            //? Verificar se há arquivos enviados
+            if (!files || files.length === 0) {
+                return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+            }
+
+            let result = []
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+
+                //? Insere em anexo
+                const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
+                const [resultInsert] = await db.promise().query(sqlInsert, [
+                    removeSpecialCharts(file.originalname),
+                    pathDestination,
+                    file.filename,
+                    file.size,
+                    file.mimetype,
+                    usuarioID,
+                    unidadeID,
+                    new Date()
+                ])
+                const anexoID = resultInsert.insertId;
+
+                //? Insere em anexo_busca
+                const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, recebimentoMpID, produtoAnexoID, grupoAnexoItemID, parRecebimentoMpModeloBlocoID, itemOpcaoAnexoID) VALUES(?,?,?,?,?,?)`;
+                const [resultInsertBusca] = await db.promise().query(sqlInsertBusca, [
+                    anexoID,
+                    id,
+                    produtoAnexoID ?? null,
+                    grupoAnexoItemID ?? null,
+                    parRecebimentoMpModeloBlocoID ?? null,
+                    itemOpcaoAnexoID ?? null
+                ])
+
+                const objAnexo = {
+                    exist: true,
+                    anexoID: anexoID,
+                    path: `${process.env.BASE_URL_API}${pathDestination}${file.filename} `,
+                    nome: file.originalname,
+                    tipo: file.mimetype,
+                    size: file.size,
+                    time: new Date(),
+                }
+                result.push(objAnexo)
+            }
+
+            return res.status(200).json(result)
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async deleteAnexo(req, res) {
+        const { id, anexoID, unidadeID, usuarioID, folder } = req.params;
+
+        //? Obtém o caminho do anexo atual
+        const sqlCurrentFile = `SELECT arquivo FROM anexo WHERE anexoID = ? `;
+        const [tempResultCurrentFile] = await db.promise().query(sqlCurrentFile, [anexoID])
+        const resultCurrentFile = tempResultCurrentFile[0]?.arquivo;
+
+        //? Remover arquivo do diretório
+        if (resultCurrentFile) {
+            const pathFile = `uploads/${unidadeID}/recebimento-mp/${folder} /`
+            const previousFile = path.resolve(pathFile, resultCurrentFile);
+            fs.unlink(previousFile, (error) => {
+                if (error) {
+                    return console.error('Erro ao remover o anexo:', error);
+                } else {
+                    return console.log('Anexo removido com sucesso!');
+                }
+            });
+        }
+
+        //? Remove anexo do BD
+        const sqlDelete = `DELETE FROM anexo WHERE anexoID = ?`;
+        const [resultDelete] = await db.promise().query(sqlDelete, [anexoID])
+
+        const sqlDeleteBusca = `DELETE FROM anexo_busca WHERE anexoID = ?`;
+        const [resultDeleteBusca] = await db.promise().query(sqlDeleteBusca, [anexoID])
+
+        res.status(200).json(anexoID);
     }
 }
 
