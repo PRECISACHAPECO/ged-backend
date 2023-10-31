@@ -335,7 +335,7 @@ class RecebimentoMpController {
     async updateData(req, res) {
         const { id } = req.params
         const data = req.body.form
-        const { usuarioID, papelID, unidadeID } = req.body.auth
+        const { usuarioID, profissionalID, papelID, unidadeID } = req.body.auth
 
         if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
 
@@ -344,12 +344,15 @@ class RecebimentoMpController {
 
         //? Atualiza header e footer fixos
         const sqlStaticlHeader = `
-        UPDATE recebimentomp SET data = ?, profissionalID = ?, fornecedorID = ?, 
-        WHERE recebimentoMpID = ${id}`
+        UPDATE recebimentomp SET data = ?, preencheProfissionalID = ?, fornecedorID = ?, dataConclusao = ?, aprovaProfissionalID = ?
+        WHERE recebimentoMpID = ?`
         const [resultStaticHeader] = await db.promise().query(sqlStaticlHeader, [
             data.fieldsHeader?.data ? `${data.fieldsHeader.data} ${data.fieldsHeader.hora}` : null,
             data.fieldsHeader.profissional.id ?? null,
-            data.fieldsHeader.fornecedor.id ?? null
+            data.fieldsHeader.fornecedor.id ?? null,
+            data.fieldsFooter?.dataConclusao ? `${data.fieldsFooter.dataConclusao} ${data.fieldsFooter.horaConclusao}` : null,
+            data.fieldsFooter.profissional.id ?? null,
+            id
         ])
 
         //? Atualizar o header dinâmico e setar o status        
@@ -359,6 +362,32 @@ class RecebimentoMpController {
             const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentoMpID = ${id} `;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
+        }
+
+        //? Produtos
+        if (data.produtos && data.produtos.length > 0) {
+            // Deleta produtos do recebimento
+            const sqlDeleteProduto = `DELETE FROM recebimentomp_produto WHERE recebimentoMpID = ?`
+            const [resultDeleteProduto] = await db.promise().query(sqlDeleteProduto, [id])
+            for (const produto of data.produtos) {
+                console.log("🚀 ~ produto:", produto)
+                if (produto && produto.checked) { //? Marcou o produto no checkbox
+                    const sqlInsertProduto = `
+                    INSERT INTO recebimentomp_produto(recebimentoMpID, produtoID, quantidade, dataFabricacao, lote, nf, dataValidade, apresentacaoID) 
+                    VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
+                    const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [
+                        id,
+                        produto.produtoID,
+                        produto.quantidade ?? null,
+                        produto.dataFabricacao ?? null,
+                        produto.lote ?? null,
+                        produto.nf ?? null,
+                        produto.dataValidade ?? null,
+                        produto.apresentacao?.id ?? null
+                    ])
+                    if (resultInsertProduto.length === 0) { return res.json('Error'); }
+                }
+            }
         }
 
         //? Blocos 
@@ -418,15 +447,19 @@ class RecebimentoMpController {
         if (resultUpdateObs.length === 0) { return res.json('Error'); }
 
         //* Status
-        //? É um recebimentomp e é um status anterior, seta status pra "Em preenchimento" (30)
         const newStatus = data.status < 30 ? 30 : data.status
 
-        const sqlUpdateStatus = `UPDATE recebimentomp SET status = ? WHERE recebimentoMpID = ? `
-        const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])
+        const sqlUpdateStatus = `UPDATE recebimentomp SET status = ?, dataFim = ?, finalizaProfissionalID = ? WHERE recebimentoMpID = ? `
+        const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [
+            newStatus,
+            newStatus >= 40 ? new Date() : null,
+            newStatus >= 40 ? profissionalID : null,
+            id
+        ])
 
         //? Gera histórico de alteração de status (se houve alteração)
         if (resultStatus[0]['status'] != newStatus) {
-            const movimentation = await addFormStatusMovimentation(1, id, usuarioID, unidadeID, papelID, resultStatus[0]['status'] ?? '0', newStatus, data?.obsConclusao)
+            const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, resultStatus[0]['status'] ?? '0', newStatus, data?.obsConclusao)
             if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
         }
 

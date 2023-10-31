@@ -3,7 +3,7 @@ const { hasConflict, hasPending, deleteItem } = require('../../../config/default
 
 class ProdutoController {
     async getProdutosFornecedor(req, res) {
-        const { fornecedorID } = req.body
+        const { recebimentoMpID, fornecedorID } = req.body
 
         //? Obtém o CNPJ do fornecedor
         const sqlFornecedor = `SELECT parFornecedorModeloID, cnpj, unidadeID FROM fornecedor WHERE fornecedorID = ?`
@@ -22,8 +22,43 @@ class ProdutoController {
         //? Busca os produtos habilitados por esse fornecedor (cnpj)
         const sqlProduto = `
         SELECT 
-            p.produtoID AS id, 
+            p.produtoID, 
             CONCAT(p.nome, " (", um.nome, ")") AS nome,
+
+            -- Recebimento de MP (valores)
+            (
+            	SELECT IF(COUNT(*) > 0, 1, 0)
+                FROM recebimentomp_produto AS rp 
+                WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
+            ) AS checked,            
+            (
+            	SELECT rp.quantidade
+                FROM recebimentomp_produto AS rp 
+                WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
+            ) AS quantidade,
+            (
+            	SELECT DATE_FORMAT(rp.dataFabricacao, '%Y-%m-%d')
+                FROM recebimentomp_produto AS rp 
+                WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
+            ) AS dataFabricacao,
+            (
+            	SELECT DATE_FORMAT(rp.dataValidade, '%Y-%m-%d')
+                FROM recebimentomp_produto AS rp 
+                WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
+            ) AS dataValidade,
+            (
+            	SELECT rp.apresentacaoID
+                FROM recebimentomp_produto AS rp 
+                WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
+            ) AS apresentacaoID,
+            (
+            	SELECT a.nome
+                FROM recebimentomp_produto AS rp 
+                    JOIN apresentacao AS a ON (rp.apresentacaoID = a.apresentacaoID)
+                WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
+            ) AS apresentacaoNome,            
+
+            -- Fornecedor (opções de produtos habilitados pro fornecedor selecionado)
             (
                 SELECT DATE_FORMAT(b.dataFim, "%d/%m/%Y") AS dataFim
                 FROM fornecedor_produto AS a
@@ -31,8 +66,7 @@ class ProdutoController {
                 WHERE a.produtoID = fp.produtoID AND b.cnpj = "${cnpj}" AND b.status IN (60, 70) AND b.unidadeID = ${unidadeID}
                 ORDER BY b.dataFim DESC
                 LIMIT 1
-            ) AS ultimaAvaliacao,
-            
+            ) AS ultimaAvaliacao,            
             (
                 SELECT DATE_FORMAT(DATE_ADD(b.dataFim, INTERVAL ${resultModelo[0].ciclo} DAY), "%d/%m/%Y") AS dataFim
                 FROM fornecedor_produto AS a
@@ -41,7 +75,6 @@ class ProdutoController {
                 ORDER BY b.dataFim DESC
                 LIMIT 1
             ) AS proximaAvialacao,
-
             DATEDIFF(
                 (
                     SELECT DATE_ADD(b.dataFim, INTERVAL ${resultModelo[0].ciclo} DAY) AS dataFim
@@ -64,7 +97,11 @@ class ProdutoController {
         const [resultProduto] = await db.promise().query(sqlProduto)
 
         for (let i = 0; i < resultProduto.length; i++) {
-            resultProduto[i].apresentacao = null
+            resultProduto[i].checked = resultProduto[i].checked == '1' ? true : false
+            resultProduto[i].apresentacao = {
+                id: resultProduto[i].apresentacaoID,
+                nome: resultProduto[i].apresentacaoNome
+            }
         }
 
         return res.status(200).json(resultProduto)
