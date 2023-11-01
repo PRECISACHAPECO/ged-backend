@@ -104,6 +104,7 @@ class UnidadeController {
             }
 
             if (data.senha) {
+
                 const sqlUpdateUser = 'UPDATE usuario SET senha = ? WHERE usuarioID = ?'
                 const [resultSqlUpdateUser] = await db.promise().query(sqlUpdateUser, [criptoMd5(data.senha), data.usuarioID])
 

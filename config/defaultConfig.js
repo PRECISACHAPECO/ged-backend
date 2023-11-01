@@ -94,20 +94,28 @@ const getMenuPermissions = async (papelID, usuarioID, unidadeID) => {
     return menu;
 }
 
-const hasPending = async (id, column, tables) => {
-    if (!tables) {
-        // Se tables é nulo, você pode retornar uma Promise rejeitada com uma mensagem de erro
-        return Promise.resolve('Erro hasPending: parâmetro tables é nulo');
+const hasPending = async (id, arrPending) => {
+    if (!arrPending) {
+        // Se arrPending é nulo, você pode retornar uma Promise rejeitada com uma mensagem de erro
+        return Promise.reject('Erro hasPending: parâmetro arrPending é nulo');
     }
-    const promises = tables.map((table) => {
-        return new Promise((resolve, reject) => {
-            db.query(`SELECT * FROM ${table} WHERE ${column} = ?`, [id], (err, result) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(result.length > 0);
-                }
+
+    const promises = arrPending.map(async (entry) => {
+        const { table, column } = entry;
+        const columnPromises = column.map((columnName) => {
+            return new Promise((resolve, reject) => {
+                db.query(`SELECT * FROM ${table} WHERE ${columnName} = ?`, [id], (err, result) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(result.length > 0);
+                    }
+                });
             });
+        });
+
+        return Promise.all(columnPromises).then((results) => {
+            return results.some((hasPending) => hasPending);
         });
     });
 
@@ -115,7 +123,6 @@ const hasPending = async (id, column, tables) => {
         return results.some((hasPending) => hasPending);
     });
 };
-
 
 const hasConflict = async ({ columns, values, table, id }) => {
     if (columns && values && table) {
@@ -215,7 +222,6 @@ const removeSpecialCharts = (str) => {
 
 const deleteItem = async (id, table, column, res) => {
     for (const item of table) {
-        console.log("🚀 ~ item:", id, item, column)
         const [result] = await db.promise().query(`DELETE FROM ${item} WHERE ${column} = ?`, [id])
     }
     return res.json({})

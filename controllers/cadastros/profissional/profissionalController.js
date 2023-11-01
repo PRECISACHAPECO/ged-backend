@@ -577,6 +577,11 @@ class ProfissionalController {
             if (!id || id <= 0) {
                 throw new Error("Dados incorretos");
             }
+
+            // Verifica se é ADMIN
+            const sqlAdmin = `SELECT admin FROM usuario WHERE usuarioID = ?`
+            const [resultAdmin] = await db.promise().query(sqlAdmin, [id])
+
             // dados do profissional
             const getProfessional = "SELECT * FROM profissional WHERE usuarioID = ?"
             const [resultProfessional] = await db.promise().query(getProfessional, [id])
@@ -585,8 +590,7 @@ class ProfissionalController {
             const sqlUnity = `
             SELECT a.*   
             FROM unidade AS a
-            WHERE a.unidadeID = ?;
-            `
+            WHERE a.unidadeID = ?`
             const [resultUnity] = await db.promise().query(sqlUnity, [data.unidadeID])
 
             const endereco = {
@@ -604,7 +608,13 @@ class ProfissionalController {
                 }
             }).join('').slice(0, -2) + '.'; // Remove a última vírgula e adiciona um ponto final
 
-            if (resultProfessional.length > 0 || data.papelID == 2) {
+            if (resultAdmin && resultAdmin[0].admin == 1) { //? ADMIN do sistema (não tem profissional) (não envia email)
+
+                const getUpdate = "UPDATE usuario SET senha = ? WHERE usuarioID = ?"
+                const [resultUpdate] = await db.promise().query(getUpdate, [criptoMd5(data.senha), id])
+
+                return res.status(200).json({ message: 'Senha atualizada com sucesso!' })
+            } else if (resultProfessional.length > 0 || data.papelID == 2) {
                 const getUpdate = "UPDATE usuario SET senha = ? WHERE usuarioID = ?"
                 const [resultUpdate] = await db.promise().query(getUpdate, [criptoMd5(data.senha), id])
 
@@ -626,9 +636,9 @@ class ProfissionalController {
                 const html = await alterPassword(values);
                 await sendMailConfig(destinatario, assunto, html)
 
-                res.status(200).json({ message: 'Senha atualizada com sucesso!' })
+                return res.status(200).json({ message: 'Senha atualizada com sucesso!' })
             } else {
-                res.status(200).json({ message: 'Erro ao atualizar a senha' })
+                return res.status(500).json({ message: 'Erro ao atualizar a senha' })
             }
 
         } catch (e) {
@@ -636,25 +646,55 @@ class ProfissionalController {
         }
     }
 
-    deleteData(req, res) {
+    async deleteData(req, res) {
         const { id } = req.params
 
-        const objModule = {
-            table: ['profissional'],
+        //? Obtém usuarioID pra deletar tabelas usuario e usuario_unidade depois de apagar o profissional
+        const sqlUser = `SELECT usuarioID FROM profissional WHERE profissionalID = ?`
+        const [resultUser] = await db.promise().query(sqlUser, [id])
+        const usuarioID = resultUser[0].usuarioID
+
+        const objDelete = {
+            table: ['profissional', 'profissional_cargo'],
             column: 'profissionalID'
         }
-        const tablesPending = ["anexo_busca", "fornecedor", "fornecedor", "limpeza", "par_fornecedor_modelo_profissionaL", "par_fornecedor_modelo_profissional", "recebimentomp"] // Tabelas que possuem relacionamento com a tabela atual
+        const arrPending = [
+            {
+                table: 'recebimentomp',
+                column: ['preencheProfissionalID', 'abreProfissionalID', 'finalizaProfissionalID', 'aprovaProfissionalID'],
+            },
+            {
+                table: 'fornecedor',
+                column: ['profissionalID', 'aprovaProfissionalID'],
+            },
+            {
+                table: 'par_fornecedor_modelo_profissional',
+                column: ['profissionalID'],
+            },
+            {
+                table: 'par_recebimentomp_modelo_profissional',
+                column: ['profissionalID'],
+            }
+        ]
 
-        if (!tablesPending || tablesPending.length === 0) {
-            return deleteItem(id, objModule.table, objModule.column, res)
+        if (!arrPending || arrPending.length === 0) {
+            return deleteItem(id, objDelete.table, objDelete.column, res)
         }
 
-        hasPending(id, objModule.column, tablesPending)
-            .then((hasPending) => {
+        hasPending(id, arrPending)
+            .then(async (hasPending) => {
                 if (hasPending) {
-                    res.status(409).json({ message: "Dado possui pendência." });
+                    return res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objModule.table, objModule.column, res)
+                    //? Deleta usuario e usuario_unidade
+                    const sqlDeleteUsuarioUnidade = `DELETE FROM usuario_unidade WHERE usuarioID = ?`
+                    const [resultDeleteUsuarioUnidade] = await db.promise().query(sqlDeleteUsuarioUnidade, [usuarioID])
+
+                    const sqlDeleteUsuario = `DELETE FROM usuario WHERE usuarioID = ?`
+                    const [resultDeleteUsuario] = await db.promise().query(sqlDeleteUsuario, [usuarioID])
+
+                    //? Deleta profissional e profissional_cargo
+                    return deleteItem(id, objDelete.table, objDelete.column, res)
                 }
             })
             .catch((err) => {

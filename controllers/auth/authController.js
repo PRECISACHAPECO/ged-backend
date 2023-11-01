@@ -207,7 +207,6 @@ class AuthController {
     //? Função que redefine a senha do usuário
     async routeForgotNewPassword(req, res) {
         const { data } = req.body;
-
         let sql = `UPDATE usuario SET senha = ? WHERE usuarioID = ?`;
         const [result] = await db.promise().query(sql, [criptoMd5(data.senha), data.usuarioID]);
         return res.status(200).json({ message: 'Senha alterada com sucesso!' });
