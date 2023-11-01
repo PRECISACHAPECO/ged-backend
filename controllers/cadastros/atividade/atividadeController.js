@@ -85,22 +85,29 @@ class AtividadeController {
 
     deleteData(req, res) {
         const { id } = req.params
-        const objModule = {
+        const objDelete = {
             table: ['atividade'],
             column: 'atividadeID'
         }
-        const tablesPending = ['fornecedor_atividade', 'par_fornecedor_bloco_atividade', 'recebimentomp_produto'] // Tabelas que possuem relacionamento com a tabela atual
 
-        if (!tablesPending || tablesPending.length === 0) {
-            return deleteItem(id, objModule.table, objModule.column, res)
+        const arrPending = [
+            {
+                table: 'recebimentomp_produto',
+                column: ['atividadeID'],
+            },
+
+        ]
+
+        if (!arrPending || arrPending.length === 0) {
+            return deleteItem(id, objDelete.table, objDelete.column, res)
         }
 
-        hasPending(id, objModule.column, tablesPending)
+        hasPending(id, arrPending)
             .then((hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objModule.table, objModule.column, res)
+                    return deleteItem(id, objDelete.table, objDelete.column, res)
                 }
             })
             .catch((err) => {

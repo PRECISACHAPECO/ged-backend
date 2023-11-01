@@ -210,38 +210,60 @@ class GrupoAnexosController {
     async deleteData(req, res) {
         const { id } = req.params;
 
-        // Tabelas que possuem relacionamento com a tabela atual
-        const tablesPending = ['anexo', 'fabrica_fornecedor_grupoanexo', 'grupoanexo_item', 'grupoanexo_parformulario'];
-        // Tabelas que quero deletar
-        const objModule = {
-            table: ['grupoanexo', 'grupoanexo_item'],
+        const objDelete = {
+            table: ['grupoanexo', 'grupoanexo_item', 'grupoanexo_parformulario'],
             column: 'grupoAnexoID'
         };
 
-        //? obtém itens do grupo
-        const sqlItems = `SELECT * FROM grupoanexo_item WHERE grupoAnexoID = ?`
-        const [resultItems] = await db.promise().query(sqlItems, [id])
 
-        let canDelete = true; // Se não houver nenhuma pendência nos itens do grupo, pode apagar o grupo
-        if (tablesPending.length > 0) {
-            for (const item of resultItems) {
-                if (item.grupoAnexoItemID) {
-                    const sqlPending = `SELECT * FROM anexo WHERE grupoAnexoItemID = ?`
-                    const [resultPending] = await db.promise().query(sqlPending, [item.grupoAnexoItemID])
-                    if (resultPending.length > 0) {
-                        canDelete = false;
-                        break; // Encerrar o laço
-                    }
+        const arrPending = [
+            {
+                table: 'fornecedor_grupoanexo',
+                column: ['grupoAnexoID'],
+            },
+        ]
+
+        if (!arrPending || arrPending.length === 0) {
+            return deleteItem(id, objDelete.table, objDelete.column, res)
+        }
+
+        hasPending(id, arrPending)
+            .then((hasPending) => {
+                if (hasPending) {
+                    res.status(409).json({ message: "Dado possui pendência." });
+                } else {
+                    return deleteItem(id, objDelete.table, objDelete.column, res)
                 }
-            }
-        }
+            })
+            .catch((err) => {
+                console.log(err);
+                res.status(500).json(err);
+            });
 
-        //? Nenhum item tem pendência com os anexos, pode deletar
-        if (canDelete) {
-            return deleteItem(id, objModule.table, objModule.column, res);
-        } else {
-            return res.status(409).json({ message: "Dado possui pendência." });
-        }
+        // //? obtém itens do grupo
+        // const sqlItems = `SELECT * FROM grupoanexo_item WHERE grupoAnexoID = ?`
+        // const [resultItems] = await db.promise().query(sqlItems, [id])
+
+        // let canDelete = true; // Se não houver nenhuma pendência nos itens do grupo, pode apagar o grupo
+        // if (arrPending.length > 0) {
+        //     for (const item of resultItems) {
+        //         if (item.grupoAnexoItemID) {
+        //             const sqlPending = `SELECT * FROM anexo WHERE grupoAnexoItemID = ?`
+        //             const [resultPending] = await db.promise().query(sqlPending, [item.grupoAnexoItemID])
+        //             if (resultPending.length > 0) {
+        //                 canDelete = false;
+        //                 break; // Encerrar o laço
+        //             }
+        //         }
+        //     }
+        // }
+
+        // //? Nenhum item tem pendência com os anexos, pode deletar
+        // if (canDelete) {
+        //     return deleteItem(id, objDelete.table, objDelete.column, res);
+        // } else {
+        //     return res.status(409).json({ message: "Dado possui pendência." });
+        // }
     }
 }
 

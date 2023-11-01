@@ -235,22 +235,69 @@ class UnidadeController {
 
     async deleteData(req, res) {
         const { id } = req.params
-        const objModule = {
+        const objDelete = {
             table: ['unidade'],
             column: 'unidadeID'
         }
-        const tablesPending = []
+        const arrPending = [
+            {
+                table: 'anexo',
+                column: ['unidadeID'],
 
-        if (!tablesPending || tablesPending.length === 0) {
-            return deleteItem(id, objModule.table, objModule.column, res)
+            },
+            {
+                table: 'fornecedor',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'recebimentomp',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'limpeza',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'item',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'produto',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'profissional',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'usuario_unidade',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'grupoanexo',
+                column: ['unidadeID'],
+
+            },
+
+        ]
+
+        if (!arrPending || arrPending.length === 0) {
+            return deleteItem(id, objDelete.table, objDelete.column, res)
         }
 
-        hasPending(id, objModule.column, tablesPending)
+        hasPending(id, arrPending)
             .then((hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objModule.table, objModule.column, res)
+                    return deleteItem(id, objDelete.table, objDelete.column, res)
                 }
             })
             .catch((err) => {

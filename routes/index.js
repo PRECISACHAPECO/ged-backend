@@ -39,7 +39,6 @@ const tipoVeiculoRouter = require("./cadastros/tipoVeiculo/tipoVeiculoRoutes");
 const transportadorRouter = require("./cadastros/transportador/transportadorRoutes");
 const ApresentacaoRouter = require("./cadastros/apresentacao/apresentacaoRoutes");
 const ProfissaoRouter = require("./cadastros/profissao/profissaoRoutes");
-const CargoRouter = require("./cadastros/cargo/cargoRoutes");
 const GrupoAnexosRouter = require("./cadastros/grupoAnexos/grupoAnexosRoutes");
 const ProdutoRoutes = require("./cadastros/produto/produtoRoutes");
 const ProfissionalRouter = require("./cadastros/profissional/profissionalRoutes")
@@ -51,7 +50,6 @@ routes.use(urlBase + '/cadastros', tipoVeiculoRouter);
 routes.use(urlBase + '/cadastros', transportadorRouter);
 routes.use(urlBase + '/cadastros', ApresentacaoRouter);
 routes.use(urlBase + '/cadastros', ProfissaoRouter);
-routes.use(urlBase + '/cadastros', CargoRouter);
 routes.use(urlBase + '/cadastros', GrupoAnexosRouter);
 routes.use(urlBase + '/cadastros', ProdutoRoutes);
 routes.use(urlBase + '/cadastros', ProfissionalRouter);

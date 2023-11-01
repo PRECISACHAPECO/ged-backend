@@ -330,20 +330,30 @@ class ItemController {
     deleteData(req, res) {
         const { id } = req.params
 
-        // Tabelas que possuem relacionamento com a tabela atual
-        const tablesPending = ['par_fornecedor_modelo_bloco_item', 'par_limpeza_modelo_bloco_item'];
         // Tabelas que quero deletar
-        const objModule = {
+        const objDelete = {
             table: ['item', 'item_opcao', 'item_opcao_anexo'],
             column: 'itemID'
         };
 
-        hasPending(id, objModule.column, tablesPending)
+
+        const arrPending = [
+            {
+                table: 'par_fornecedor_modelo_bloco_item',
+                column: ['itemID'],
+            },
+            {
+                table: 'par_limpeza_modelo_bloco_item',
+                column: ['itemID'],
+            },
+        ]
+
+        hasPending(id, arrPending)
             .then((hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objModule.table, objModule.column, res)
+                    return deleteItem(id, objDelete.table, objDelete.column, res)
                 }
             })
             .catch((err) => {
