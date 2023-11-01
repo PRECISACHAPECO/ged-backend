@@ -2,6 +2,17 @@ const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class ProdutoController {
+
+    async getFormularios(req, res) {
+        const sql = `
+        SELECT parFormularioID AS id, nome
+        FROM par_formulario
+        ORDER BY parFormularioID ASC`
+        const [result] = await db.promise().query(sql)
+
+        return res.status(200).json(result)
+    }
+
     async getProdutosFornecedor(req, res) {
         const { recebimentoMpID, fornecedorID } = req.body
 
@@ -141,15 +152,23 @@ class ProdutoController {
                 pf.nome, 
                 pf.unidadeMedidaID AS id
             FROM produto AS gp 
-            JOIN unidademedida AS pf ON (gp.unidadeMedidaID  = pf.unidadeMedidaID )
-                WHERE gp.produtoID = ?;
-            `
+                JOIN unidademedida AS pf ON (gp.unidadeMedidaID  = pf.unidadeMedidaID )
+            WHERE gp.produtoID = ?`
             const [resultUnidadeMedida] = await db.promise().query(sqlUnidadeMedida, [id]);
 
-            const sqlAnexos = 'SELECT * FROM produto_anexo WHERE produtoID = ?'
+            const sqlAnexos = `
+            SELECT pa.*, f.nome AS formularioNome
+            FROM produto_anexo AS pa
+                JOIN par_formulario AS f ON (pa.parFormularioID = f.parFormularioID)
+            WHERE pa.produtoID = ?`
+            const [resultAnexos] = await db.promise().query(sqlAnexos, [id])
 
-            const [resultAnexos] = await db.promise().query(sqlAnexos, [id]);
-
+            for (let anexo of resultAnexos) {
+                anexo['formulario'] = {
+                    id: anexo.parFormularioID,
+                    nome: anexo.formularioNome
+                }
+            }
 
             const sqlOptionsUnidadeMedida = `SELECT nome, unidadeMedidaID AS id FROM unidademedida`
             const [resultOptionsUnidadeMedida] = await db.promise().query(sqlOptionsUnidadeMedida);
@@ -222,9 +241,9 @@ class ProdutoController {
 
             //? Adiciona anexos
             if (values.anexos.length > 0) {
-                const sqlInsertAnexo = 'INSERT INTO produto_anexo (nome, descricao, obrigatorio, status, produtoID) VALUES (?, ?, ?, ?, ?)'
+                const sqlInsertAnexo = 'INSERT INTO produto_anexo (nome, parFormularioID, descricao, obrigatorio, status, produtoID) VALUES (?, ?, ?, ?, ?, ?)'
                 values.anexos.map(async (item) => {
-                    const [resultInsertAnexo] = await db.promise().query(sqlInsertAnexo, [item.nome, item.descricao, item.obrigatorio ? '1' : '0', item.status ? '1' : '0', id])
+                    const [resultInsertAnexo] = await db.promise().query(sqlInsertAnexo, [item.nome, item.formulario.id, item.descricao, item.obrigatorio ? '1' : '0', item.status ? '1' : '0', id])
                 })
             }
 
@@ -262,20 +281,18 @@ class ProdutoController {
             const sqlUpdate = `UPDATE produto SET nome = ?, unidadeMedidaID = ?, status = ? WHERE produtoID = ?`;
             const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.unidadeMedida.fields.id, (values.fields.status ? '1' : '0'), id]);
 
-
             //? Insere ou atualiza anexos
             if (values.anexos.length > 0) {
                 values.anexos.map(async (item) => {
                     if (item && item.produtoAnexoID > 0) { //? Já existe, atualiza
-                        const sqlUpdateItem = `UPDATE produto_anexo SET nome = ?, descricao = ?, status = ?, obrigatorio = ? WHERE produtoAnexoID = ?`
-                        const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [item.nome, item.descricao, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0'), item.produtoAnexoID])
+                        const sqlUpdateItem = `UPDATE produto_anexo SET nome = ?, parFormularioID = ?, descricao = ?, status = ?, obrigatorio = ? WHERE produtoAnexoID = ?`
+                        const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [item.nome, item.formulario.id, item.descricao, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0'), item.produtoAnexoID])
                     } else if (item && !item.produtoAnexoID) {                   //? Novo, insere
-                        const sqlInsertItem = `INSERT INTO produto_anexo (nome, descricao, produtoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?)`
-                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [item.nome, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')])
+                        const sqlInsertItem = `INSERT INTO produto_anexo (nome, parFormularioID, descricao, produtoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?, ?)`
+                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [item.nome, item.formulario.id, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')])
                     }
                 })
             }
-
 
             if (values.removedItems.length > 0) {
                 const sqlDeleteAnexos = `DELETE FROM produto_anexo WHERE produtoAnexoID IN (${values.removedItems.join(',')})`
