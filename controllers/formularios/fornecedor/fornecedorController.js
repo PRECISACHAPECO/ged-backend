@@ -349,7 +349,7 @@ class FornecedorController {
                     const sqlProdutoAnexo = `
                     SELECT * 
                     FROM produto_anexo 
-                    WHERE produtoID = ? AND status = 1`
+                    WHERE produtoID = ? AND parFormularioID = 1 AND status = 1`
                     const [resultProdutoAnexo] = await db.promise().query(sqlProdutoAnexo, [produto.produtoID])
 
                     for (const produtoTituloAnexo of resultProdutoAnexo) {

@@ -7,14 +7,12 @@ const produtoController = new ProdutoController();
 const route = '/produto';
 
 produtoRoutes.get(`${route}/:unidadeID`, produtoController.getList);
-
 produtoRoutes.post(`${route}/getData/:id`, produtoController.getData);
 produtoRoutes.post(`${route}/updateData/:id`, produtoController.updateData);
 produtoRoutes.delete(`${route}/:id`, produtoController.deleteData);
-
 produtoRoutes.post(`${route}/new/getData`, produtoController.getNewData);
 produtoRoutes.post(`${route}/new/insertData`, produtoController.insertData);
 produtoRoutes.post(`${route}/getProdutosFornecedor`, produtoController.getProdutosFornecedor);
-
+produtoRoutes.post(`${route}/getFormularios`, produtoController.getFormularios);
 
 module.exports = produtoRoutes;
