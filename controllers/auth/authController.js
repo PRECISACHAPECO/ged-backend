@@ -25,7 +25,7 @@ class AuthController {
 
         // LEFT JOIN profissao AS pr ON (uu.profissaoID = pr.profissaoID) , pr.nome as profissao
         const sql = `
-        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel, pr.profissionalID, pr.imagem
+        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel, COALESCE(pr.profissionalID, 0) AS profissionalID, pr.imagem
         FROM usuario AS u 
             LEFT JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
             LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
