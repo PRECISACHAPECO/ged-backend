@@ -64,7 +64,7 @@ class FornecedorController {
                     WHERE pfm.parFornecedorModeloID = ${id}
                     LIMIT 1
                 ), 100) ASC`;
-            // console.log("🚀 ~ sqlHeader:", sqlHeader)
+            console.log("🚀 ~ aquiiii")
             const [resultHeader] = await db.promise().query(sqlHeader);
 
             //? Blocks
