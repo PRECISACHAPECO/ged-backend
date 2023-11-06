@@ -986,6 +986,88 @@ class FornecedorController {
         return res.status(200).json(result);
     }
 
+    async sendEmailBasedStatus(req, res) {
+        const data = req.body
+        try {
+            // Verifica se foi informado um fornecedorID
+            if (!data.fornecedorID) return res.status(400).json({ message: "Dados incorretos" });
+
+
+            // Dados do profissional logado
+            if (data.usuarioLogado) {
+                const sqlProfessional = `
+                SELECT 
+                a.nome,
+                    b.formacaoCargo AS cargo
+                    FROM profissional AS a 
+                    LEFT JOIN profissional_cargo AS b ON (a.profissionalID = b.profissionalID)
+                    WHERE a.profissionalID = ?`
+                const [resultSqlProfessional] = await db.promise().query(sqlProfessional, [data.usuarioLogado])
+            }
+            // Dados da fabrica 
+            const sqlUnity = `
+            SELECT a.*,
+            DATE_FORMAT(b.dataInicio, '%d/%m/%Y %H:%i:%s') as dataInicio
+            FROM unidade AS a
+            LEFT JOIN fornecedor AS b ON (a.unidadeID = b.unidadeID)
+            WHERE a.unidadeID = ? AND b.fornecedorID = ?;
+            `
+            const [resultUnity] = await db.promise().query(sqlUnity, [data.unidadeID, data.fornecedorID])
+
+            const endereco = {
+                logradouro: resultUnity[0].logradouro,
+                numero: resultUnity[0].numero,
+                complemento: resultUnity[0].complemento,
+                bairro: resultUnity[0].bairro,
+                cidade: resultUnity[0].cidade,
+                uf: resultUnity[0].uf,
+            }
+
+            const enderecoCompleto = Object.entries(endereco).map(([key, value]) => {
+                if (value) {
+                    return `${value}, `;
+                }
+            }).join('').slice(0, -2) + '.';
+
+            // Verifica se CNPJ já tem um usuario cadastrado, se não tiver cadastra
+            const userExists = "SELECT * FROM usuario WHERE cnpj = ?"
+            const [resultUserExists] = await db.promise().query(userExists, [resultUnity[0].cnpj])
+            console.log("🚀 ~ resultUserExists:", resultUserExists)
+
+            const dataEmail = {
+                // fabrica
+                enderecoCompletoFabrica: enderecoCompleto,
+                nomeFantasiaFabrica: resultUnity[0].nomeFantasia,
+                cnpjFabrica: resultUnity[0].cnpj,
+
+                // profissional que abriu formulario
+                nomeProfissional: resultSqlProfessional[0]?.nome,
+                cargoProfissional: resultSqlProfessional[0]?.cargo,
+
+                // fornecedor
+                cnpjFornecedor: resultUnity[0].cnpj ?? null,
+                email: resultUnity[0].email ?? null,
+                razaoSocial: resultUnity[0].razaoSocial ?? null,
+                nomeFantasia: resultUnity[0].nomeFantasia ?? null,
+                senhaFornecedor: data.password ?? null,
+                fornecedorID: data.fornecedorID,
+                destinatario: data.email ?? resultUnity[0].email, // email do fornecedor
+                dataInicio: resultUnity[0].dataInicio,
+
+                // outros
+                ifFornecedor: resultUserExists.length == 0 ? false : true,
+                stage: 's1', // estagio que o formulario se encontra
+                noBaseboard: false, // Se falso mostra o rodapé com os dados da fabrica, senão mostra dados do GEDagro,
+                link: `${process.env.BASE_URL}formularios/fornecedor?f=${fornecedorID}`,
+            }
+            res.status(200).json(dataEmail)
+
+
+        } catch (error) {
+            return res.status(400).json(error);
+        }
+    }
+
     async makeFornecedor(req, res) {
         const { usuarioID, unidadeID, papelID, values } = req.body;
 
