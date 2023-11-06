@@ -118,8 +118,7 @@ class ProfissionalController {
             const dataUser = `
             SELECT *
             FROM profissional AS a 
-            WHERE a.profissionalID = ? AND a.unidadeID = ?;
-            `
+            WHERE a.profissionalID = ? AND a.unidadeID = ?`
             const [resultDataUser] = await db.promise().query(dataUser, [id, unidadeID])
 
             // Cargos do profissional
@@ -137,8 +136,13 @@ class ProfissionalController {
             ORDER BY a.data ASC`
             const [resultFormacaoCargo] = await db.promise().query(formacaoCargo, [id, unidadeID])
 
-            const getProfessional = `SELECT profissionalID as id, nome, usuarioID FROM profissional WHERE unidadeID = ? AND status = ? AND usuarioID > 0 ORDER BY nome`
-            const [resultProfessional] = await db.promise().query(getProfessional, [unidadeID, 1])
+            // Profissionais da unidade (copiar permissões dele)
+            const getProfessional = `
+            SELECT profissionalID as id, nome, usuarioID 
+            FROM profissional 
+            WHERE unidadeID = ? AND profissionalID <> ? AND status = 1 AND usuarioID > 0 
+            ORDER BY nome`
+            const [resultProfessional] = await db.promise().query(getProfessional, [unidadeID, id])
 
             const values = {
                 imagem: resultDataUser[0].imagem ? `${process.env.BASE_URL_API}${resultDataUser[0].imagem}` : null,

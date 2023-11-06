@@ -56,16 +56,15 @@ const accessPermissions = (data) => {
             if (menu.edit) {
                 //? Verifica se já existe essa unidade com esse papel para esse usuário
                 const verifyMenu = `
-            SELECT permissaoID
-            FROM permissao
-            WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
+                SELECT permissaoID
+                FROM permissao
+                WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
                 const [resultVerifyMenu] = await db.promise().query(verifyMenu, [menu.rota, data.fields.unidadeID, data.fields.usuarioID, 1])
-                console.log("🚀 ~ resultVerifyMenu:", resultVerifyMenu)
                 if (resultVerifyMenu.length > 0) { //? Ok, pode atualizar o menu
                     const sqlMenu = `
-                UPDATE permissao
-                SET ler = ?, inserir = ?, editar = ?, excluir = ?
-                WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
+                    UPDATE permissao
+                    SET ler = ?, inserir = ?, editar = ?, excluir = ?
+                    WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
                     const [resultMenu] = await db.promise().query(sqlMenu, [
                         boolToNumber(menu.ler),
                         boolToNumber(menu.inserir),
@@ -76,11 +75,10 @@ const accessPermissions = (data) => {
                         data.fields.usuarioID,
                         1
                     ])
-                    console.log("🚀 ~ resultMenu atualizaaaa:", resultMenu)
                 } else { //? Não existe, então insere
                     const sqlMenu = `
-                INSERT INTO permissao (rota, unidadeID, usuarioID, papelID, ler, inserir, editar, excluir)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+                    INSERT INTO permissao (rota, unidadeID, usuarioID, papelID, ler, inserir, editar, excluir)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
                     const [resultMenu] = await db.promise().query(sqlMenu, [
                         menu.rota,
                         data.fields.unidadeID,
@@ -99,16 +97,16 @@ const accessPermissions = (data) => {
                 if (submenu.edit) { //? Editou submenu 
                     //? Verifica se já existe essa unidade com esse papel para esse usuário
                     const verifySubmenu = `
-                SELECT permissaoID
-                FROM permissao
-                WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
+                    SELECT permissaoID
+                    FROM permissao
+                    WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
                     const [resultVerifySubmenu] = await db.promise().query(verifySubmenu, [submenu.rota, data.fields.unidadeID, data.fields.usuarioID, 1])
 
                     if (resultVerifySubmenu.length > 0) { //? Ok, pode atualizar o submenu
                         const sqlSubmenu = `
-                    UPDATE permissao
-                    SET ler = ?, inserir = ?, editar = ?, excluir = ?
-                    WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
+                        UPDATE permissao
+                        SET ler = ?, inserir = ?, editar = ?, excluir = ?
+                        WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
                         const [resultSubmenu] = await db.promise().query(sqlSubmenu, [
                             boolToNumber(submenu.ler),
                             boolToNumber(submenu.inserir),
@@ -121,8 +119,8 @@ const accessPermissions = (data) => {
                         ])
                     } else { //? Não existe, então insere
                         const sqlSubmenu = `
-                    INSERT INTO permissao (rota, unidadeID, usuarioID, papelID, ler, inserir, editar, excluir)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+                        INSERT INTO permissao (rota, unidadeID, usuarioID, papelID, ler, inserir, editar, excluir)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
                         const [resultSubmenu] = await db.promise().query(sqlSubmenu, [
                             submenu.rota,
                             data.fields.unidadeID,

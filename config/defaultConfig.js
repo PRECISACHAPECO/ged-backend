@@ -80,6 +80,7 @@ const getMenuPermissions = async (papelID, usuarioID, unidadeID) => {
                 WHERE s.menuID = ${rotaMenu.menuID} AND s.status = 1 
                 ORDER BY s.ordem ASC`;
                 const [resultSubmenu] = await db.promise().query(sqlSubmenu);
+
                 if (resultSubmenu) {
                     rotaMenu.submenu = resultSubmenu;
                 }
