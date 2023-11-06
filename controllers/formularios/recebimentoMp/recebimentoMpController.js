@@ -17,9 +17,11 @@ class RecebimentoMpController {
             IF(MONTH(l.data) > 0, DATE_FORMAT(l.data, "%d/%m/%Y"), '--') AS data, 
             plm.nome AS modelo,
             p.nome AS profissional, 
-            l.status
+            s.nome AS status,
+            s.cor
         FROM recebimentomp AS l
             JOIN par_recebimentomp_modelo AS plm ON (l.parRecebimentoMpModeloID = plm.parRecebimentoMpModeloID)
+            JOIN status AS s ON (l.status = s.statusID)
             LEFT JOIN profissional AS p ON (l.preencheProfissionalID = p.profissionalID)
         WHERE l.unidadeID = ?
         ORDER BY l.recebimentoMpID DESC, l.status ASC`
@@ -380,7 +382,7 @@ class RecebimentoMpController {
         UPDATE recebimentomp SET data = ?, preencheProfissionalID = ?, fornecedorID = ?, dataConclusao = ?, aprovaProfissionalID = ?
             WHERE recebimentoMpID = ? `
         const [resultStaticHeader] = await db.promise().query(sqlStaticlHeader, [
-            data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora} ` : null,
+            data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora}` : null,
             data.fieldsHeader?.profissional?.id ?? null,
             data.fieldsHeader?.fornecedor?.id ?? null,
             data.fieldsFooter?.dataConclusao ? `${data.fieldsFooter.dataConclusao} ${data.fieldsFooter.horaConclusao} ` : null,

@@ -191,7 +191,7 @@ class FornecedorController {
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
                 LEFT JOIN unidade AS uf ON (uf.cnpj = f.cnpj)
-                LEFT JOIN status AS e  ON(f.status = e.statusID)
+                LEFT JOIN status AS e ON (f.status = e.statusID)
             WHERE f.unidadeID = ${unidadeID}
             GROUP BY f.fornecedorID
             ORDER BY f.fornecedorID DESC, f.status ASC`
