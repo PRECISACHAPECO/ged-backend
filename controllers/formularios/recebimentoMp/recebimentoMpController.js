@@ -45,7 +45,7 @@ class RecebimentoMpController {
     async insertData(req, res) {
         const data = req.body
 
-        if (!data.model.id || !data.profissionalID || !data.unidadeID) return res.status(400).json({ message: 'Erro ao inserir formulário!' })
+        if (!data.model.id || !data.unidadeID) return res.status(400).json({ message: 'Erro ao inserir formulário!' })
 
         const sqlInsert = `INSERT INTO recebimentomp SET parRecebimentoMpModeloID = ?, data = ?, dataInicio = ?, abreProfissionalID = ?, unidadeID = ?`
         const [resultInsert] = await db.promise().query(sqlInsert, [
