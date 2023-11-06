@@ -137,11 +137,15 @@ class ProfissionalController {
             ORDER BY a.data ASC`
             const [resultFormacaoCargo] = await db.promise().query(formacaoCargo, [id, unidadeID])
 
+            const getProfessional = `SELECT profissionalID as id, nome, usuarioID FROM profissional WHERE unidadeID = ? AND status = ? AND usuarioID > 0 ORDER BY nome`
+            const [resultProfessional] = await db.promise().query(getProfessional, [unidadeID, 1])
+
             const values = {
                 imagem: resultDataUser[0].imagem ? `${process.env.BASE_URL_API}${resultDataUser[0].imagem}` : null,
                 fields: resultDataUser[0],
                 cargosFuncoes: resultFormacaoCargo,
-                menu: await getMenuPermissions(1, resultDataUser[0].usuarioID, unidadeID)
+                menu: await getMenuPermissions(1, resultDataUser[0].usuarioID, unidadeID),
+                professionals: resultProfessional ?? [],
             }
 
             res.status(200).json(values)
@@ -433,10 +437,10 @@ class ProfissionalController {
                         const sqlUpdateItem = `UPDATE profissional_cargo SET data = ?, formacaoCargo = ?, conselho = ?,  dataInativacao = ?, status = ?  WHERE profissionalCargoID = ?`
                         const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [
                             formatedData,
-                            row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), (row.status ? '1' : '0'), row.id])
+                            row.formacaoCargo, row.conselho, (row.dataInativacao), (row.status ? '1' : '0'), row.id])
                     } else if (row && !row.id) {    //? Novo, insere
                         const sqlInsertItem = `INSERT INTO profissional_cargo (data, formacaoCargo, conselho, dataInativacao, status, profissionalID) VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [formatedData, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), (row.status ? '1' : '0'), data.fields.profissionalID])
+                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [formatedData, row.formacaoCargo, row.conselho, (row.dataInativacao), (row.status ? '1' : '0'), data.fields.profissionalID])
                     }
                 })
             }
@@ -644,6 +648,28 @@ class ProfissionalController {
         } catch (e) {
             console.log(e);
         }
+    }
+
+    async copyPermissions(req, res) {
+        const data = req.body;
+        try {
+            if (!data.papelID || !data.usuarioID || !data.unidadeID) {
+                return res.status(500).json({ message: 'Dados incorretos' })
+            }
+
+            const permission = await getMenuPermissions(data.papelID, data.usuarioID, data.unidadeID)
+            if (!permission) {
+                return res.status(500).json({ message: 'Erro ao copiar permissões' })
+            }
+
+            return res.status(200).json(permission)
+
+        } catch (error) {
+            console.log("🚀 ~ error:", error)
+        }
+
+
+
     }
 
     async deleteData(req, res) {
