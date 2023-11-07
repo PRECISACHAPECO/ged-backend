@@ -929,6 +929,8 @@ class FornecedorController {
         SELECT 
             f.fornecedorID, 
             pfm.parFornecedorModeloID,
+            f.*,
+            f.email,
             pfm.nome AS modelo,
             DATE_FORMAT(f.dataInicio, "%d/%m/%Y") AS dataAvaliacao,
             (
@@ -973,6 +975,7 @@ class FornecedorController {
         WHERE fg.fornecedorID = ? AND ga.status = 1
         ORDER BY ga.nome ASC`;
         const [resultGruposAnexo] = await db.promise().query(sqlGruposAnexo, [resultFormulario[0]?.fornecedorID]);
+        console.log("🚀 ~ resultGruposAnexo:", resultGruposAnexo)
 
         // Produtos 
         const sqlProdutos = `
@@ -982,14 +985,16 @@ class FornecedorController {
         WHERE fp.fornecedorID = ? AND p.status = 1
         ORDER BY p.nome ASC`;
         const [resultProdutos] = await db.promise().query(sqlProdutos, [resultFormulario[0]?.fornecedorID]);
+        console.log("🚀 ~ resultProdutos:", resultProdutos)
 
         const result = {
-            new: resultFornecedor.length === 0 ? true : false,
+            new: resultFormulario.length === 0 ? true : false,
+
             fornecedorID: resultFormulario[0]?.fornecedorID,
             fields: {
-                nomeFantasia: resultUnity[0]?.nomeFantasia,
-                razaoSocial: resultUnity[0]?.razaoSocial,
-                email: resultUnity[0]?.email,
+                nomeFantasia: resultFormulario[0]?.nome,
+                razaoSocial: resultFormulario[0]?.razaoSocial,
+                email: resultFormulario[0]?.email,
             },
             modelo: {
                 id: resultFormulario[0]?.parFornecedorModeloID ? resultFormulario[0]?.parFornecedorModeloID : resultModelo.length == 1 ? resultModelo[0]?.parFornecedorModeloID : null,
