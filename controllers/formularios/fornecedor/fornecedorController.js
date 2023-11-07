@@ -181,21 +181,20 @@ class FornecedorController {
             const sql = `
             SELECT
                 f.fornecedorID AS id,
+                f.nome AS fornecedor,
+                IF(f.quemPreenche = 1, 'Fábrica', 'Fornecedor') as quemPreenche,
                 IF(MONTH(f.dataInicio) > 0, DATE_FORMAT(f.dataInicio, "%d/%m/%Y"), '--') AS data,
-                IF(uf.nomeFantasia <> '', uf.nomeFantasia, '--') AS fornecedor,
                 IF(f.cnpj <> '', f.cnpj, '--') AS cnpj,
-                IF(uf.cidade <> '', CONCAT(uf.cidade, '/', uf.uf), '--') AS cidade,
-                IF(uf.responsavel <> '', uf.responsavel, '--') AS responsavel,
+                IF(f.cidade <> '', CONCAT(f.cidade, '/', f.estado), '--') AS cidade,
                 e.nome AS status,
                 e.cor
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
-                LEFT JOIN unidade AS uf ON (uf.cnpj = f.cnpj)
                 LEFT JOIN status AS e ON (f.status = e.statusID)
-            WHERE f.unidadeID = ${unidadeID}
+            WHERE f.unidadeID = ?
             GROUP BY f.fornecedorID
             ORDER BY f.fornecedorID DESC, f.status ASC`
-            const [result] = await db.promise().query(sql)
+            const [result] = await db.promise().query(sql, [unidadeID])
             return res.status(200).json(result);
         }
         //* Fornecedor 
@@ -208,7 +207,7 @@ class FornecedorController {
                 IF(u.cnpj <> '', u.cnpj, '--') AS cnpj,
                 IF(u.cidade <> '', CONCAT(u.cidade, '/', u.uf), '--') AS cidade,
                 IF(u.responsavel <> '', u.responsavel, '--') AS responsavel,
-                e.nome AS status,
+                e.nome AS status,   
                 e.cor
             FROM fornecedor AS f
                 LEFT JOIN unidade AS u ON(f.unidadeID = u.unidadeID)
@@ -245,6 +244,7 @@ class FornecedorController {
                 DATE_FORMAT(f.data, '%H:%i') AS hora, 
                 us.usuarioID,
                 us.nome AS preenche,
+                f.quemPreenche,
                 f.razaoSocial,
                 f.nome,                
                 
@@ -264,6 +264,7 @@ class FornecedorController {
             WHERE f.fornecedorID = ? `
             const [resultFornecedor] = await db.promise().query(sqlUnidade, [id])
             const unidade = {
+                quemPreenche: resultFornecedor[0]['quemPreenche'] ?? null,
                 parFornecedorModeloID: resultFornecedor[0]['parFornecedorModeloID'] ?? 0,
                 unidadeID: resultFornecedor[0]['unidadeID'],
                 nomeFantasia: resultFornecedor[0]['nomeFantasia'],
@@ -711,6 +712,7 @@ class FornecedorController {
         if (data.fields) {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
             let dataHeader = await formatFieldsToTable('par_fornecedor', data.fields)
+            console.log("🚀 ~ dataHeader:", dataHeader)
             const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id} `;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
@@ -775,7 +777,8 @@ class FornecedorController {
 
         //* Status
         //? É um fornecedor e é um status anterior, seta status pra "Em preenchimento" (30)
-        const newStatus = papelID == 2 && data.status != 40 ? 30 : data.status
+        const newStatus = data.status ?? 30
+        console.log("🚀 ~ newStatus:", newStatus)
 
         const sqlUpdateStatus = `UPDATE fornecedor SET status = ? WHERE fornecedorID = ? `
         const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [newStatus, id])
