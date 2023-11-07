@@ -903,12 +903,18 @@ class FornecedorController {
     }
 
     // Verifica quem preenche o formulario / fabrica ou fornecedor
-    async habilitaQuemPreencheFormFornecedor(req, res) {
+    async paramsNewFornecedor(req, res) {
         const data = req.body;
         try {
             const getUnidade = `SELECT * FROM unidade WHERE unidadeID = ?`
             const [resultGetUnidade] = await db.promise().query(getUnidade, [data.unidadeID])
-            res.status(200).json(resultGetUnidade[0]?.habilitaQuemPreencheFormFornecedor);
+
+            const values = {
+                habilitaQuemPreencheFormFornecedor: resultGetUnidade[0]?.habilitaQuemPreencheFormFornecedor == 1 ? true : false,
+                obrigatorioProdutoFornecedor: resultGetUnidade[0]?.obrigatorioProdutoFornecedor == 1 ? true : false
+            }
+
+            res.status(200).json(values);
         } catch (e) {
             console.log(e);
             res.status(500).json(e);
@@ -1092,7 +1098,6 @@ class FornecedorController {
 
     async makeFornecedor(req, res) {
         const { usuarioID, unidadeID, papelID, habilitaQuemPreencheFormFornecedor, values } = req.body;
-        console.log("🚀 ~ habilitaQuemPreencheFormFornecedor:", habilitaQuemPreencheFormFornecedor)
         const quemPreenche = habilitaQuemPreencheFormFornecedor ?? 2
 
         // Apenas cria o formulario, a fabrica responde o mesmo

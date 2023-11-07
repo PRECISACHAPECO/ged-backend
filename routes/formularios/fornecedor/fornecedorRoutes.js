@@ -19,7 +19,7 @@ fornecedorRoutes.post(`${route}/getFabricas`, fornecedorController.getFabricas);
 fornecedorRoutes.post(`${route}/cnpj`, fornecedorController.getFornecedorByCnpj);
 
 // Verifica quem preenche o formulario do fornecedor
-fornecedorRoutes.post(`${route}/habilitaQuemPreencheFormFornecedor`, fornecedorController.habilitaQuemPreencheFormFornecedor);
+fornecedorRoutes.post(`${route}/paramsNewFornecedor`, fornecedorController.paramsNewFornecedor);
 
 fornecedorRoutes.post(`${route}/makeFornecedor`, fornecedorController.makeFornecedor);
 fornecedorRoutes.post(`${route}/fornecedorStatus`, fornecedorController.fornecedorStatus);
