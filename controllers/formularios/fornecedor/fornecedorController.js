@@ -899,6 +899,19 @@ class FornecedorController {
         res.status(200).json(result);
     }
 
+    // Verifica quem preenche o formulario / fabrica ou fornecedor
+    async habilitaQuemPreencheFormFornecedor(req, res) {
+        const data = req.body;
+        try {
+            const getUnidade = `SELECT * FROM unidade WHERE unidadeID = ?`
+            const [resultGetUnidade] = await db.promise().query(getUnidade, [data.unidadeID])
+            res.status(200).json(resultGetUnidade[0]?.habilitaQuemPreencheFormFornecedor);
+        } catch (e) {
+            console.log(e);
+            res.status(500).json(e);
+        }
+    }
+
     async getFornecedorByCnpj(req, res) {
         const { unidadeID, cnpj } = req.body;
         // Verifica se está vinculado como um fornecedor
@@ -941,6 +954,7 @@ class FornecedorController {
         const sqlUnity = `SELECT * FROM unidade WHERE cnpj = "${cnpj}"`
         const [resultUnity] = await db.promise().query(sqlUnity)
 
+
         // Modelo de formulário (se houver apenas 1, já vem selecionado)
         const sqlModelo = `
         SELECT *
@@ -980,7 +994,7 @@ class FornecedorController {
             },
             dataAvaliacao: resultFormulario[0]?.dataAvaliacao,
             produtos: resultProdutos, //resultFormulario[0]?.produtos,
-            gruposAnexo: resultGruposAnexo //resultFormulario[0]?.gruposAnexo,
+            gruposAnexo: resultGruposAnexo, //resultFormulario[0]?.gruposAnexo
         }
 
         return res.status(200).json(result);
