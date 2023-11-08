@@ -1,7 +1,8 @@
 const multer = require('multer');
 const path = require('path');
 const sharp = require('sharp');
-const fs = require('fs').promises;
+// const fs = require('fs').promises;
+const fs = require('fs');
 const { mkdirSync } = require('fs');
 const { removeSpecialCharts } = require('../defaultConfig');
 
@@ -58,6 +59,7 @@ const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOrigin
 
     // Use um middleware de tratamento de erros do Multer
     upload.array('files[]')(req, res, async function (err) {
+        console.log('req.files: ', req.files)
         if (err instanceof multer.MulterError) {
             //! Valida tamanho do arquivo (antes de redimensionar)
             if (err.code === 'LIMIT_FILE_SIZE') {
@@ -80,8 +82,7 @@ const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOrigin
                         const fileName = defineFileName(file.originalname, usuarioID);
                         sharp(file.path)
                             .resize({
-                                width: imageMaxDimensionToResize,
-                                height: imageMaxDimensionToResize
+                                width: imageMaxDimensionToResize
                             })
                             .toFile(path.join(pathDestination, fileName), async (err, info) => {
                                 if (err) {
@@ -91,6 +92,10 @@ const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOrigin
                                     file.filename = fileName;
                                     file.path = pathDestination + fileName;
                                     file.size = info.size;
+
+                                    // Lê o arquivo e obtém o binário correspondente
+                                    file.binary = fs.readFileSync(file.path);
+
                                     console.log(`📸 ~ Imagem redimensionada para ${(file.size / 1024 / 1024).toFixed(2)} MB`);
 
                                     //! Imagem redimensionada continua maior que o tamanho máximo permitido pela unidade

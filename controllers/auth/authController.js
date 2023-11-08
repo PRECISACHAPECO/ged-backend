@@ -1,4 +1,5 @@
 const db = require('../../config/db');
+const dbFile = require('../../config/dbFile');
 require('dotenv/config')
 const { getMenu, criptoMd5 } = require('../../config/defaultConfig');
 const sendMailConfig = require('../../config/email');
@@ -15,6 +16,33 @@ const jwtConfig = {
 }
 
 class AuthController {
+
+    async testeFoto(req, res) {
+        const sql = `SELECT * FROM fotos WHERE unidadeID = ?`
+        const [result] = await dbFile.promise().query(sql, [1]);
+
+        for (const foto of result) {
+            foto.url = `data:image/jpeg;base64,${foto.url}`;
+        }
+
+        res.status(200).json(result);
+    }
+
+    async enviaFoto(req, res) {
+        console.log('chegou...')
+        const files = req.files;
+
+        for (const file of files) {
+            console.log("🚀 ~ file:", file)
+            const base64 = file.binary.toString('base64');
+            // Gravar arquivos no banco de dados no formato blob
+            const sql = `INSERT INTO fotos (url, unidadeID) VALUES (?, ?)`
+            const [result] = await dbFile.promise().query(sql, [base64, 1]);
+        }
+
+        res.status(200).json({ message: 'Fotos salvas no BD!' });
+    }
+
     //* Login da fábrica (CPF)
     async login(req, res) {
         const { cpf, password } = req.body;
