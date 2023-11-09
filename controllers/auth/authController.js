@@ -22,7 +22,17 @@ class AuthController {
         const [result] = await dbFile.promise().query(sql, [1]);
 
         for (const foto of result) {
-            foto.url = `data:image/jpeg;base64,${foto.url}`;
+
+            if (foto.tipo == 'image/jpeg') {
+                foto.url = `data:${foto.tipo};base64,${foto.url}`;
+            } else {
+                // Converte para blob
+                const blob = Buffer.from(foto.url, 'base64');
+
+                // Converte para objectUrl pra conseguir abrir o arquivo em uma nova aba no frontend
+                const objectUrl = URL.createObjectURL(new Blob([blob]));
+                foto.url = objectUrl;
+            }
         }
 
         res.status(200).json(result);
@@ -36,8 +46,8 @@ class AuthController {
             console.log("🚀 ~ file:", file)
             const base64 = file.binary.toString('base64');
             // Gravar arquivos no banco de dados no formato blob
-            const sql = `INSERT INTO fotos (url, unidadeID) VALUES (?, ?)`
-            const [result] = await dbFile.promise().query(sql, [base64, 1]);
+            const sql = `INSERT INTO fotos (url, tipo, unidadeID) VALUES (?, ?, ?)`
+            const [result] = await dbFile.promise().query(sql, [base64, file.mimetype, 1]);
         }
 
         res.status(200).json({ message: 'Fotos salvas no BD!' });

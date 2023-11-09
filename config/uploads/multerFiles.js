@@ -74,12 +74,13 @@ const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOrigin
                 return res.status(400).send({ message: err.field });
             }
         } else {
-            // Crie um array de promessas para as operações de redimensionamento
-            const resizePromises = req.files
-                .filter(file => file.mimetype.startsWith('image'))
-                .map(file => {
+
+            // Processa todos os tipos de arquivos
+            const filePromises = req.files.map(file => {
+                const fileName = defineFileName(file.originalname, usuarioID);
+                if (file.mimetype.startsWith('image')) {
+                    // Se for uma imagem, redimensione
                     return new Promise((resolve, reject) => {
-                        const fileName = defineFileName(file.originalname, usuarioID);
                         sharp(file.path)
                             .resize({
                                 width: imageMaxDimensionToResize
@@ -88,31 +89,30 @@ const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOrigin
                                 if (err) {
                                     reject(err);
                                 } else {
-                                    // Atualize as informações do arquivo
                                     file.filename = fileName;
-                                    file.path = pathDestination + fileName;
+                                    file.path = path.join(pathDestination, fileName);
                                     file.size = info.size;
-
-                                    // Lê o arquivo e obtém o binário correspondente
                                     file.binary = fs.readFileSync(file.path);
-
                                     console.log(`📸 ~ Imagem redimensionada para ${(file.size / 1024 / 1024).toFixed(2)} MB`);
 
-                                    //! Imagem redimensionada continua maior que o tamanho máximo permitido pela unidade
                                     if (info.size > maxSize * 1024 * 1024) {
-                                        //! Exclui imagem redimensionada
                                         fs.unlinkSync(path.join(pathDestination, fileName));
-
                                         return res.status(400).send({ message: `O arquivo enviado é muito grande. Tamanho máximo permitido: ${maxSize} MB` });
                                     }
                                     resolve();
                                 }
                             });
                     });
-                });
+                } else {
+                    // Se não for uma imagem, apenas obtenha o binário
+                    file.path = path.join(pathDestination, fileName);
+                    file.binary = fs.readFileSync(file.path);
+                    return Promise.resolve();
+                }
+            });
 
             try {
-                await Promise.all(resizePromises); //? Aguarda todas as operações de redimensionamento serem concluídas
+                await Promise.all(filePromises); //? Aguarda todas as operações de redimensionamento serem concluídas
 
                 //? Excluir tudo que estiver na pasta temp/* (imagens originais)
                 try {
