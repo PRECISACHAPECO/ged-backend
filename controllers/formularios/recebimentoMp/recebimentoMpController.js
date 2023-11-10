@@ -37,7 +37,7 @@ class RecebimentoMpController {
         console.log("🚀 ~ unidadeID:", unidadeID)
 
         const sql = `
-        SELECT a.parRecebimentoMpModeloID AS id, CONCAT(a.nome, " (ciclo de ", a.ciclo, " dias)") AS nome, a.ciclo, a.cabecalho
+        SELECT a.parRecebimentoMpModeloID AS id, a.nome, a.ciclo, a.cabecalho
         FROM par_recebimentomp_modelo AS a 
         WHERE a.unidadeID = ? AND a.status = 1 
         ORDER BY a.nome ASC`
@@ -48,6 +48,7 @@ class RecebimentoMpController {
 
     async insertData(req, res) {
         const data = req.body
+        console.log("🚀 ~ chegouuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu:", data)
 
         if (!data.model.id || !data.unidadeID) return res.status(400).json({ message: 'Erro ao inserir formulário!' })
 
