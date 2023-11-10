@@ -17,12 +17,14 @@ class RecebimentoMpController {
             IF(MONTH(l.data) > 0, DATE_FORMAT(l.data, "%d/%m/%Y"), '--') AS data, 
             plm.nome AS modelo,
             p.nome AS profissional, 
+            IF(l.fornecedorID > 0, CONCAT(f.nome, ' (', f.cnpj, ')'), '--') AS fornecedor,
             s.nome AS status,
             s.cor
         FROM recebimentomp AS l
             JOIN par_recebimentomp_modelo AS plm ON (l.parRecebimentoMpModeloID = plm.parRecebimentoMpModeloID)
             JOIN status AS s ON (l.status = s.statusID)
             LEFT JOIN profissional AS p ON (l.preencheProfissionalID = p.profissionalID)
+            LEFT JOIN fornecedor AS f ON (l.fornecedorID = f.fornecedorID)
         WHERE l.unidadeID = ?
         ORDER BY l.recebimentoMpID DESC, l.status ASC`
         const [result] = await db.promise().query(sql, [unidadeID])
@@ -65,6 +67,7 @@ class RecebimentoMpController {
     async getData(req, res) {
         try {
             const { id } = req.params; // id do formulário
+            const { unidadeID, profissionalID } = req.body;
 
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar formulário!' }) }
 
@@ -72,7 +75,7 @@ class RecebimentoMpController {
         SELECT
         r.parRecebimentoMpModeloID,
             r.unidadeID,
-            DATE_FORMAT(r.dataInicio, '%d/%m/%Y') AS dataInicio,
+            DATE_FORMAT(r.dataInicio, '%Y-%m-%d') AS dataInicio,
                 DATE_FORMAT(r.dataInicio, '%H:%i') AS horaInicio,
                     r.abreProfissionalID,
                     pa.nome AS abreProfissionalNome,
@@ -84,16 +87,16 @@ class RecebimentoMpController {
                     CONCAT(f.cidade, "/", f.estado) AS cidadeFornecedor,
 
                         DATE_FORMAT(r.data, '%Y-%m-%d') AS data,
-                            DATE_FORMAT(r.data, '%H:%i') AS hora,
+                            IF(r.data, DATE_FORMAT(r.data, '%H:%i'), DATE_FORMAT(NOW(), '%H:%i')) AS hora,
                                 r.preencheProfissionalID,
                                 pp.nome AS preencheProfissionalNome,
 
                                     DATE_FORMAT(r.dataConclusao, '%Y-%m-%d') AS dataConclusao,
-                                        DATE_FORMAT(r.dataConclusao, '%H:%i') AS horaConclusao,
+                                        IF(r.dataConclusao, DATE_FORMAT(r.dataConclusao, '%H:%i'), DATE_FORMAT(NOW(), '%H:%i')) AS horaConclusao,
                                             r.aprovaProfissionalID,
                                             pap.nome AS aprovaProfissionalNome,
 
-                                                DATE_FORMAT(r.dataFim, '%d/%m/%Y') AS dataFim,
+                                                DATE_FORMAT(r.dataFim, '%Y-%m-%d') AS dataFim,
                                                     DATE_FORMAT(r.dataFim, '%H:%i') AS horaFim,
                                                         r.finalizaProfissionalID,
                                                         pf.nome AS finalizaProfissionalNome,
