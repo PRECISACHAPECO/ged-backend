@@ -48,7 +48,6 @@ class RecebimentoMpController {
 
     async insertData(req, res) {
         const data = req.body
-        console.log("🚀 ~ chegouuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu:", data)
 
         if (!data.model.id || !data.unidadeID) return res.status(400).json({ message: 'Erro ao inserir formulário!' })
 
