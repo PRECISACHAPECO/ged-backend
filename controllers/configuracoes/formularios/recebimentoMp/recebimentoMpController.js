@@ -102,9 +102,17 @@ class RecebimentoMpController {
                 blocks.push(objData);
             }
 
+            const sqlProfissionais = `
+            SELECT profissionalID AS id, nome
+            FROM profissional
+            WHERE unidadeID = ? AND status = 1
+            ORDER BY nome ASC`
+            const [resultProfissionais] = await db.promise().query(sqlProfissionais, [unidadeID])
+
             //? Options
             const objOptions = {
-                itens: resultItem ?? []
+                itens: resultItem ?? [],
+                profissionais: resultProfissionais ?? []
             };
 
             //? Orientações

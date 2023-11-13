@@ -684,6 +684,7 @@ class FornecedorController {
     async updateData(req, res) {
         const { id } = req.params
         const data = req.body.form
+        console.log("🚀 ~ data:", data)
         const { usuarioID, papelID, unidadeID } = req.body.auth
 
         if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
@@ -709,7 +710,7 @@ class FornecedorController {
         ])
 
         //? Atualizar o header dinâmico e setar o status        
-        if (data.fields) {
+        if (data.fields > 0) {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
             let dataHeader = await formatFieldsToTable('par_fornecedor', data.fields)
             console.log("🚀 ~ dataHeader:", dataHeader)
