@@ -38,15 +38,15 @@ class RecebimentoMpController {
             SELECT pl.*, 
                 (SELECT IF(COUNT(*) > 0, 1, 0)
                 FROM par_recebimentomp_modelo AS plm 
-                    JOIN par_recebimentomp_modelo_cabecalho AS plmc ON (plmc.parRecebimentoMpID = pl.parRecebimentoMpID AND plm.parRecebimentoMpModeloID = plmc.parRecebimentoMpModeloID)
-                WHERE plm.parRecebimentoMpModeloID = ?
+                    JOIN par_recebimentomp_modelo_cabecalho AS plmc ON (plm.parRecebimentoMpModeloID = plmc.parRecebimentoMpModeloID)
+                WHERE plmc.parRecebimentoMpID = pl.parRecebimentoMpID AND plm.parRecebimentoMpModeloID = ?
                 LIMIT 1
                 ) AS mostra, 
                 
                 COALESCE((SELECT plmc.obrigatorio
                 FROM par_recebimentomp_modelo AS plm 
-                    JOIN par_recebimentomp_modelo_cabecalho AS plmc ON (plmc.parRecebimentoMpID = pl.parRecebimentoMpID AND plm.parRecebimentoMpModeloID = plmc.parRecebimentoMpModeloID)
-                WHERE plm.parRecebimentoMpModeloID = ?
+                    JOIN par_recebimentomp_modelo_cabecalho AS plmc ON (plm.parRecebimentoMpModeloID = plmc.parRecebimentoMpModeloID)
+                WHERE plmc.parRecebimentoMpID = pl.parRecebimentoMpID AND plm.parRecebimentoMpModeloID = ?
                 LIMIT 1
                 ), 0) AS obrigatorio
 

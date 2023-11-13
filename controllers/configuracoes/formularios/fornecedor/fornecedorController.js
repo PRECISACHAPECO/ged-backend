@@ -22,9 +22,9 @@ class FornecedorController {
     async getData(req, res) {
         const { id } = req.params;
         const { unidadeID } = req.body;
+
         try {
             if (!id || id == 'undefined') { return res.json({ message: 'Sem ID recebido!' }) }
-            console.log("🚀 ~~~~~ id:", id)
 
             //? Model
             const sql = `
@@ -38,33 +38,32 @@ class FornecedorController {
             SELECT pf.*, 
                 (SELECT COUNT(*)
                 FROM par_fornecedor_modelo AS pfm 
-                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
-                WHERE pfm.parFornecedorModeloID = ${id}
+                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
+                WHERE pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = ${id}
                 LIMIT 1
                 ) AS mostra, 
                 
                 COALESCE((SELECT pfmc.obrigatorio
                 FROM par_fornecedor_modelo AS pfm 
-                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
-                WHERE pfm.parFornecedorModeloID = ${id}
+                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
+                WHERE pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = ${id}
                 LIMIT 1
                 ), 0) AS obrigatorio,
 
                 COALESCE((SELECT pfmc.ordem
                 FROM par_fornecedor_modelo AS pfm 
-                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
-                WHERE pfm.parFornecedorModeloID = ${id}
+                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
+                WHERE pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = ${id}
                 LIMIT 1
                 ), 100) AS ordem
             FROM par_fornecedor AS pf
             ORDER BY 
                 COALESCE((SELECT pfmc.ordem
                     FROM par_fornecedor_modelo AS pfm 
-                        JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
-                    WHERE pfm.parFornecedorModeloID = ${id}
+                        JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
+                    WHERE pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = ${id}
                     LIMIT 1
                 ), 100) ASC`;
-            console.log("🚀 ~ aquiiii")
             const [resultHeader] = await db.promise().query(sqlHeader);
 
             //? Blocks
