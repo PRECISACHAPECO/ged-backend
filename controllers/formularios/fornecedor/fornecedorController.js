@@ -1135,7 +1135,7 @@ class FornecedorController {
             const movimentation = await addFormStatusMovimentation(1, fornecedorID, usuarioID, unidadeID, papelID, '0', initialStatus, '')
             if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário!" }) }
 
-            res.status(200).json({ message: "Dados salvos com sucesso!" })
+            res.status(200).json({ fornecedorID, message: "Dados salvos com sucesso!" })
 
             // Cria formulario e usuario para o fornecedor e envia email / fornecedor response formulario
         } else {
@@ -1290,7 +1290,7 @@ class FornecedorController {
                 link: `${process.env.BASE_URL}formularios/fornecedor?f=${fornecedorID}`
             }
 
-            res.status(200).json({ message: "E-mail enviado com sucesso!" })
+            res.status(200).json({ message: "Email enviado com sucesso", result })
         }
     }
 
