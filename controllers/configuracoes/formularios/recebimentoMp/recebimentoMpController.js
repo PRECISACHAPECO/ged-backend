@@ -141,10 +141,36 @@ class RecebimentoMpController {
 
             //? Model
             const sqlModel = `
-            UPDATE par_recebimentomp_modelo
-            SET nome = ?, ciclo = ?, status = ?
-            WHERE parRecebimentoMpModeloID = ?`
-            const [resultModel] = await db.promise().query(sqlModel, [model.nome, model.ciclo, (model.status ? 1 : 0), id])
+             UPDATE par_recebimentomp_modelo
+             SET nome = ?, ciclo = ?, cabecalho = ?, status = ?
+             WHERE parRecebimentoMpModeloID = ?`
+            const [resultModel] = await db.promise().query(sqlModel, [model?.nome, model?.ciclo, model?.cabecalho ?? '', (model?.status ? '1' : '0'), id])
+
+            //? Atualiza profissionais que aprovam e assinam o modelo. tabela: par_recebimentomp_modelo_profissional
+            const sqlDeleteProfissionaisModelo = `DELETE FROM par_recebimentomp_modelo_profissional WHERE parRecebimentoMpModeloID = ?`
+            const [resultDeleteProfissionaisModelo] = await db.promise().query(sqlDeleteProfissionaisModelo, [id])
+            //? Insere profissionais que aprovam
+            if (model && model.profissionaisPreenchem && model.profissionaisPreenchem.length > 0) {
+                for (let i = 0; i < model.profissionaisPreenchem.length; i++) {
+                    if (model.profissionaisPreenchem[i].id > 0) {
+                        const sqlInsertProfissionalModelo = `
+                         INSERT INTO par_recebimentomp_modelo_profissional(parRecebimentoMpModeloID, profissionalID, tipo) 
+                         VALUES (?, ?, ?)`
+                        const [resultInsertProfissionalModelo] = await db.promise().query(sqlInsertProfissionalModelo, [id, model.profissionaisPreenchem[i].id, 1])
+                    }
+                }
+            }
+            //? Insere profissionais que aprovam
+            if (model && model.profissionaisAprovam && model.profissionaisAprovam.length > 0) {
+                for (let i = 0; i < model.profissionaisAprovam.length; i++) {
+                    if (model.profissionaisAprovam[i].id > 0) {
+                        const sqlInsertProfissionalModelo = `
+                         INSERT INTO par_recebimentomp_modelo_profissional(parRecebimentoMpModeloID, profissionalID, tipo) 
+                         VALUES (?, ?, ?)`
+                        const [resultInsertProfissionalModelo] = await db.promise().query(sqlInsertProfissionalModelo, [id, model.profissionaisAprovam[i].id, 2])
+                    }
+                }
+            }
 
             //? Header
             header && header.forEach(async (item) => {

@@ -171,6 +171,7 @@ class FornecedorController {
 
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao receber ID!' }) }
 
+
             //? Model
             const sqlModel = `
             UPDATE par_fornecedor_modelo
