@@ -1,5 +1,5 @@
 const db = require('../../config/db');
-const dbFile = require('../../config/dbFile');
+// const dbFile = require('../../config/dbFile');
 require('dotenv/config')
 const { getMenu, criptoMd5 } = require('../../config/defaultConfig');
 const sendMailConfig = require('../../config/email');
@@ -17,45 +17,47 @@ const jwtConfig = {
 
 class AuthController {
 
-    async testeFoto(req, res) {
-        const sql = `SELECT * FROM fotos WHERE unidadeID = ?`
-        const [result] = await dbFile.promise().query(sql, [1]);
+    // async testeFoto(req, res) {
+    //     const sql = `SELECT * FROM fotos WHERE unidadeID = ?`
+    //     const [result] = await dbFile.promise().query(sql, [1]);
 
-        for (const foto of result) {
+    //     for (const foto of result) {
 
-            if (foto.tipo == 'image/jpeg') {
-                foto.url = `data:${foto.tipo};base64,${foto.url}`;
-            } else {
-                // Converte para blob
-                const blob = Buffer.from(foto.url, 'base64');
+    //         if (foto.tipo == 'image/jpeg') {
+    //             foto.url = `data:${foto.tipo};base64,${foto.url}`;
+    //         } else {
+    //             // Converte para blob
+    //             const blob = Buffer.from(foto.url, 'base64');
 
-                // Converte para objectUrl pra conseguir abrir o arquivo em uma nova aba no frontend
-                const objectUrl = URL.createObjectURL(new Blob([blob]));
-                foto.url = objectUrl;
-            }
-        }
+    //             // Converte para objectUrl pra conseguir abrir o arquivo em uma nova aba no frontend
+    //             const objectUrl = URL.createObjectURL(new Blob([blob]));
+    //             foto.url = objectUrl;
+    //         }
+    //     }
 
-        res.status(200).json(result);
-    }
+    //     res.status(200).json(result);
+    // }
 
-    async enviaFoto(req, res) {
-        console.log('chegou...')
-        const files = req.files;
+    // async enviaFoto(req, res) {
+    //     console.log('chegou...')
+    //     const files = req.files;
 
-        for (const file of files) {
-            console.log("🚀 ~ file:", file)
-            const base64 = file.binary.toString('base64');
-            // Gravar arquivos no banco de dados no formato blob
-            const sql = `INSERT INTO fotos (url, tipo, unidadeID) VALUES (?, ?, ?)`
-            const [result] = await dbFile.promise().query(sql, [base64, file.mimetype, 1]);
-        }
+    //     for (const file of files) {
+    //         console.log("🚀 ~ file:", file)
+    //         const base64 = file.binary.toString('base64');
+    //         // Gravar arquivos no banco de dados no formato blob
+    //         const sql = `INSERT INTO fotos (url, tipo, unidadeID) VALUES (?, ?, ?)`
+    //         const [result] = await dbFile.promise().query(sql, [base64, file.mimetype, 1]);
+    //     }
 
-        res.status(200).json({ message: 'Fotos salvas no BD!' });
-    }
+    //     res.status(200).json({ message: 'Fotos salvas no BD!' });
+    // }
 
     //* Login da fábrica (CPF)
     async login(req, res) {
         const { cpf, password } = req.body;
+
+        // return res.status(400).json({ message: 'Chegou aqui..... ', cpf, password });
 
         let error = {
             email: ['Algo está errado!!']
