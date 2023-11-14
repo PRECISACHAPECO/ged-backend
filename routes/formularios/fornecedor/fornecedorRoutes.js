@@ -11,7 +11,7 @@ const route = '/formularios/fornecedor';
 fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
 fornecedorRoutes.post(`${route}/getData/:id`, fornecedorController.getData);
 fornecedorRoutes.post(`${route}/updateData/:id`, fornecedorController.updateData);
-fornecedorRoutes.delete(`${route}/:id`, fornecedorController.deleteData);
+fornecedorRoutes.delete(`${route}/delete/:id`, fornecedorController.deleteData);
 fornecedorRoutes.post(`${route}/novo`, fornecedorController.insertData);
 
 // Específicos
@@ -39,9 +39,9 @@ fornecedorRoutes.post(`${route}/getGruposAnexo`, fornecedorController.getGruposA
 fornecedorRoutes.post(`${route}/sendNotification`, fornecedorController.sendNotification);
 fornecedorRoutes.post(`${route}/getFornecedoresAprovados`, fornecedorController.getFornecedoresAprovados);
 
+
 //Envia email baseado no status do fornecedor
 fornecedorRoutes.post(`${route}/sendEmailBasedStatus`, fornecedorController.sendEmailBasedStatus);
-
 
 // Anexos
 fornecedorRoutes.delete(`${route}/deleteAnexo/:id/:anexoID/:unidadeID/:usuarioID/:folder`, fornecedorController.deleteAnexo);

@@ -866,22 +866,30 @@ class FornecedorController {
 
     deleteData(req, res) {
         const { id } = req.params
-        const objModule = {
-            table: ['item'],
-            column: 'itemID'
-        }
-        const tablesPending = [] // Tabelas que possuem relacionamento com a tabela atual
-
-        if (!tablesPending || tablesPending.length === 0) {
-            return deleteItem(id, objModule.table, objModule.column, res)
+        console.log("🚀 ~ id:", id)
+        const objDelete = {
+            table: ['fornecedor', 'fornecedor_grupoanexo', 'fornecedor_produto', 'fornecedor_resposta', 'fornecedor_sistemaqualidade'],
+            column: 'fornecedorID'
         }
 
-        hasPending(id, objModule.column, tablesPending)
+        const arrPending = [
+            {
+                table: 'recebimentomp',
+                column: ['fornecedorID',],
+            },
+
+        ]
+
+        if (!arrPending || arrPending.length === 0) {
+            return deleteItem(id, objDelete.table, objDelete.column, res)
+        }
+
+        hasPending(id, arrPending)
             .then((hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objModule.table, objModule.column, res)
+                    return deleteItem(id, objDelete.table, objDelete.column, res)
                 }
             })
             .catch((err) => {
