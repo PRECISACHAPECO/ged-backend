@@ -55,7 +55,11 @@ class AuthController {
 
     //* Login da fábrica (CPF)
     async login(req, res) {
+
+
         const { cpf, password } = req.body;
+
+        return res.status(400).json({ message: 'Chegou aqui..... ', cpf, password });
 
         let error = {
             email: ['Algo está errado!!']
