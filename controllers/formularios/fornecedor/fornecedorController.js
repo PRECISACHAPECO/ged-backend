@@ -866,7 +866,6 @@ class FornecedorController {
 
     deleteData(req, res) {
         const { id } = req.params
-        console.log("🚀 ~ id:", id)
         const objDelete = {
             table: ['fornecedor', 'fornecedor_grupoanexo', 'fornecedor_produto', 'fornecedor_resposta', 'fornecedor_sistemaqualidade'],
             column: 'fornecedorID'

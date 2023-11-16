@@ -597,6 +597,34 @@ class RecebimentoMpController {
 
         res.status(200).json(anexoID);
     }
+
+
+    deleteData(req, res) {
+        const { id } = req.params
+        const objDelete = {
+            table: ['recebimentomp', 'recebimentomp_produto', 'recebimentomp_resposta'],
+            column: 'recebimentoMpID'
+        }
+
+        const arrPending = []
+
+        if (!arrPending || arrPending.length === 0) {
+            return deleteItem(id, objDelete.table, objDelete.column, res)
+        }
+
+        hasPending(id, arrPending)
+            .then((hasPending) => {
+                if (hasPending) {
+                    res.status(409).json({ message: "Dado possui pendência." });
+                } else {
+                    return deleteItem(id, objDelete.table, objDelete.column, res)
+                }
+            })
+            .catch((err) => {
+                console.log(err);
+                res.status(500).json(err);
+            });
+    }
 }
 
 //* Obtém colunas
