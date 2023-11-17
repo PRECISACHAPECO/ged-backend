@@ -66,7 +66,7 @@ class ApresentacaoController {
             const values = req.body
 
             const logID = await executeLog('Atualização de apresentação', values.usuarioID, values.unidadeID, req)
-            console.log("🚀 ~ logID:", logID)
+            console.log("🚀 ~ logIDsssss:", logID)
 
             //* Valida conflito
             const validateConflicts = {
@@ -81,6 +81,8 @@ class ApresentacaoController {
 
             const sqlUpdate = `UPDATE apresentacao SET nome = ?, status = ? WHERE apresentacaoID = ?`
             executeQuery(sqlUpdate, [values.fields.nome, values.fields.status, id], 'update', 'apresentacao', 'apresentacaoID', id, values.usuarioID, values.unidadeID, logID)
+
+            return res.status(200).json(id)
 
         } catch (error) {
             console.log(error)

@@ -42,7 +42,7 @@ const executeQuery = async (sql, params, operation, tableName, uniqueColumnName,
         const changeData = getChangedData(beforeData, afterData, operation, uniqueColumnName)
 
         // Registre os detalhes na tabela de log
-        logDatabaseOperation(operation, tableName, changeData, usuarioID, unidadeID, logID);
+        logDatabaseOperation(operation, tableName, changeData, logID);
 
         return id;
     } catch (err) {
@@ -86,8 +86,6 @@ const getChangedData = (beforeData, afterData, operation, uniqueColumnName) => {
 }
 
 const logDatabaseOperation = async (operation, tableName, changeData, logID) => {
-
-
     try {
         // Construa a query de inserção na tabela de log
         const sqlInsertLog = 'INSERT INTO log_script (logID, operacao, tabela, alteracao) VALUES (?, ?, ?, ?)';
