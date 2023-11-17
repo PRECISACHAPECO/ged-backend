@@ -21,7 +21,7 @@ const executeLog = async (nome, usuarioID, unidadeID, req) => {
 }
 
 
-const executeQuery = async (sql, params, operation, tableName, uniqueColumnName, id, usuarioID, unidadeID, logID) => {
+const executeQuery = async (sql, params, operation, tableName, uniqueColumnName, id, logID) => {
 
 
     const sqlSelect = `SELECT * FROM ${tableName} WHERE ${uniqueColumnName} = ?`;

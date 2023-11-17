@@ -2,12 +2,12 @@ const db = require('../../../config/db');
 
 class LogController {
     async getList(req, res) {
-        const { id } = req.params;
+        const { unidadeID } = req.params;
 
         try {
             const sqlgetList = `
             SELECT 
-                a.logID,
+                a.logID AS id,
                 a.nome, 
                 DATE(a.dataHora) AS data,
                 TIME(a.dataHora) AS hora,
@@ -17,7 +17,7 @@ class LogController {
                 JOIN usuario AS b ON (a.usuarioID = b.usuarioID)
                 JOIN unidade AS c ON (a.unidadeID = c.unidadeID)
             WHERE a.unidadeID = ?;`
-            const [resultGetList] = await db.promise().query(sqlgetList, [id])
+            const [resultGetList] = await db.promise().query(sqlgetList, [unidadeID])
 
             res.status(200).json(resultGetList)
 
@@ -27,11 +27,11 @@ class LogController {
     }
 
     async getData(req, res) {
-        const { id } = req.params;
+        const { unidadeID } = req.params;
 
         try {
             const sqlgetOne = `SELECT * FROM log_script WHERE logID = ?`
-            const [resultGetOne] = await db.promise().query(sqlgetOne, [id])
+            const [resultGetOne] = await db.promise().query(sqlgetOne, [unidadeID])
 
             res.status(200).json(resultGetOne)
         } catch (err) {

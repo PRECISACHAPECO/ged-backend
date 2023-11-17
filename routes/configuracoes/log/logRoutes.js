@@ -6,7 +6,7 @@ const logRoutes = Router();
 const logController = new LogController();
 const route = '/log';
 
-logRoutes.get(`${route}/:id`, logController.getList);
-logRoutes.get(`${route}/getData/:id`, logController.getData);
+logRoutes.get(`${route}/:unidadeID`, logController.getList);
+logRoutes.get(`${route}/getData/:unidadeID`, logController.getData);
 
 module.exports = logRoutes;

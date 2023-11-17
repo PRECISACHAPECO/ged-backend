@@ -38,7 +38,6 @@ class ApresentacaoController {
     async insertData(req, res) {
         const values = req.body
         try {
-            const logID = executeLog('Criação de apresentação', values.usuarioID, values.unidadeID, req)
             //* Valida conflito
             const validateConflicts = {
                 columns: ['nome'],
@@ -49,9 +48,11 @@ class ApresentacaoController {
             if (await hasConflict(validateConflicts)) {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
+            const logID = await executeLog('Criação de apresentação', values.usuarioID, values.unidadeID, req)
 
             const sqlInsert = 'INSERT INTO apresentacao (nome, status, dataCadastro) VALUES (?, ?, ?)'
-            const id = await executeQuery(sqlInsert, [values.fields.nome, values.fields.status, new Date()], 'insert', 'apresentacao', 'apresentacaoID', null, values.usuarioID, values.unidadeID, logID)
+            const id = await executeQuery(sqlInsert, [values.fields.nome, values.fields.status, new Date()], 'insert', 'apresentacao', 'apresentacaoID', null, logID)
+
 
             return res.status(200).json(id)
 
@@ -80,7 +81,7 @@ class ApresentacaoController {
             }
 
             const sqlUpdate = `UPDATE apresentacao SET nome = ?, status = ? WHERE apresentacaoID = ?`
-            executeQuery(sqlUpdate, [values.fields.nome, values.fields.status, id], 'update', 'apresentacao', 'apresentacaoID', id, values.usuarioID, values.unidadeID, logID)
+            executeQuery(sqlUpdate, [values.fields.nome, values.fields.status, id], 'update', 'apresentacao', 'apresentacaoID', id, logID)
 
             return res.status(200).json(id)
 
@@ -92,7 +93,6 @@ class ApresentacaoController {
     async deleteData(req, res) {
         const { id, usuarioID, unidadeID } = req.params
 
-        const logID = await executeLog('Exclusão de apresentação', usuarioID, unidadeID, req)
 
 
         const objDelete = {
@@ -110,14 +110,16 @@ class ApresentacaoController {
         ]
 
         if (!arrPending || arrPending.length === 0) {
+            const logID = await executeLog('Exclusão de apresentação', usuarioID, unidadeID, req)
             return deleteItem(id, objDelete.table, objDelete.column, res, usuarioID, unidadeID, logID)
         }
 
         hasPending(id, arrPending)
-            .then((hasPending) => {
+            .then(async (hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
+                    const logID = await executeLog('Exclusão de apresentação', usuarioID, unidadeID, req)
                     return deleteItem(id, objDelete.table, objDelete.column, res, usuarioID, unidadeID, logID)
                 }
             })
