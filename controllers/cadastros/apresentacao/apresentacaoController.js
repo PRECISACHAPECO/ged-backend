@@ -1,5 +1,6 @@
 const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
+const executeQuery = require('../../../config/executeQuery');
 
 class ApresentacaoController {
     async getList(req, res) {
@@ -49,9 +50,9 @@ class ApresentacaoController {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
-            const sqlInsert = 'INSERT INTO apresentacao (nome, status) VALUES (?, ?)'
-            const [resultSqlInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.status])
-            const id = resultSqlInsert.insertId
+            const sqlInsert = 'INSERT INTO apresentacao (nome, status, dataCadastro) VALUES (?, ?, ?)'
+            const id = await executeQuery(sqlInsert, [values.fields.nome, values.fields.status, new Date()], 'insert', 'apresentacao', 'apresentacaoID', null, values.usuarioID, values.unidadeID)
+
             return res.status(200).json(id)
 
         } catch (error) {
@@ -76,9 +77,8 @@ class ApresentacaoController {
             }
 
             const sqlUpdate = `UPDATE apresentacao SET nome = ?, status = ? WHERE apresentacaoID = ?`
-            const [resultSqlUpdat] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.status, id])
+            executeQuery(sqlUpdate, [values.fields.nome, values.fields.status, id], 'update', 'apresentacao', 'apresentacaoID', id, values.usuarioID, values.unidadeID)
 
-            return res.status(200).json({ message: 'Dados atualizados com sucesso' })
         } catch (error) {
             console.log(error)
         }

@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const executeQuery = require('./executeQuery');
 
 const getMenu = async (papelID) => {
     const menu = []
@@ -223,7 +224,9 @@ const removeSpecialCharts = (str) => {
 
 const deleteItem = async (id, table, column, res) => {
     for (const item of table) {
-        const [result] = await db.promise().query(`DELETE FROM ${item} WHERE ${column} = ?`, [id])
+        // const [result] = await db.promise().query(`DELETE FROM ${item} WHERE ${column} = ?`, [id])
+        const sqlDelete = `DELETE FROM ${item} WHERE ${column} = ?`
+        executeQuery(sqlDelete, [id], 'delete', item, column, id)
     }
     return res.json({})
 }
