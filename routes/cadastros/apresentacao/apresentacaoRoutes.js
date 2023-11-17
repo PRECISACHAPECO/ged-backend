@@ -11,7 +11,7 @@ apresentacaoRoutes.post(`${route}/getData/:id`, apresentacaoController.getData);
 
 apresentacaoRoutes.post(`${route}/updateData/:id`, apresentacaoController.updateData);
 apresentacaoRoutes.post(`${route}/new/insertData`, apresentacaoController.insertData);
-apresentacaoRoutes.delete(`${route}/:id`, apresentacaoController.deleteData);
+apresentacaoRoutes.delete(`${route}/:id/:usuarioID/:unidadeID`, apresentacaoController.deleteData);
 
 
 module.exports = apresentacaoRoutes;

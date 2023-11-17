@@ -1,6 +1,6 @@
 const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
-const executeQuery = require('../../../config/executeQuery');
+const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class ApresentacaoController {
     async getList(req, res) {
@@ -38,7 +38,7 @@ class ApresentacaoController {
     async insertData(req, res) {
         const values = req.body
         try {
-
+            const logID = executeLog('Criação de apresentação', values.usuarioID, values.unidadeID, req)
             //* Valida conflito
             const validateConflicts = {
                 columns: ['nome'],
@@ -51,7 +51,7 @@ class ApresentacaoController {
             }
 
             const sqlInsert = 'INSERT INTO apresentacao (nome, status, dataCadastro) VALUES (?, ?, ?)'
-            const id = await executeQuery(sqlInsert, [values.fields.nome, values.fields.status, new Date()], 'insert', 'apresentacao', 'apresentacaoID', null, values.usuarioID, values.unidadeID)
+            const id = await executeQuery(sqlInsert, [values.fields.nome, values.fields.status, new Date()], 'insert', 'apresentacao', 'apresentacaoID', null, values.usuarioID, values.unidadeID, logID)
 
             return res.status(200).json(id)
 
@@ -65,6 +65,9 @@ class ApresentacaoController {
             const { id } = req.params
             const values = req.body
 
+            const logID = await executeLog('Atualização de apresentação', values.usuarioID, values.unidadeID, req)
+            console.log("🚀 ~ logID:", logID)
+
             //* Valida conflito
             const validateConflicts = {
                 columns: ['apresentacaoID', 'nome'],
@@ -77,15 +80,19 @@ class ApresentacaoController {
             }
 
             const sqlUpdate = `UPDATE apresentacao SET nome = ?, status = ? WHERE apresentacaoID = ?`
-            executeQuery(sqlUpdate, [values.fields.nome, values.fields.status, id], 'update', 'apresentacao', 'apresentacaoID', id, values.usuarioID, values.unidadeID)
+            executeQuery(sqlUpdate, [values.fields.nome, values.fields.status, id], 'update', 'apresentacao', 'apresentacaoID', id, values.usuarioID, values.unidadeID, logID)
 
         } catch (error) {
             console.log(error)
         }
     }
 
-    deleteData(req, res) {
-        const { id } = req.params
+    async deleteData(req, res) {
+        const { id, usuarioID, unidadeID } = req.params
+
+        const logID = await executeLog('Exclusão de apresentação', usuarioID, unidadeID, req)
+
+
         const objDelete = {
             table: ['apresentacao'],
             column: 'apresentacaoID'
@@ -101,7 +108,7 @@ class ApresentacaoController {
         ]
 
         if (!arrPending || arrPending.length === 0) {
-            return deleteItem(id, objDelete.table, objDelete.column, res)
+            return deleteItem(id, objDelete.table, objDelete.column, res, usuarioID, unidadeID, logID)
         }
 
         hasPending(id, arrPending)
@@ -109,7 +116,7 @@ class ApresentacaoController {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objDelete.table, objDelete.column, res)
+                    return deleteItem(id, objDelete.table, objDelete.column, res, usuarioID, unidadeID, logID)
                 }
             })
             .catch((err) => {

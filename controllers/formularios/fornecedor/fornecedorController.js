@@ -687,6 +687,8 @@ class FornecedorController {
         console.log("🚀 ~ data:", data)
         const { usuarioID, papelID, unidadeID } = req.body.auth
 
+        const logID = executeLog('Formulárop de fornecedor', usuarioID, unidadeID, req)
+
         if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
 
         const sqlProfissional = `

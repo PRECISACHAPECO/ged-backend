@@ -1,7 +1,28 @@
 const db = require('./db');
 
+const executeLog = async (nome, usuarioID, unidadeID, req) => {
 
-const executeQuery = async (sql, params, operation, tableName, uniqueColumnName, id, usuarioID, unidadeID) => {
+
+    try {
+        // Simule o cabeçalho x-forwarded-for para ambiente local
+        const ip = (req && req.headers && req.headers['x-forwarded-for']) || (req && req.connection && req.connection.remoteAddress) || 'localhost';
+
+        // Construa a query de inserção na tabela de log
+        const sqlInsertLog = 'INSERT INTO log (nome, usuarioID, unidadeID, dataHora, ip) VALUES (?, ?, ?, ?, ?)';
+
+        const [results] = await db.promise().query(sqlInsertLog, [nome, usuarioID, unidadeID, new Date(), ip]);
+        const id = results.insertId
+        return id
+
+    } catch (error) {
+        console.error('Erro ao inserir log no banco de dados:', error);
+    }
+
+}
+
+
+const executeQuery = async (sql, params, operation, tableName, uniqueColumnName, id, usuarioID, unidadeID, logID) => {
+
 
     const sqlSelect = `SELECT * FROM ${tableName} WHERE ${uniqueColumnName} = ?`;
 
@@ -21,7 +42,7 @@ const executeQuery = async (sql, params, operation, tableName, uniqueColumnName,
         const changeData = getChangedData(beforeData, afterData, operation, uniqueColumnName)
 
         // Registre os detalhes na tabela de log
-        logDatabaseOperation(operation, tableName, changeData, usuarioID, unidadeID);
+        logDatabaseOperation(operation, tableName, changeData, usuarioID, unidadeID, logID);
 
         return id;
     } catch (err) {
@@ -64,13 +85,28 @@ const getChangedData = (beforeData, afterData, operation, uniqueColumnName) => {
     return false
 }
 
-const logDatabaseOperation = (operation, tableName, changeData, usuarioID, unidadeID) => {
-    console.log("🚀 ~ operation, tableName, changeData, usuarioID, unidadeID:", operation, tableName, changeData, usuarioID, unidadeID)
+const logDatabaseOperation = async (operation, tableName, changeData, logID) => {
 
+
+    try {
+        // Construa a query de inserção na tabela de log
+        const sqlInsertLog = 'INSERT INTO log_script (logID, operacao, tabela, alteracao) VALUES (?, ?, ?, ?)';
+
+        await db.promise().query(sqlInsertLog, [logID, operation, tableName, JSON.stringify(changeData)]);
+
+        console.log('Log inserido com sucesso.');
+    } catch (error) {
+        console.error('Erro ao inserir log no banco de dados:', error);
+    }
 };
 
 
 
+module.exports = logDatabaseOperation;
 
 
-module.exports = executeQuery;
+
+
+
+
+module.exports = { executeQuery, executeLog };
