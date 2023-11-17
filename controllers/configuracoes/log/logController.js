@@ -9,14 +9,27 @@ class LogController {
             SELECT 
                 a.logID AS id,
                 a.nome, 
-                DATE(a.dataHora) AS data,
-                TIME(a.dataHora) AS hora,
+                a.ip,
+                DATE_FORMAT(a.dataHora, '%d/%m/%Y %h:%i') AS dataHora,
                 b.nome AS usuario,
-                c.nomeFantasia AS unidade
+                (
+                    SELECT GROUP_CONCAT(ls.tabela SEPARATOR ', ')
+                    FROM log_script AS ls
+                    WHERE ls.logID = a.logID
+                ) AS tabelas,
+                (
+                    SELECT GROUP_CONCAT(ls.operacao SEPARATOR ', ')
+                    FROM log_script AS ls
+                    WHERE ls.logID = a.logID
+                ) AS operacoes,
+                (
+                    SELECT GROUP_CONCAT(ls.alteracao SEPARATOR ', ')
+                    FROM log_script AS ls
+                    WHERE ls.logID = a.logID
+                ) AS scripts
             FROM log AS a
                 JOIN usuario AS b ON (a.usuarioID = b.usuarioID)
-                JOIN unidade AS c ON (a.unidadeID = c.unidadeID)
-            WHERE a.unidadeID = ?;`
+            WHERE a.unidadeID = ?`
             const [resultGetList] = await db.promise().query(sqlgetList, [unidadeID])
 
             res.status(200).json(resultGetList)
