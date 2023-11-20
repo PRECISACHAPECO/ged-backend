@@ -34,6 +34,7 @@ const executeQuery = async (sql, params, operation, tableName, uniqueColumnName,
         // Execute a consulta real (insert, update ou delete)
         const [results] = await db.promise().query(sql, params);
         if (operation == 'insert') id = results.insertId
+        console.log("🚀 ~ results:", results)
 
         // Após a execução da consulta, obtenha os dados atualizados da tabela (depois da operação)
         const [rowsAfter] = await db.promise().query(sqlSelect, [id]);
@@ -62,15 +63,16 @@ const getChangedData = (beforeData, afterData, operation, uniqueColumnName) => {
             const changedData = {};
 
             for (const key in afterData[0]) {
-                if (key == uniqueColumnName) {
-                    changedData[key] = afterData[0][key]
-                }
-                else if (beforeData[0][key] !== afterData[0][key]) {
+                if (beforeData[0][key] != afterData[0][key]) {
                     changedData[key] = {
+                        alterado: true,
                         antes: beforeData[0][key],
-                        depois: afterData[0][key]
+                        depois: afterData[0][key],
                     };
+                } else {
+                    changedData[key] = beforeData[0][key]
                 }
+
             }
 
             return changedData

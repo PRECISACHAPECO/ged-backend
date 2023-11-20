@@ -167,7 +167,7 @@ class GrupoAnexosController {
             //? Atualizado formulários (+1)
             // Remove atuais 
             const sqlDeleteFormularios = `DELETE FROM grupoanexo_parformulario WHERE grupoAnexoID = ?`
-            await executeQuery(sqlDeleteFormularios, [id], 'delete', 'grupoanexo_parformulario', 'grupoanexoParformularioID', id, logID)
+            await executeQuery(sqlDeleteFormularios, [id], 'delete', 'grupoanexo_parformulario', 'grupoAnexoID', id, logID)
 
             // Insere novos 
             if (values.formulario.fields.length > 0) {
@@ -191,7 +191,7 @@ class GrupoAnexosController {
                 //? Remove somente itens que não possuem pendências
                 const sqlDeleteItens = `DELETE FROM grupoanexo_item WHERE grupoAnexoItemID IN (${values.removedItems.join(',')})`
 
-                await executeQuery(sqlDeleteItens, [], 'delete', 'grupoanexo_item', 'grupoAnexoItemID', id, logID)
+                await executeQuery(sqlDeleteItens, [], 'delete', 'grupoanexo_item', 'grupoAnexoID', id, logID)
             }
 
             if (values.items.length > 0) {

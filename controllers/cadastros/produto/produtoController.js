@@ -1,5 +1,6 @@
 const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class ProdutoController {
 
@@ -225,10 +226,14 @@ class ProdutoController {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
+            const logID = await executeLog('Criação de produto', values.usuarioID, values.unidadeID, req)
+
             // //? Insere novo item
             const sqlInsert = `INSERT INTO produto (nome, status, unidadeMedidaID, unidadeID) VALUES (?, ?, ?, ?)`
-            const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, (values.fields.status ? '1' : '0'), values.unidadeMedida.fields.id, values.unidadeID])
-            const id = resultInsert.insertId
+            // const [resultInsert] = await db.promise().query(sqlInsert, [values.fields.nome, (values.fields.status ? '1' : '0'), values.unidadeMedida.fields.id, values.unidadeID])
+            // const id = resultInsert.insertId
+
+            const id = await executeQuery(sqlInsert, [values.fields.nome, (values.fields.status ? '1' : '0'), values.unidadeMedida.fields.id, values.unidadeID], 'insert', 'produto', 'produtoID', null, logID)
 
             //? Dados do grupo inserido,
             const sqlGetProduto = `
@@ -243,7 +248,9 @@ class ProdutoController {
             if (values.anexos.length > 0) {
                 const sqlInsertAnexo = 'INSERT INTO produto_anexo (nome, parFormularioID, descricao, obrigatorio, status, produtoID) VALUES (?, ?, ?, ?, ?, ?)'
                 values.anexos.map(async (item) => {
-                    const [resultInsertAnexo] = await db.promise().query(sqlInsertAnexo, [item.nome, item.formulario.id, item.descricao, item.obrigatorio ? '1' : '0', item.status ? '1' : '0', id])
+                    // const [resultInsertAnexo] = await db.promise().query(sqlInsertAnexo, [item.nome, item.formulario.id, item.descricao, item.obrigatorio ? '1' : '0', item.status ? '1' : '0', id])
+
+                    await executeQuery(sqlInsertAnexo, [item.nome, item.formulario.id, item.descricao, item.obrigatorio ? '1' : '0', item.status ? '1' : '0', id], 'insert', 'produto_anexo', 'produtoAnexoID', null, logID)
                 })
             }
 
@@ -277,26 +284,29 @@ class ProdutoController {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
+            const logID = await executeLog('Atualização de produto', values.usuarioID, values.unidadeID, req)
+
             //? Atualiza produto
             const sqlUpdate = `UPDATE produto SET nome = ?, unidadeMedidaID = ?, status = ? WHERE produtoID = ?`;
-            const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.unidadeMedida.fields.id, (values.fields.status ? '1' : '0'), id]);
+            await executeQuery(sqlUpdate, [values.fields.nome, values.unidadeMedida.fields.id, (values.fields.status ? '1' : '0'), id], 'update', 'produto', 'produtoID', id, logID)
 
             //? Insere ou atualiza anexos
             if (values.anexos.length > 0) {
                 values.anexos.map(async (item) => {
                     if (item && item.produtoAnexoID > 0) { //? Já existe, atualiza
                         const sqlUpdateItem = `UPDATE produto_anexo SET nome = ?, parFormularioID = ?, descricao = ?, status = ?, obrigatorio = ? WHERE produtoAnexoID = ?`
-                        const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [item.nome, item.formulario.id, item.descricao, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0'), item.produtoAnexoID])
+                        await executeQuery(sqlUpdateItem, [item.nome, item.formulario.id, item.descricao, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0'), item.produtoAnexoID], 'update', 'produto_anexo', 'produtoID', id, logID)
+
                     } else if (item && !item.produtoAnexoID) {                   //? Novo, insere
                         const sqlInsertItem = `INSERT INTO produto_anexo (nome, parFormularioID, descricao, produtoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [item.nome, item.formulario.id, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')])
+                        await executeQuery(sqlInsertItem, [item.nome, item.formulario.id, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')], 'insert', 'produto_anexo', 'produtoID', id, logID)
                     }
                 })
             }
 
             if (values.removedItems.length > 0) {
                 const sqlDeleteAnexos = `DELETE FROM produto_anexo WHERE produtoAnexoID IN (${values.removedItems.join(',')})`
-                const [resultDeleteAnexos] = await db.promise().query(sqlDeleteAnexos)
+                await executeQuery(sqlDeleteAnexos, [], 'delete', 'produto_anexo', 'produtoID', id, logID)
 
             }
 
@@ -306,8 +316,8 @@ class ProdutoController {
         }
     }
 
-    deleteData(req, res) {
-        const { id } = req.params
+    async deleteData(req, res) {
+        const { id, usuarioID, unidadeID } = req.params
         const objDelete = {
             table: ['produto', 'produto_anexo'],
             column: 'produtoID'
@@ -324,15 +334,17 @@ class ProdutoController {
         ]
 
         if (!arrPending || arrPending.length === 0) {
-            return deleteItem(id, objDelete.table, objDelete.column, res)
+            const logID = await executeLog('Exclusão de produto', usuarioID, unidadeID, req)
+            return deleteItem(id, objDelete.table, objDelete.column, logID, res)
         }
 
         hasPending(id, arrPending)
-            .then((hasPending) => {
+            .then(async (hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objDelete.table, objDelete.column, res)
+                    const logID = await executeLog('Exclusão de produto', usuarioID, unidadeID, req)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
                 }
             })
             .catch((err) => {

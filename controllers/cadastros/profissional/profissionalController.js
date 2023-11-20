@@ -8,6 +8,7 @@ const { accessPermissions } = require('../../../defaults/functions');
 const alterPassword = require('../../../email/template/user/alterPassword');
 const newUser = require('../../../email/template/user/newUser');
 const sendMailConfig = require('../../../config/email');
+const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class ProfissionalController {
     //? Obtém os profissionais pra assinatura
@@ -201,16 +202,17 @@ class ProfissionalController {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
+            const logID = await executeLog('Criação de profissional', data.usualioLogado, data.unidadeID, req)
+
             // Cadastra novo profisional
             const InsertUser = `INSERT profissional SET ? `
-            const [resultInsertUser] = await db.promise().query(InsertUser, [data.fields])
-            const profissionalID = resultInsertUser.insertId
+            const profissionalID = await executeQuery(InsertUser, [data.fields], 'insert', 'profissional', 'profissionalID', null, logID)
 
             // Cadastro CARGOS / FUNÇÃO
             const insertCargo = `INSERT INTO profissional_cargo (data, formacaoCargo, conselho, dataInativacao, profissionalID) VALUES (?, ?, ?, ?, ?)`
             if (data.cargosFuncoes.length > 0) {
                 data.cargosFuncoes.map(async (row) => {
-                    const [resultInsertCargo] = await db.promise().query(insertCargo, [row.data, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), profissionalID])
+                    await executeQuery(insertCargo, [row.data, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), profissionalID], 'insert', 'profissional_cargo', 'profissionalID', null, logID)
                 })
             }
 
@@ -218,14 +220,13 @@ class ProfissionalController {
             //* Marcou usuário do sistema
             if (data.isUsuario) {
                 const sqlInsertUsuario = `INSERT INTO usuario (cpf, nome, email, senha) VALUES (?,?,?, ?)`
-                const [resultInsertUsuario] = await db.promise().query(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, data.fields.email, criptoMd5(data.senha)])
-                const usuarioID = resultInsertUsuario.insertId
+                const usuarioID = await executeQuery(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, data.fields.email, criptoMd5(data.senha)], 'insert', 'usuario', 'usuarioID', null, logID)
 
                 const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?, ?)`
-                const [resultInsertUsuarioUnity] = await db.promise().query(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1])
+                await executeQuery(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1], 'insert', 'usuario_unidade', 'usuarioID', null, logID)
 
                 const UpdateUser = `UPDATE profissional SET usuarioID = ? WHERE profissionalID = ?`
-                const [resultUpdateUser] = await db.promise().query(UpdateUser, [usuarioID, profissionalID])
+                await executeQuery(UpdateUser, [usuarioID, profissionalID], 'update', 'profissional', 'profissionalID', null, logID)
 
                 //* PERMISSÕES DE ACESSO
                 const newData = {
@@ -310,9 +311,11 @@ class ProfissionalController {
     //! Atualiza a foto do perfil do usuário
     async updatePhotoProfile(req, res) {
         try {
-            const { id } = req.params;
+            const { id, usuarioID, unidadeID } = req.params
             const pathDestination = req.pathDestination
             const file = req.files[0]; //? Somente 1 arquivo
+
+            const logID = await executeLog('Atualização da imagem do profissional', usuarioID, unidadeID, req)
 
             const sqlSelectPreviousPhoto = `SELECT imagem FROM profissional WHERE profissionalID = ?`;
             const sqlUpdatePhotoProfile = `UPDATE profissional SET imagem = ? WHERE profissionalID = ?`;
@@ -328,7 +331,8 @@ class ProfissionalController {
             const previousPhotoProfile = rows[0]?.imagem;
 
             // Atualizar a foto de perfil no banco de dados
-            await db.promise().query(sqlUpdatePhotoProfile, [`${pathDestination}${file.filename}`, id]);
+            await executeQuery(sqlUpdatePhotoProfile, [`${pathDestination}${file.filename}`, id], 'update', 'profissional', 'profissionalID', id, logID)
+            // await db.promise().query(sqlUpdatePhotoProfile, [`${pathDestination}${file.filename}`, id]);
 
             // Excluir a foto de perfil anterior
             if (previousPhotoProfile) {
@@ -361,7 +365,10 @@ class ProfissionalController {
     }
 
     async handleDeleteImage(req, res) {
-        const { id, unidadeID } = req.params;
+        const { id, usuarioID, unidadeID } = req.params
+
+        const logID = await executeLog('Exclusão da imagem do profissional', usuarioID, unidadeID, req)
+
 
         const sqlSelectPreviousPhoto = `SELECT imagem FROM profissional WHERE profissionalID = ?`;
         const sqlUpdatePhotoProfile = `UPDATE profissional SET imagem = ? WHERE profissionalID = ?`;
@@ -372,7 +379,8 @@ class ProfissionalController {
             const previousPhotoProfile = rows[0]?.imagem;
 
             // Atualizar a foto de perfil no banco de dados
-            await db.promise().query(sqlUpdatePhotoProfile, [null, id]);
+            await executeQuery(sqlUpdatePhotoProfile, [null, id], 'update', 'profissional', 'profissionalID', id, logID)
+            // await db.promise().query(sqlUpdatePhotoProfile, [null, id]);
 
             // Excluir a foto de perfil anterior
             if (previousPhotoProfile) {

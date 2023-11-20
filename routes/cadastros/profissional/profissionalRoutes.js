@@ -23,7 +23,7 @@ profissionalRoutes.post(`${route}/updateData/:id`, profissionalController.update
 profissionalRoutes.post(`${route}/verifyCPF`, profissionalController.verifyCPF);
 profissionalRoutes.post(`${route}/getProfissionaisAssinatura`, profissionalController.getProfissionaisAssinatura);
 
-profissionalRoutes.delete(`${route}/photo-profile/:id/:unidadeID`, profissionalController.handleDeleteImage);
+profissionalRoutes.delete(`${route}/photo-profile/:id/:unidadeID/:usuarioID`, profissionalController.handleDeleteImage);
 profissionalRoutes.delete(`${route}/:id`, profissionalController.deleteData);
 profissionalRoutes.post(`${route}/new/insertData`, profissionalController.insertData);
 
