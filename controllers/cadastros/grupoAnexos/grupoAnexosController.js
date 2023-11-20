@@ -1,5 +1,6 @@
 const db = require('../../../config/db');
 const { hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { executeQuery, executeLog } = require('../../../config/executeQuery');
 
 class GrupoAnexosController {
     async getList(req, res) {
@@ -108,10 +109,11 @@ class GrupoAnexosController {
         try {
             const values = req.body
 
+            const logID = await executeLog('Criação de grupo de anexos', values.usuarioID, values.unidadeID, req)
+
             //? Atualiza grupo_anexo 
             const sqlInsert = `INSERT INTO grupoanexo (nome, descricao, unidadeID, status) VALUES (?, ?, ?, ?)`
-            const [resultInsert] = await db.promise().query(sqlInsert, [values.fields?.nome, values.fields.descricao, values.unidade, (values.fields.status ? '1' : '0')])
-            const id = resultInsert.insertId
+            const id = await executeQuery(sqlInsert, [values.fields?.nome, values.fields.descricao, values.unidade, (values.fields.status ? '1' : '0')], 'insert', 'grupoanexo', 'grupoanexoID', null, logID)
 
             //? Dados do grupo inserido,
             const sqlGetGrupoAnexos = `
@@ -126,7 +128,7 @@ class GrupoAnexosController {
             if (values.formulario.fields.length > 0) {
                 const sqlInsertFormularios = `INSERT INTO grupoanexo_parformulario (grupoAnexoID, parFormularioID) VALUES (?, ?)`
                 values.formulario.fields.map(async (item) => {
-                    const [resultInsertFormularios] = await db.promise().query(sqlInsertFormularios, [id, item.id]);
+                    await executeQuery(sqlInsertFormularios, [id, item.id], 'insert', 'grupoanexo_parformulario', 'grupoanexoParformularioID', null, logID)
                 })
             }
 
@@ -134,7 +136,7 @@ class GrupoAnexosController {
             if (values.items.length > 0) {
                 values.items.map(async (item) => {
                     const sqlInsertItem = `INSERT INTO grupoanexo_item (nome, descricao, grupoAnexoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?)`
-                    const [resultInsertItem] = await db.promise().query(sqlInsertItem, [item.nome, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')])
+                    await executeQuery(sqlInsertItem, [item.nome, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')], 'insert', 'grupoanexo_item', 'grupoAnexoItemID', null, logID)
                 })
             }
 
@@ -156,20 +158,22 @@ class GrupoAnexosController {
             const values = req.body
 
             if (!id || id == undefined) return res.status(400).json({ message: "ID não informado" })
+            const logID = await executeLog('Atualização de grupo de anexos', values.usuarioID, values.unidadeID, req)
 
             //? Atualiza grupo_anexo 
             const sqlUpdate = `UPDATE grupoanexo SET nome = ?, descricao = ?, status = ? WHERE grupoAnexoID = ?`;
-            const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.descricao, (values.fields.status ? '1' : '0'), id]);
+            await executeQuery(sqlUpdate, [values.fields.nome, values.fields.descricao, (values.fields.status ? '1' : '0'), id], 'update', 'grupoanexo', 'grupoAnexoID', id, logID)
 
             //? Atualizado formulários (+1)
             // Remove atuais 
             const sqlDeleteFormularios = `DELETE FROM grupoanexo_parformulario WHERE grupoAnexoID = ?`
-            const [resultDeleteFormularios] = await db.promise().query(sqlDeleteFormularios, [id]);
+            await executeQuery(sqlDeleteFormularios, [id], 'delete', 'grupoanexo_parformulario', 'grupoanexoParformularioID', id, logID)
+
             // Insere novos 
             if (values.formulario.fields.length > 0) {
                 const sqlInsertFormularios = `INSERT INTO grupoanexo_parformulario (grupoAnexoID, parFormularioID) VALUES (?, ?)`
                 values.formulario.fields.map(async (item) => {
-                    const [resultInsertFormularios] = await db.promise().query(sqlInsertFormularios, [id, item.id]);
+                    await executeQuery(sqlInsertFormularios, [id, item.id], 'insert', 'grupoanexo_parformulario', 'grupoanexoParformularioID', id, logID)
                 })
             }
 
@@ -186,17 +190,21 @@ class GrupoAnexosController {
                 }
                 //? Remove somente itens que não possuem pendências
                 const sqlDeleteItens = `DELETE FROM grupoanexo_item WHERE grupoAnexoItemID IN (${values.removedItems.join(',')})`
-                const [resultDeleteItens] = await db.promise().query(sqlDeleteItens)
+
+                await executeQuery(sqlDeleteItens, [], 'delete', 'grupoanexo_item', 'grupoAnexoItemID', id, logID)
             }
 
             if (values.items.length > 0) {
                 values.items.map(async (item) => {
                     if (item && item.id > 0) { //? Já existe, atualiza
                         const sqlUpdateItem = `UPDATE grupoanexo_item SET nome = ?, descricao = ?, status = ?, obrigatorio = ? WHERE grupoAnexoItemID = ?`
-                        const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [item.nome, item.descricao, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0'), item.id])
+
+                        await executeQuery(sqlUpdateItem, [item.nome, item.descricao, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0'), item.id], 'update', 'grupoanexo_item', 'grupoAnexoItemID', id, logID)
+
                     } else if (item && !item.id) {                   //? Novo, insere
                         const sqlInsertItem = `INSERT INTO grupoanexo_item (nome, descricao, grupoAnexoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?)`
-                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [item.nome, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')])
+
+                        await executeQuery(sqlInsertItem, [item.nome, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')], 'insert', 'grupoanexo_item', 'grupoAnexoItemID', id, logID)
                     }
                 })
             }
@@ -208,7 +216,7 @@ class GrupoAnexosController {
     }
 
     async deleteData(req, res) {
-        const { id } = req.params;
+        const { id, usuarioID, unidadeID } = req.params
 
         const objDelete = {
             table: ['grupoanexo', 'grupoanexo_item', 'grupoanexo_parformulario'],
@@ -224,15 +232,17 @@ class GrupoAnexosController {
         ]
 
         if (!arrPending || arrPending.length === 0) {
-            return deleteItem(id, objDelete.table, objDelete.column, res)
+            const logID = await executeLog('Exclusão de grupo de anexos', usuarioID, unidadeID, req)
+            return deleteItem(id, objDelete.table, objDelete.column, logID, res)
         }
 
         hasPending(id, arrPending)
-            .then((hasPending) => {
+            .then(async (hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objDelete.table, objDelete.column, res)
+                    const logID = await executeLog('Exclusão de grupo de anexos', usuarioID, unidadeID, req)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
                 }
             })
             .catch((err) => {

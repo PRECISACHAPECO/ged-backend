@@ -222,10 +222,10 @@ const removeSpecialCharts = (str) => {
     return newStr ?? 'undefined...'
 }
 
-const deleteItem = async (id, table, column, res, usuarioID, unidadeID, logID) => {
+const deleteItem = async (id, table, column, logID, res) => {
     for (const item of table) {
         const sqlDelete = `DELETE FROM ${item} WHERE ${column} = ?`
-        executeQuery(sqlDelete, [id], 'delete', item, column, id, usuarioID, unidadeID, logID)
+        executeQuery(sqlDelete, [id], 'delete', item, column, id, logID)
     }
     return res.json({})
 }

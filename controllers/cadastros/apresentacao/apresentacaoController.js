@@ -66,8 +66,6 @@ class ApresentacaoController {
             const { id } = req.params
             const values = req.body
 
-            const logID = await executeLog('Atualização de apresentação', values.usuarioID, values.unidadeID, req)
-            console.log("🚀 ~ logIDsssss:", logID)
 
             //* Valida conflito
             const validateConflicts = {
@@ -79,6 +77,7 @@ class ApresentacaoController {
             if (await hasConflict(validateConflicts)) {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
+            const logID = await executeLog('Atualização de apresentação', values.usuarioID, values.unidadeID, req)
 
             const sqlUpdate = `UPDATE apresentacao SET nome = ?, status = ? WHERE apresentacaoID = ?`
             executeQuery(sqlUpdate, [values.fields.nome, values.fields.status, id], 'update', 'apresentacao', 'apresentacaoID', id, logID)
@@ -92,8 +91,6 @@ class ApresentacaoController {
 
     async deleteData(req, res) {
         const { id, usuarioID, unidadeID } = req.params
-
-
 
         const objDelete = {
             table: ['apresentacao'],
@@ -111,7 +108,7 @@ class ApresentacaoController {
 
         if (!arrPending || arrPending.length === 0) {
             const logID = await executeLog('Exclusão de apresentação', usuarioID, unidadeID, req)
-            return deleteItem(id, objDelete.table, objDelete.column, res, usuarioID, unidadeID, logID)
+            return deleteItem(id, objDelete.table, objDelete.column, logID, res)
         }
 
         hasPending(id, arrPending)
@@ -120,7 +117,7 @@ class ApresentacaoController {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
                     const logID = await executeLog('Exclusão de apresentação', usuarioID, unidadeID, req)
-                    return deleteItem(id, objDelete.table, objDelete.column, res, usuarioID, unidadeID, logID)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
                 }
             })
             .catch((err) => {
