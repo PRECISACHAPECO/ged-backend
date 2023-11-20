@@ -40,11 +40,21 @@ class LogController {
     }
 
     async getData(req, res) {
-        const { unidadeID } = req.params;
+        const { unidadeID, logID } = req.params;
+        console.log("🚀 ~ unidadeID, logID:", unidadeID, logID)
+
+        console.log("dataaa", req.body)
+
 
         try {
-            const sqlgetOne = `SELECT * FROM log_script WHERE logID = ?`
-            const [resultGetOne] = await db.promise().query(sqlgetOne, [unidadeID])
+            const sqlgetOne = `
+            SELECT 
+                a.* 
+            FROM log_script AS a
+                JOIN log b ON (a.logID = b.logID)
+            WHERE b.unidadeID = ? AND a.logID = ?
+            `
+            const [resultGetOne] = await db.promise().query(sqlgetOne, [unidadeID, logID])
 
             res.status(200).json(resultGetOne)
         } catch (err) {
