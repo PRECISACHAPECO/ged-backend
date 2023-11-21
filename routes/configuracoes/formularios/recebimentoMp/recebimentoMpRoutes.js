@@ -10,6 +10,6 @@ recebimentoMpRoutes.get(`${route}/getList/:unidadeID`, recebimentoMpController.g
 recebimentoMpRoutes.post(`${route}/getData/:id`, recebimentoMpController.getData);
 recebimentoMpRoutes.put(`${route}/insertData`, recebimentoMpController.insertData);
 recebimentoMpRoutes.put(`${route}/updateData`, recebimentoMpController.updateData);
-recebimentoMpRoutes.delete(`${route}/delete/:id`, recebimentoMpController.deleteData);
+recebimentoMpRoutes.delete(`${route}/delete/:id/:usuarioID/:unidadeID`, recebimentoMpController.deleteData);
 
 module.exports = recebimentoMpRoutes;
