@@ -2,6 +2,7 @@ const db = require('../../../../config/db');
 const fs = require('fs');
 const path = require('path');
 const { hasPending, deleteItem } = require('../../../../config/defaultConfig');
+const { executeLog, executeQuery } = require('../../../../config/executeQuery');
 require('dotenv/config')
 
 class RecebimentoMpController {
@@ -149,15 +150,15 @@ class RecebimentoMpController {
 
     async insertData(req, res) {
         try {
-            const { unidadeID, model } = req.body
-            console.log("🚀 ~ unidadeID, model:", unidadeID, model)
+            const { unidadeID, usuarioID, model } = req.body
 
             if (!unidadeID || unidadeID == 'undefined') { return res.json({ message: 'Erro ao receber ID!' }) }
 
+            const logID = await executeLog('Criação modelo recebimento Mp', usuarioID, unidadeID, req)
+
             //? Model
             const sqlModel = `INSERT INTO par_recebimentomp_modelo(nome, ciclo, cabecalho, unidadeID, status) VALUES (?, ?, ?, ?, ?)`
-            const [resultModel] = await db.promise().query(sqlModel, [model.nome, model.ciclo, model.cabecalho ?? '', unidadeID, (model.status ? 1 : 0)])
-            const parRecebimentoMpModeloID = resultModel.insertId
+            const parRecebimentoMpModeloID = await executeQuery(sqlModel, [model.nome, model.ciclo, model.cabecalho ?? '', unidadeID, (model.status ? 1 : 0)], 'insert', 'par_recebimentomp_modelo', 'parRecebimentoMpModeloID', null, logID)
 
             return res.status(200).json({ id: parRecebimentoMpModeloID });
 
@@ -168,29 +169,34 @@ class RecebimentoMpController {
 
     async updateData(req, res) {
         try {
-            const { id, unidadeID, model, header, blocks, arrRemovedBlocks, arrRemovedItems, orientacoes } = req.body
+            const { id, unidadeID, usuarioID, model, header, blocks, arrRemovedBlocks, arrRemovedItems, orientacoes } = req.body
 
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao receber ID!' }) }
 
+            const logID = await executeLog('Edição modelo recebimento Mp', usuarioID, unidadeID, req)
 
             //? Model
             const sqlModel = `
             UPDATE par_recebimentomp_modelo
             SET nome = ?, ciclo = ?, cabecalho = ?, status = ?
             WHERE parRecebimentoMpModeloID = ?`
-            const [resultModel] = await db.promise().query(sqlModel, [model?.nome, model?.ciclo, model?.cabecalho ?? '', (model?.status ? '1' : '0'), id])
+            // const [resultModel] = await db.promise().query(sqlModel, [model?.nome, model?.ciclo, model?.cabecalho ?? '', (model?.status ? '1' : '0'), id])
+            await executeQuery(sqlModel, [model?.nome, model?.ciclo, model?.cabecalho ?? '', (model?.status ? '1' : '0'), id], 'update', 'par_recebimentomp_modelo', 'parRecebimentoMpModeloID', id, logID)
 
             //? Atualiza profissionais que aprovam e assinam o modelo. tabela: par_recebimentomp_modelo_profissional
             const sqlDeleteProfissionaisModelo = `DELETE FROM par_recebimentomp_modelo_profissional WHERE parRecebimentoMpModeloID = ?`
-            const [resultDeleteProfissionaisModelo] = await db.promise().query(sqlDeleteProfissionaisModelo, [id])
-            //? Insere profissionais que aprovam
+            // const [resultDeleteProfissionaisModelo] = await db.promise().query(sqlDeleteProfissionaisModelo, [id])
+            await executeQuery(sqlDeleteProfissionaisModelo, [id], 'delete', 'par_recebimentomp_modelo_profissional', 'parRecebimentoMpModeloID', id, logID)
+
+            //? Insere profissionais que preenchem
             if (model && model.profissionaisPreenchem && model.profissionaisPreenchem.length > 0) {
                 for (let i = 0; i < model.profissionaisPreenchem.length; i++) {
                     if (model.profissionaisPreenchem[i].id > 0) {
                         const sqlInsertProfissionalModelo = `
                         INSERT INTO par_recebimentomp_modelo_profissional(parRecebimentoMpModeloID, profissionalID, tipo) 
                         VALUES (?, ?, ?)`
-                        const [resultInsertProfissionalModelo] = await db.promise().query(sqlInsertProfissionalModelo, [id, model.profissionaisPreenchem[i].id, 1])
+                        // const [resultInsertProfissionalModelo] = await db.promise().query(sqlInsertProfissionalModelo, [id, model.profissionaisPreenchem[i].id, 1])
+                        await executeQuery(sqlInsertProfissionalModelo, [id, model.profissionaisPreenchem[i].id, 1], 'insert', 'par_recebimentomp_modelo_profissional', 'parRecebimentoMpModeloProfissionalID', null, logID)
                     }
                 }
             }
@@ -201,7 +207,8 @@ class RecebimentoMpController {
                         const sqlInsertProfissionalModelo = `
                         INSERT INTO par_recebimentomp_modelo_profissional(parRecebimentoMpModeloID, profissionalID, tipo) 
                         VALUES (?, ?, ?)`
-                        const [resultInsertProfissionalModelo] = await db.promise().query(sqlInsertProfissionalModelo, [id, model.profissionaisAprovam[i].id, 2])
+                        // const [resultInsertProfissionalModelo] = await db.promise().query(sqlInsertProfissionalModelo, [id, model.profissionaisAprovam[i].id, 2])
+                        await executeQuery(sqlInsertProfissionalModelo, [id, model.profissionaisAprovam[i].id, 2], 'insert', 'par_recebimentomp_modelo_profissional', 'parRecebimentoMpModeloProfissionalID', null, logID)
                     }
                 }
             }
@@ -222,18 +229,21 @@ class RecebimentoMpController {
                         UPDATE par_recebimentomp_modelo_cabecalho
                         SET obrigatorio = ?, ordem = ?
                         WHERE parRecebimentoMpModeloID = ? AND parRecebimentoMpID = ?`
-                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? '1' : '0'), (item.ordem ?? '0'), id, item.parRecebimentoMpID]);
+                        // const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? '1' : '0'), (item.ordem ?? '0'), id, item.parRecebimentoMpID]);
+                        await executeQuery(sqlUpdate, [(item.obrigatorio ? '1' : '0'), (item.ordem ?? '0'), id, item.parRecebimentoMpID], 'update', 'par_recebimentomp_modelo_cabecalho', 'parRecebimentoMpModeloID', id, logID)
                     } else {                            // Insert
                         const sqlInsert = `
                         INSERT INTO par_recebimentomp_modelo_cabecalho (parRecebimentoMpModeloID, parRecebimentoMpID, obrigatorio, ordem)
                         VALUES (?, ?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parRecebimentoMpID, (item.obrigatorio ? '1' : '0'), (item.ordem ?? '0')]);
+                        // const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parRecebimentoMpID, (item.obrigatorio ? '1' : '0'), (item.ordem ?? '0')]);
+                        await executeQuery(sqlInsert, [id, item.parRecebimentoMpID, (item.obrigatorio ? '1' : '0'), (item.ordem ?? '0')], 'insert', 'par_recebimentomp_modelo_cabecalho', 'parRecebimentoMpModeloCabecalhoID', null, logID)
                     }
                 } else if (item) { // Deleta
                     const sqlDelete = `
                     DELETE FROM par_recebimentomp_modelo_cabecalho
                     WHERE parRecebimentoMpModeloID = ? AND parRecebimentoMpID = ?`
-                    const [resultDelete] = await db.promise().query(sqlDelete, [id, item.parRecebimentoMpID])
+                    // const [resultDelete] = await db.promise().query(sqlDelete, [id, item.parRecebimentoMpID])
+                    await executeQuery(sqlDelete, [id, item.parRecebimentoMpID], 'delete', 'par_recebimentomp_modelo_cabecalho', 'parRecebimentoMpModeloID', id, logID)
                 }
             })
 
@@ -242,11 +252,13 @@ class RecebimentoMpController {
                 if (block && block > 0) {
                     // Blocos
                     const sqlDeleteBlock = `DELETE FROM par_recebimentomp_modelo_bloco WHERE parRecebimentoMpModeloBlocoID = ?`
-                    const [resultDeleteBlock] = await db.promise().query(sqlDeleteBlock, [block])
+                    // const [resultDeleteBlock] = await db.promise().query(sqlDeleteBlock, [block])
+                    await executeQuery(sqlDeleteBlock, [block], 'delete', 'par_recebimentomp_modelo_bloco', 'parFornecedorModeloID', id, logID)
 
                     // Itens do bloco
                     const sqlDeleteBlockItems = `DELETE FROM par_recebimentomp_modelo_bloco_item WHERE parRecebimentoMpModeloBlocoID = ?`
-                    const [resultDeleteBlockItems] = await db.promise().query(sqlDeleteBlockItems, [block])
+                    // const [resultDeleteBlockItems] = await db.promise().query(sqlDeleteBlockItems, [block])
+                    await executeQuery(sqlDeleteBlockItems, [block], 'delete', 'par_recebimentomp_modelo_bloco_item', 'parRecebimentoMpModeloBlocoID', id, logID)
                 }
             })
 
@@ -254,7 +266,8 @@ class RecebimentoMpController {
             arrRemovedItems && arrRemovedItems.forEach(async (item) => {
                 if (item) {
                     const sqlDelete = `DELETE FROM par_recebimentomp_modelo_bloco_item WHERE parRecebimentoMpModeloBlocoItemID = ?`
-                    const [resultDelete] = await db.promise().query(sqlDelete, [item.parRecebimentoMpModeloBlocoItemID])
+                    // const [resultDelete] = await db.promise().query(sqlDelete, [item.parRecebimentoMpModeloBlocoItemID])
+                    await executeQuery(sqlDelete, [item.parRecebimentoMpModeloBlocoItemID], 'delete', 'par_recebimentomp_modelo_bloco_item', 'parFornecedorModeloBlocoID', id, logID)
                 }
             })
 
@@ -267,28 +280,41 @@ class RecebimentoMpController {
                         UPDATE par_recebimentomp_modelo_bloco
                         SET ordem = ?, nome = ?, obs = ?, status = ?
                         WHERE parRecebimentoMpModeloBlocoID = ?`
-                        const [resultUpdateBlock] = await db.promise().query(sqlUpdateBlock, [
-                            block.dados.ordem,
-                            block.dados.nome,
-                            (block.dados.obs ? 1 : 0),
-                            (block.dados.status ? 1 : 0),
-                            block.dados.parRecebimentoMpModeloBlocoID
-                        ])
-                        if (resultUpdateBlock.length === 0) { return res.json(err); }
+                        // const [resultUpdateBlock] = await db.promise().query(sqlUpdateBlock, [
+                        //     block.dados.ordem,
+                        //     block.dados.nome,
+                        //     (block.dados.obs ? 1 : 0),
+                        //     (block.dados.status ? 1 : 0),
+                        //     block.dados.parRecebimentoMpModeloBlocoID
+                        // ])
+                        const resultUpdateBlock = await executeQuery(sqlUpdateBlock, [block.dados.ordem,
+                        block.dados.nome,
+                        (block.dados.obs ? 1 : 0),
+                        (block.dados.status ? 1 : 0),
+                        block.dados.parRecebimentoMpModeloBlocoID], 'update', 'par_recebimentomp_modelo_bloco', 'parRecebimentoMpModeloID', id, logID)
+                        if (!resultUpdateBlock) { return res.json(err); }
                     } else {
                         //? Bloco novo, Insert
                         const sqlNewBlock = `
                         INSERT INTO par_recebimentomp_modelo_bloco(parRecebimentoMpModeloID, ordem, nome, obs, unidadeID, status) 
                         VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultNewBlock] = await db.promise().query(sqlNewBlock, [
-                            id,
+                        // const [resultNewBlock] = await db.promise().query(sqlNewBlock, [
+                        //     id,
+                        //     block.dados.ordem,
+                        //     block.dados.nome,
+                        //     (block.dados.obs ? 1 : 0),
+                        //     unidadeID,
+                        //     (block.dados.status ? 1 : 0)
+                        // ])
+                        const resultNewBlock = await executeQuery(sqlNewBlock, [id,
                             block.dados.ordem,
                             block.dados.nome,
                             (block.dados.obs ? 1 : 0),
                             unidadeID,
-                            (block.dados.status ? 1 : 0)
-                        ])
-                        if (resultNewBlock.length === 0) { return res.json(err); }
+                            (block.dados.status ? 1 : 0)], 'insert', 'par_recebimentomp_modelo_bloco', 'parRecebimentoMpModeloBlocoID', null, logID)
+
+
+                        if (!resultNewBlock) { return res.json(err); }
                         block.dados.parRecebimentoMpModeloBlocoID = resultNewBlock.insertId //? parRecebimentoMpModeloBlocoID que acabou de ser gerado
                     }
 
@@ -299,14 +325,22 @@ class RecebimentoMpController {
                             UPDATE par_recebimentomp_modelo_bloco_item
                             SET ordem = ?, ${item.item.id ? 'itemID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
                             WHERE parRecebimentoMpModeloBlocoItemID = ?`
-                            const [resultUpdate] = await db.promise().query(sqlUpdate, [
-                                item.ordem,
-                                ...(item.item.id ? [item.item.id] : []),
-                                (item.obs ? 1 : 0),
-                                (item.obrigatorio ? 1 : 0),
-                                (item.status ? 1 : 0),
-                                item.parRecebimentoMpModeloBlocoItemID
-                            ])
+                            // const [resultUpdate] = await db.promise().query(sqlUpdate, [
+                            //     item.ordem,
+                            //     ...(item.item.id ? [item.item.id] : []),
+                            //     (item.obs ? 1 : 0),
+                            //     (item.obrigatorio ? 1 : 0),
+                            //     (item.status ? 1 : 0),
+                            //     item.parRecebimentoMpModeloBlocoItemID
+                            // ])
+
+                            await executeQuery(sqlUpdate, [item.ordem,
+                            ...(item.item.id ? [item.item.id] : []),
+                            (item.obs ? 1 : 0),
+                            (item.obrigatorio ? 1 : 0),
+                            (item.status ? 1 : 0),
+                            item.parRecebimentoMpModeloBlocoItemID], 'update', 'par_recebimentomp_modelo_bloco_item', 'parRecebimentoMpModeloBlocoID', id, logID)
+
                         } else if (item && item.new && !item.parRecebimentoMpModeloBlocoItemID) { //? Insert                            
                             // Valida duplicidade do item 
                             const sqlItem = `
@@ -318,14 +352,21 @@ class RecebimentoMpController {
                                 const sqlInsert = `
                                 INSERT INTO par_recebimentomp_modelo_bloco_item (parRecebimentoMpModeloBlocoID, ordem, itemID, obs, obrigatorio, status)
                                 VALUES (?, ?, ?, ?, ?, ?)`
-                                const [resultInsert] = await db.promise().query(sqlInsert, [
-                                    block.dados.parRecebimentoMpModeloBlocoID,
-                                    item.ordem,
-                                    item.item.id,
-                                    (item.obs ? 1 : 0),
-                                    (item.obrigatorio ? 1 : 0),
-                                    (item.status ? 1 : 0)
-                                ])
+                                // const [resultInsert] = await db.promise().query(sqlInsert, [
+                                //     block.dados.parRecebimentoMpModeloBlocoID,
+                                //     item.ordem,
+                                //     item.item.id,
+                                //     (item.obs ? 1 : 0),
+                                //     (item.obrigatorio ? 1 : 0),
+                                //     (item.status ? 1 : 0)
+                                // ])
+
+                                await executeQuery(sqlInsert, [block.dados.parRecebimentoMpModeloBlocoID,
+                                item.ordem,
+                                item.item.id,
+                                (item.obs ? 1 : 0),
+                                (item.obrigatorio ? 1 : 0),
+                                (item.status ? 1 : 0)], 'insert', 'par_recebimentomp_modelo_bloco_item', 'parRecebimentoMpModeloBlocoItemID', null, logID)
                             }
                         }
                     })
@@ -339,6 +380,8 @@ class RecebimentoMpController {
             WHERE parFormularioID = 1`
             const [resultOrientacoes] = await db.promise().query(sqlOrientacoes, [orientacoes?.obs])
 
+            await executeQuery(sqlOrientacoes, [orientacoes?.obs], 'update', 'par_formulario', 'parFormularioID', 1, logID)
+
             res.status(200).json({ message: "Dados atualizados com sucesso." });
 
         } catch (error) {
@@ -346,8 +389,8 @@ class RecebimentoMpController {
         }
     }
 
-    deleteData(req, res) {
-        const { id } = req.params
+    async deleteData(req, res) {
+        const { id, usuarioID, unidadeID } = req.params
         const objDelete = {
             table: ['par_recebimentomp_modelo'],
             column: 'parRecebimentoMpModeloID'
@@ -362,15 +405,17 @@ class RecebimentoMpController {
         ]
 
         if (!arrPending || arrPending.length === 0) {
-            return deleteItem(id, objDelete.table, objDelete.column, res)
+            const logID = await executeLog('Exclusão de modelo de recebimento MP', usuarioID, unidadeID, req)
+            return deleteItem(id, objDelete.table, objDelete.column, logID, res)
         }
 
         hasPending(id, arrPending)
-            .then((hasPending) => {
+            .then(async (hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objDelete.table, objDelete.column, res)
+                    const logID = await executeLog('Exclusão de modelo de recebimento MP', usuarioID, unidadeID, req)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
                 }
             })
             .catch((err) => {
