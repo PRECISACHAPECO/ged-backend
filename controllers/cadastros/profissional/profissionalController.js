@@ -212,7 +212,7 @@ class ProfissionalController {
             const insertCargo = `INSERT INTO profissional_cargo (data, formacaoCargo, conselho, dataInativacao, profissionalID) VALUES (?, ?, ?, ?, ?)`
             if (data.cargosFuncoes.length > 0) {
                 data.cargosFuncoes.map(async (row) => {
-                    await executeQuery(insertCargo, [row.data, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), profissionalID], 'insert', 'profissional_cargo', 'profissionalID', null, logID)
+                    await executeQuery(insertCargo, [row.data, row.formacaoCargo, row.conselho, (row.dataInativacao ?? null), profissionalID], 'insert', 'profissional_cargo', 'profissionalCargoID', null, logID)
                 })
             }
 
@@ -223,7 +223,7 @@ class ProfissionalController {
                 const usuarioID = await executeQuery(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, data.fields.email, criptoMd5(data.senha)], 'insert', 'usuario', 'usuarioID', null, logID)
 
                 const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?, ?)`
-                await executeQuery(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1], 'insert', 'usuario_unidade', 'usuarioID', null, logID)
+                await executeQuery(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1], 'insert', 'usuario_unidade', 'usuarioUnidadeID', null, logID)
 
                 const UpdateUser = `UPDATE profissional SET usuarioID = ? WHERE profissionalID = ?`
                 await executeQuery(UpdateUser, [usuarioID, profissionalID], 'update', 'profissional', 'profissionalID', null, logID)
@@ -369,7 +369,6 @@ class ProfissionalController {
 
         const logID = await executeLog('Exclusão da imagem do profissional', usuarioID, unidadeID, req)
 
-
         const sqlSelectPreviousPhoto = `SELECT imagem FROM profissional WHERE profissionalID = ?`;
         const sqlUpdatePhotoProfile = `UPDATE profissional SET imagem = ? WHERE profissionalID = ?`;
 
@@ -380,8 +379,6 @@ class ProfissionalController {
 
             // Atualizar a foto de perfil no banco de dados
             await executeQuery(sqlUpdatePhotoProfile, [null, id], 'update', 'profissional', 'profissionalID', id, logID)
-            // await db.promise().query(sqlUpdatePhotoProfile, [null, id]);
-
             // Excluir a foto de perfil anterior
             if (previousPhotoProfile) {
                 const previousPhotoPath = path.resolve(previousPhotoProfile);
@@ -430,15 +427,18 @@ class ProfissionalController {
             //     return res.status(409).json({ message: "Dados já cadastrados!" });
             // }
 
+            const logID = await executeLog('Edição do profissional', data.usualioLogado, data.unidadeID, req)
+
             // Atualiza dados do profissional
             delete data.fields.imagem
             const UpdateUser = `UPDATE profissional SET ? WHERE profissionalID = ?`
-            const [resultUpdateUser] = await db.promise().query(UpdateUser, [data.fields, id])
+            await executeQuery(UpdateUser, [data.fields, id], 'update', 'profissional', 'profissionalID', id, logID)
 
             // Exclui cargos / função
             if (data.removedItems.length > 0) {
                 const sqlDeleteItens = `DELETE FROM profissional_cargo WHERE profissionalCargoID IN (${data.removedItems.join(',')})`
-                const [resultDeleteItens] = await db.promise().query(sqlDeleteItens)
+
+                await executeQuery(sqlDeleteItens, [], 'delete', 'profissional_cargo', 'profissionalID', id, logID)
             }
 
             // Atualiza ou insere cargo | Função
@@ -447,12 +447,17 @@ class ProfissionalController {
                     const formatedData = row.data.substring(0, 10)
                     if (row && row.id > 0) { //? Já existe, atualiza
                         const sqlUpdateItem = `UPDATE profissional_cargo SET data = ?, formacaoCargo = ?, conselho = ?,  dataInativacao = ?, status = ?  WHERE profissionalCargoID = ?`
-                        const [resultUpdateItem] = await db.promise().query(sqlUpdateItem, [
-                            formatedData,
-                            row.formacaoCargo, row.conselho, (row.dataInativacao), (row.status ? '1' : '0'), row.id])
+
+                        await executeQuery(sqlUpdateItem, [formatedData,
+                            row.formacaoCargo, row.conselho, (row.dataInativacao), (row.status ? '1' : '0'), row.id], 'update', 'profissional_cargo', 'profissionalID', id, logID)
+
+
                     } else if (row && !row.id) {    //? Novo, insere
                         const sqlInsertItem = `INSERT INTO profissional_cargo (data, formacaoCargo, conselho, dataInativacao, status, profissionalID) VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultInsertItem] = await db.promise().query(sqlInsertItem, [formatedData, row.formacaoCargo, row.conselho, (row.dataInativacao), (row.status ? '1' : '0'), data.fields.profissionalID])
+
+
+                        await executeQuery(sqlInsertItem, [formatedData, row.formacaoCargo, row.conselho, (row.dataInativacao), (row.status ? '1' : '0'), data.fields.profissionalID], 'insert', 'profissional_cargo', 'profissionalCargoID', null, logID)
+
                     }
                 })
             }
@@ -466,10 +471,11 @@ class ProfissionalController {
                 //? Já existe usuário com esse CPF, copia usuário id para a tabela profissional
                 if (resultCheckCPF.length > 0) {
                     const usuarioID = resultCheckCPF[0].usuarioID
+                    console.log("🚀 ~ usuarioID:", usuarioID)
 
                     // Seta usuárioID na tabela profissional
                     const UpdateUser = `UPDATE profissional SET usuarioID = ? WHERE profissionalID = ?`
-                    const [resultUpdateUser] = await db.promise().query(UpdateUser, [usuarioID, id])
+                    await executeQuery(UpdateUser, [usuarioID, id], 'update', 'profissional', 'profissionalID', id, logID)
 
                     // Verifica se já esta cadastrado na unidade
                     const sqlUnityCheck = `SELECT * FROM usuario_unidade WHERE usuarioID = ? AND unidadeID = ?`
@@ -478,11 +484,16 @@ class ProfissionalController {
                     //? Já está cadastrado na unidade
                     if (resultUnityCheck.length > 0) {
                         const sqlUpdateUsuarioUnity = `UPDATE usuario_unidade SET status = ? WHERE usuarioID = ? AND unidadeID = ? `
-                        const [resultUpdateUsuarioUnity] = await db.promise().query(sqlUpdateUsuarioUnity, [1, usuarioID, data.fields.unidadeID])
+                        console.log("entrou no update")
+
+                        await executeQuery(sqlUpdateUsuarioUnity, [1, usuarioID, data.fields.unidadeID], 'update', 'usuario_unidade', 'usuarioID', usuarioID, logID)
                     } else {
                         // Insere usuário na unidade
                         const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?,?)`
-                        const [resultInsertUsuarioUnity] = await db.promise().query(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1])
+                        console.log("entrou no insert")
+
+
+                        await executeQuery(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1], 'insert', 'usuario_unidade', 'usuarioUnidadeID', null, logID)
                     }
 
                     //* PERMISSÕES DE ACESSO
@@ -492,14 +503,13 @@ class ProfissionalController {
                 //? Ainda não existe o usuario com esse CPF, cria novo
                 else {
                     const sqlInsertUsuario = `INSERT INTO usuario (cpf, nome, email, senha) VALUES (?,?,?,?)`
-                    const [resultInsertUsuario] = await db.promise().query(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, data.fields.email, criptoMd5(data.senha)])
-                    const usuarioID = resultInsertUsuario.insertId
+                    const usuarioID = await executeQuery(sqlInsertUsuario, [data.fields.cpf, data.fields.nome, data.fields.email, criptoMd5(data.senha)], 'insert', 'usuario', 'usuarioID', null, logID)
 
                     const sqlInsertUsuarioUnity = `INSERT INTO usuario_unidade (usuarioID, unidadeID, papelID) VALUES (?,?,?)`
-                    const [resultInsertUsuarioUnity] = await db.promise().query(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1])
+                    await executeQuery(sqlInsertUsuarioUnity, [usuarioID, data.fields.unidadeID, 1], 'insert', 'usuario_unidade', 'usuarioUnidadeID', null, logID)
 
                     const UpdateUser = `UPDATE profissional SET usuarioID = ? WHERE profissionalID = ?`
-                    const [resultUpdateUser] = await db.promise().query(UpdateUser, [usuarioID, id])
+                    await executeQuery(UpdateUser, [usuarioID, id], 'update', 'profissional', 'profissionalID', id, logID)
 
                     //* PERMISSÕES DE ACESSO
                     const newData = {
@@ -578,7 +588,10 @@ class ProfissionalController {
             //* Desmarcou usuário do sistema
             else {
                 const UpdateUser = `UPDATE profissional SET usuarioID = ? WHERE profissionalID = ?`
-                const [resultUpdateUser] = await db.promise().query(UpdateUser, [0, id])
+
+                await executeQuery(UpdateUser, [0, id], 'update', 'profissional', 'profissionalID', id, logID)
+
+
                 res.status(200).json({ message: 'Dados atualizados com sucesso!' })
             }
         } catch (error) {
@@ -593,6 +606,7 @@ class ProfissionalController {
             if (!id || id <= 0) {
                 throw new Error("Dados incorretos");
             }
+            const logID = await executeLog('Edição da senha do profissional', id, data.unidadeID, req)
 
             // Verifica se é ADMIN
             const sqlAdmin = `SELECT admin FROM usuario WHERE usuarioID = ?`
@@ -627,12 +641,15 @@ class ProfissionalController {
             if (resultAdmin && resultAdmin[0].admin == 1) { //? ADMIN do sistema (não tem profissional) (não envia email)
 
                 const getUpdate = "UPDATE usuario SET senha = ? WHERE usuarioID = ?"
-                const [resultUpdate] = await db.promise().query(getUpdate, [criptoMd5(data.senha), id])
+
+                await executeQuery(getUpdate, [criptoMd5(data.senha), id], 'update', 'usuario', 'usuarioID', id, logID)
 
                 return res.status(200).json({ message: 'Senha atualizada com sucesso!' })
             } else if (resultProfessional.length > 0 || data.papelID == 2) {
                 const getUpdate = "UPDATE usuario SET senha = ? WHERE usuarioID = ?"
-                const [resultUpdate] = await db.promise().query(getUpdate, [criptoMd5(data.senha), id])
+
+                await executeQuery(getUpdate, [criptoMd5(data.senha), id], 'update', 'usuario', 'usuarioID', id, logID)
+
 
                 // Chama a função que envia email para o usuário
                 const destinatario = data.papelID == 1 ? resultProfessional[0].email : resultUnity[0].email
@@ -685,12 +702,14 @@ class ProfissionalController {
     }
 
     async deleteData(req, res) {
-        const { id } = req.params
+        const { id, unidadeID, usuarioID } = req.params
+        console.log("🚀 ~ id, unidadeID, usuarioID:", id, unidadeID, usuarioID)
 
         //? Obtém usuarioID pra deletar tabelas usuario e usuario_unidade depois de apagar o profissional
         const sqlUser = `SELECT usuarioID FROM profissional WHERE profissionalID = ?`
         const [resultUser] = await db.promise().query(sqlUser, [id])
-        const usuarioID = resultUser[0].usuarioID
+        const usuarioIDelete = resultUser[0].usuarioID
+
 
         const objDelete = {
             table: ['profissional', 'profissional_cargo'],
@@ -716,7 +735,8 @@ class ProfissionalController {
         ]
 
         if (!arrPending || arrPending.length === 0) {
-            return deleteItem(id, objDelete.table, objDelete.column, res)
+            const logID = await executeLog('Exclusão de profissional', usuarioID, unidadeID, req)
+            return deleteItem(id, objDelete.table, objDelete.column, logID, res)
         }
 
         hasPending(id, arrPending)
@@ -724,15 +744,21 @@ class ProfissionalController {
                 if (hasPending) {
                     return res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    //? Deleta usuario e usuario_unidade
-                    const sqlDeleteUsuarioUnidade = `DELETE FROM usuario_unidade WHERE usuarioID = ?`
-                    const [resultDeleteUsuarioUnidade] = await db.promise().query(sqlDeleteUsuarioUnidade, [usuarioID])
+                    const logID = await executeLog('Exclusão de profissional', usuarioID, unidadeID, req)
+                    if (usuarioIDelete) {
+
+                        //? Deleta usuario e usuario_unidade
+                        const sqlDeleteUsuarioUnidade = `DELETE FROM usuario_unidade WHERE usuarioID = ?`
+
+                        await executeQuery(sqlDeleteUsuarioUnidade, [usuarioIDelete], 'delete', 'usuario_unidade', 'usuarioID', id, logID)
+                    }
 
                     const sqlDeleteUsuario = `DELETE FROM usuario WHERE usuarioID = ?`
-                    const [resultDeleteUsuario] = await db.promise().query(sqlDeleteUsuario, [usuarioID])
+
+                    await executeQuery(sqlDeleteUsuario, [usuarioIDelete], 'delete', 'usuario', 'usuarioID', id, logID)
 
                     //? Deleta profissional e profissional_cargo
-                    return deleteItem(id, objDelete.table, objDelete.column, res)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
                 }
             })
             .catch((err) => {

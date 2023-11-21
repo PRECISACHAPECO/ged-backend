@@ -1,5 +1,6 @@
 const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class SistemaQualidadeController {
     async getList(req, res) {
@@ -49,9 +50,13 @@ class SistemaQualidadeController {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
+            const logID = await executeLog('Criação de sistema de qualidade', values.usuarioID, values.unidadeID, req)
+
             const sqlInsert = 'INSERT INTO sistemaqualidade (nome, status) VALUES (?, ?)'
-            const [resultSqlInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.status])
-            const id = resultSqlInsert.insertId
+            // const [resultSqlInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.status])
+            // const id = resultSqlInsert.insertId
+
+            const id = await executeQuery(sqlInsert, [values.fields.nome, values.fields.status], 'insert', 'sistemaqualidade', 'sistemaQualidadeID', null, logID)
             return res.status(200).json(id)
 
         } catch (error) {
@@ -75,8 +80,10 @@ class SistemaQualidadeController {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
+            const logID = await executeLog('Atualização de sistema de qualidade', values.usuarioID, values.unidadeID, req)
+
             const sqlUpdate = `UPDATE sistemaqualidade SET nome = ?, status = ? WHERE sistemaqualidadeID = ?`
-            const [resultSqlUpdat] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.status, id])
+            await executeQuery(sqlUpdate, [values.fields.nome, values.fields.status, id], 'update', 'sistemaqualidade', 'sistemaQualidadeID', id, logID)
 
             return res.status(200).json({ message: 'Dados atualizados com sucesso' })
         } catch (error) {
@@ -84,8 +91,8 @@ class SistemaQualidadeController {
         }
     }
 
-    deleteData(req, res) {
-        const { id } = req.params
+    async deleteData(req, res) {
+        const { id, usuarioID, unidadeID } = req.params
         const objDelete = {
             table: ['sistemaqualidade'],
             column: 'sistemaqualidadeID'
@@ -100,15 +107,17 @@ class SistemaQualidadeController {
         ]
 
         if (!arrPending || arrPending.length === 0) {
-            return deleteItem(id, objDelete.table, objDelete.column, res)
+            const logID = await executeLog('Exclusão de sistema de qualidade', usuarioID, unidadeID, req)
+            return deleteItem(id, objDelete.table, objDelete.column, logID, res)
         }
 
         hasPending(id, arrPending)
-            .then((hasPending) => {
+            .then(async (hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objDelete.table, objDelete.column, res)
+                    const logID = await executeLog('Exclusão de sistema de qualidade', usuarioID, unidadeID, req)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
                 }
             })
             .catch((err) => {

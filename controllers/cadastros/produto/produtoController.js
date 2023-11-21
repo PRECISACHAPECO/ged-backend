@@ -299,7 +299,7 @@ class ProdutoController {
 
                     } else if (item && !item.produtoAnexoID) {                   //? Novo, insere
                         const sqlInsertItem = `INSERT INTO produto_anexo (nome, parFormularioID, descricao, produtoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?, ?)`
-                        await executeQuery(sqlInsertItem, [item.nome, item.formulario.id, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')], 'insert', 'produto_anexo', 'produtoID', id, logID)
+                        await executeQuery(sqlInsertItem, [item.nome, item.formulario.id, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')], 'insert', 'produto_anexo', 'produtoID', null, logID)
                     }
                 })
             }

@@ -300,7 +300,7 @@ class ItemController {
                     element.id,
                     (element.anexo ? '1' : '0'),
                     (element.bloqueiaFormulario ? '1' : '0'),
-                    (element.observacao ? '1' : '0')], 'insert', 'item_opcao', 'itemOpcaoID', id, logID)
+                    (element.observacao ? '1' : '0')], 'insert', 'item_opcao', 'itemOpcaoID', null, logID)
 
                 //? Atualiza item_opcao_anexo
                 // Insert
@@ -311,7 +311,7 @@ class ItemController {
                         await executeQuery(sqlInsertAnexo, [id,
                             itemOpcaoID,
                             elementAnexo.nome,
-                            (elementAnexo.obrigatorio ? '1' : '0')], 'insert', 'item_opcao_anexo', 'itemOpcaoAnexoID', id, logID)
+                            (elementAnexo.obrigatorio ? '1' : '0')], 'insert', 'item_opcao_anexo', 'itemOpcaoAnexoID', null, logID)
                     }
                 }
             }

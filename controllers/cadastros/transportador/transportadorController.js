@@ -1,5 +1,6 @@
 const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class TransportadorController {
     async getList(req, res) {
@@ -45,6 +46,7 @@ class TransportadorController {
     async insertData(req, res) {
         try {
             const values = req.body
+            console.log("🚀 ~ values:", values)
 
             //* Valida conflito
             const validateConflicts = {
@@ -57,9 +59,11 @@ class TransportadorController {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
+            const logID = await executeLog('Criação de transportador', values.usuarioID, values.unidadeID, req)
+
             const sqlInsert = 'INSERT INTO transportador (nome, status, unidadeID) VALUES (?, ?, ?)'
-            const [resultSqlInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.status, values.fields.unidadeID])
-            const id = resultSqlInsert.insertId
+            const id = await executeQuery(sqlInsert, [values.fields.nome, values.fields.status, values.unidadeID], 'insert', 'transportador', 'transportadorID', null, logID)
+
             return res.status(200).json(id)
         } catch (error) {
             console.log(error)
@@ -81,9 +85,12 @@ class TransportadorController {
             if (await hasConflict(validateConflicts)) {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
+            const logID = await executeLog('Atualização de transportador', values.usuarioID, values.unidadeID, req)
 
             const sqlUpdate = `UPDATE transportador SET nome = ?, status = ? WHERE transportadorID = ?`
-            const [resultSqlUpdat] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.status, id])
+
+            await executeQuery(sqlUpdate, [values.fields.nome, values.fields.status, values.unidadeID], 'update', 'transportador', 'transportadorID', id, logID)
+
 
             return res.status(200).json({ message: 'Dados atualizados com sucesso' })
         } catch (error) {
@@ -91,8 +98,8 @@ class TransportadorController {
         }
     }
 
-    deleteData(req, res) {
-        const { id } = req.params
+    async deleteData(req, res) {
+        const { id, usuarioID, unidadeID } = req.params
         const objDelete = {
             table: ['transportador'],
             column: 'transportadorID'
@@ -108,15 +115,17 @@ class TransportadorController {
 
 
         if (!arrPending || arrPending.length === 0) {
-            return deleteItem(id, objDelete.table, objDelete.column, res)
+            const logID = await executeLog('Exclusão de transportador', usuarioID, unidadeID, req)
+            return deleteItem(id, objDelete.table, objDelete.column, logID, res)
         }
 
         hasPending(id, arrPending)
-            .then((hasPending) => {
+            .then(async (hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objDelete.table, objDelete.column, res)
+                    const logID = await executeLog('Exclusão de transportador', usuarioID, unidadeID, req)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
                 }
             })
             .catch((err) => {

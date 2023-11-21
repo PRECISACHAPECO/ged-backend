@@ -22,6 +22,7 @@ const executeLog = async (nome, usuarioID, unidadeID, req) => {
 
 
 const executeQuery = async (sql, params, operation, tableName, uniqueColumnName, id, logID) => {
+    // console.log("🚀 ~ executeQuery: sql, params, operation, tableName, uniqueColum   nName, id, logID:", sql, params, operation, tableName, uniqueColumnName, id, logID)
 
 
     const sqlSelect = `SELECT * FROM ${tableName} WHERE ${uniqueColumnName} = ?`;
@@ -34,7 +35,8 @@ const executeQuery = async (sql, params, operation, tableName, uniqueColumnName,
         // Execute a consulta real (insert, update ou delete)
         const [results] = await db.promise().query(sql, params);
         if (operation == 'insert') id = results.insertId
-        console.log("🚀 ~ results:", results)
+
+        console.log('CONSULTA: ', sqlSelect, id)
 
         // Após a execução da consulta, obtenha os dados atualizados da tabela (depois da operação)
         const [rowsAfter] = await db.promise().query(sqlSelect, [id]);
@@ -54,12 +56,10 @@ const executeQuery = async (sql, params, operation, tableName, uniqueColumnName,
 const getChangedData = (beforeData, afterData, operation, uniqueColumnName) => {
     switch (operation) {
         case 'insert':
-            console.log('Insert');
             return afterData[0]
             break
         case 'update':
 
-            // Compare os dados antes e depois do update para encontrar as diferenças
             const changedData = {};
 
             for (const key in afterData[0]) {
@@ -94,7 +94,6 @@ const logDatabaseOperation = async (operation, tableName, changeData, logID) => 
 
         await db.promise().query(sqlInsertLog, [logID, operation, tableName, JSON.stringify(changeData)]);
 
-        console.log('Log inserido com sucesso.');
     } catch (error) {
         console.error('Erro ao inserir log no banco de dados:', error);
     }

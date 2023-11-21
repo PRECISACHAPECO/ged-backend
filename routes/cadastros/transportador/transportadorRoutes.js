@@ -11,7 +11,7 @@ transportadorRoutes.post(`${route}/getData/:id`, transportadorController.getData
 
 transportadorRoutes.post(`${route}/updateData/:id`, transportadorController.updateData);
 transportadorRoutes.post(`${route}/new/insertData`, transportadorController.insertData);
-transportadorRoutes.delete(`${route}/:id`, transportadorController.deleteData);
+transportadorRoutes.delete(`${route}/:id/:unidadeID/:usuarioID`, transportadorController.deleteData);
 
 
 module.exports = transportadorRoutes;

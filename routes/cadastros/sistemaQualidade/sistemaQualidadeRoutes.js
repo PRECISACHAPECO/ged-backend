@@ -11,7 +11,7 @@ sistemaQualidadeRoutes.post(`${route}/getData/:id`, sistemaQualidadeController.g
 
 sistemaQualidadeRoutes.post(`${route}/updateData/:id`, sistemaQualidadeController.updateData);
 sistemaQualidadeRoutes.post(`${route}/new/insertData`, sistemaQualidadeController.insertData);
-sistemaQualidadeRoutes.delete(`${route}/:id`, sistemaQualidadeController.deleteData);
+sistemaQualidadeRoutes.delete(`${route}/:id/:unidadeID/:usuarioID`, sistemaQualidadeController.deleteData);
 
 
 module.exports = sistemaQualidadeRoutes;

@@ -173,7 +173,7 @@ class GrupoAnexosController {
             if (values.formulario.fields.length > 0) {
                 const sqlInsertFormularios = `INSERT INTO grupoanexo_parformulario (grupoAnexoID, parFormularioID) VALUES (?, ?)`
                 values.formulario.fields.map(async (item) => {
-                    await executeQuery(sqlInsertFormularios, [id, item.id], 'insert', 'grupoanexo_parformulario', 'grupoanexoParformularioID', id, logID)
+                    await executeQuery(sqlInsertFormularios, [id, item.id], 'insert', 'grupoanexo_parformulario', 'grupoanexoParformularioID', null, logID)
                 })
             }
 
@@ -204,7 +204,7 @@ class GrupoAnexosController {
                     } else if (item && !item.id) {                   //? Novo, insere
                         const sqlInsertItem = `INSERT INTO grupoanexo_item (nome, descricao, grupoAnexoID, status, obrigatorio) VALUES (?, ?, ?, ?, ?)`
 
-                        await executeQuery(sqlInsertItem, [item.nome, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')], 'insert', 'grupoanexo_item', 'grupoAnexoItemID', id, logID)
+                        await executeQuery(sqlInsertItem, [item.nome, item.descricao, id, (item.status ? '1' : '0'), (item.obrigatorio ? '1' : '0')], 'insert', 'grupoanexo_item', 'grupoAnexoItemID', null, logID)
                     }
                 })
             }
