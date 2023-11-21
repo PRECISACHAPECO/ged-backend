@@ -11,6 +11,7 @@ const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = requir
 const layoutNotification = require('../../../email/template/notificacao');
 const instructionsNewFornecedor = require('../../../email/template/fornecedor/instructionsNewFornecedor');
 const instructionsExistFornecedor = require('../../../email/template/fornecedor/instructionsExistFornecedor');
+const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class FornecedorController {
     async getFornecedoresAprovados(req, res) {
@@ -1110,6 +1111,9 @@ class FornecedorController {
         const { usuarioID, unidadeID, papelID, habilitaQuemPreencheFormFornecedor, values } = req.body;
         const quemPreenche = habilitaQuemPreencheFormFornecedor ?? 2
 
+        const logID = await executeLog('Habilitar fornecedor', usuarioID, unidadeID, req)
+
+
         // Apenas cria o formulario, a fabrica responde o mesmo
         if (habilitaQuemPreencheFormFornecedor == 1) {
 
@@ -1118,15 +1122,14 @@ class FornecedorController {
             const sqlFornecedor = `
         INSERT INTO fornecedor(parFornecedorModeloID, cnpj, razaoSocial, nome, email, unidadeID, status, atual, dataInicio, profissionalID, quemPreenche) 
         VALUES(?, "${values.cnpj}", ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            const [resultFornecedor] = await db.promise().query(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nomeFantasia, values.email, unidadeID, initialStatus, 1, new Date(), usuarioID, quemPreenche])
-            const fornecedorID = resultFornecedor.insertId
+            const fornecedorID = await executeQuery(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nomeFantasia, values.email, unidadeID, initialStatus, 1, new Date(), usuarioID, quemPreenche], 'insert', 'fornecedor', 'fornecedorID', null, logID)
 
             //? Grava grupos de anexo do fornecedor
             if (values.gruposAnexo && values.gruposAnexo.length > 0) {
                 for (const grupo of values.gruposAnexo) {
                     if (grupo.id > 0) {
                         const sqlGrupo = `INSERT INTO fornecedor_grupoanexo(fornecedorID, grupoAnexoID) VALUES(?, ?)`
-                        const [resultGrupo] = await db.promise().query(sqlGrupo, [fornecedorID, grupo.id])
+                        await executeQuery(sqlGrupo, [fornecedorID, grupo.id], 'insert', 'fornecedor_grupoanexo', 'fornecedorGrupoAnexoID', null, logID)
                     }
                 }
             }
@@ -1136,7 +1139,7 @@ class FornecedorController {
                 for (const produto of values.produtos) {
                     if (produto.id > 0) {
                         const sqlProduto = `INSERT INTO fornecedor_produto(fornecedorID, produtoID) VALUES(?, ?)`
-                        const [resultProduto] = await db.promise().query(sqlProduto, [fornecedorID, produto.id])
+                        await executeQuery(sqlProduto, [fornecedorID, produto.id], 'insert', 'fornecedor_produto', 'fornecedorProdutoID', null, logID)
                     }
                 }
             }
@@ -1162,8 +1165,7 @@ class FornecedorController {
                 //? Insere na tabela fabrica_fornecedor 
                 const sqlInsert = `
             INSERT INTO fabrica_fornecedor(unidadeID, fornecedorCnpj, status) VALUES(?, "${values.cnpj}", ?)`
-                const [resultInsert] = await db.promise().query(sqlInsert, [unidadeID, 1])
-                // const fabricaFornecedorID = resultInsert.insertId
+                await executeQuery(sqlInsert, [unidadeID, 1], 'insert', 'fabrica_fornecedor', 'fabricaFornecedorID', null, logID)
             }
 
             //? Gera um novo formulário em branco, pro fornecedor preencher depois quando acessar o sistema
@@ -1171,15 +1173,14 @@ class FornecedorController {
             const sqlFornecedor = `
         INSERT INTO fornecedor(parFornecedorModeloID, cnpj, razaoSocial, nome, email, unidadeID, status, atual, dataInicio, profissionalID, quemPreenche) 
         VALUES(?, "${values.cnpj}", ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            const [resultFornecedor] = await db.promise().query(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nomeFantasia, values.email, unidadeID, initialStatus, 1, new Date(), usuarioID, quemPreenche])
-            const fornecedorID = resultFornecedor.insertId
+            const fornecedorID = await executeQuery(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nomeFantasia, values.email, unidadeID, initialStatus, 1, new Date(), usuarioID, quemPreenche], 'insert', 'fornecedor', 'fornecedorID', null, logID)
 
             //? Grava grupos de anexo do fornecedor
             if (values.gruposAnexo && values.gruposAnexo.length > 0) {
                 for (const grupo of values.gruposAnexo) {
                     if (grupo.id > 0) {
                         const sqlGrupo = `INSERT INTO fornecedor_grupoanexo(fornecedorID, grupoAnexoID) VALUES(?, ?)`
-                        const [resultGrupo] = await db.promise().query(sqlGrupo, [fornecedorID, grupo.id])
+                        await executeQuery(sqlGrupo, [fornecedorID, grupo.id], 'insert', 'fornecedor_grupoanexo', 'fornecedorGrupoAnexoID', null, logID)
                     }
                 }
             }
@@ -1189,7 +1190,7 @@ class FornecedorController {
                 for (const produto of values.produtos) {
                     if (produto.id > 0) {
                         const sqlProduto = `INSERT INTO fornecedor_produto(fornecedorID, produtoID) VALUES(?, ?)`
-                        const [resultProduto] = await db.promise().query(sqlProduto, [fornecedorID, produto.id])
+                        await executeQuery(sqlProduto, [fornecedorID, produto.id], 'insert', 'fornecedor_produto', 'fornecedorProdutoID', null, logID)
                     }
                 }
             }
@@ -1208,21 +1209,20 @@ class FornecedorController {
             INSERT INTO usuario(nome, cnpj, email, senha)
             VALUES(?, ?, ?, ?)
             `
-                const [resultNewUser] = await db.promise().query(sqlNewUuser, [values.razaoSocial, values.cnpj, values.email, criptoMd5(password)])
-                const usuarioID = resultNewUser.insertId
+                const usuarioID = await executeQuery(sqlNewUuser, [values.razaoSocial, values.cnpj, values.email, criptoMd5(password)], 'insert', 'usuario', 'usuarioID', null, logID)
 
                 // Salva a unidade
                 const sqlInsertUnity = `
             INSERT INTO unidade (razaoSocial, nomeFantasia, cnpj, email) VALUES (?,?, ?, ?)`
-                const [resultSqlInsertUnity] = await db.promise().query(sqlInsertUnity, [values.razaoSocial, values.nomeFantasia, values.cnpj, values.email]);
-                const newUnidadeID = resultSqlInsertUnity.insertId
+
+                const newUnidadeID = await executeQuery(sqlInsertUnity, [values.razaoSocial, values.nomeFantasia, values.cnpj, values.email], 'insert', 'unidade', 'unidadeID', null, logID)
 
                 // Salva usuario_unidade
                 const sqlNewUserUnity = `
             INSERT INTO usuario_unidade(usuarioID, unidadeID, papelID)
             VALUES(?, ?, ?)
             `
-                const [resultNewUserUnity] = await db.promise().query(sqlNewUserUnity, [usuarioID, newUnidadeID, 2])
+                await executeQuery(sqlNewUserUnity, [usuarioID, newUnidadeID, 2], 'insert', 'usuario_unidade', 'usuarioUnidadeID', null, logID)
             }
 
             //   Obtem dados da fabrica
@@ -1289,7 +1289,7 @@ class FornecedorController {
                 noBaseboard: false, // Se falso mostra o rodapé com os dados da fabrica, senão mostra dados do GEDagro,
                 link: `${process.env.BASE_URL}formularios/fornecedor?f=${fornecedorID}`,
             }
-            sendMail(dataEmail)
+            sendMail(dataEmail, logID)
 
             const result = {
                 status: true,
@@ -1553,13 +1553,15 @@ const getDataOfAllTypes = (dataFromFrontend) => {
     return dataHeader;
 }
 
-const sendMail = async (data) => {
+const sendMail = async (data, logID) => {
     const htmlFormat = data.ifFornecedor ? instructionsExistFornecedor : instructionsNewFornecedor
     const assuntoFormat = data.ifFornecedor ? `GEDagro - Qualificação de Fornecedor - ${data.fornecedorID}` : `Bem-vindo ao GEDagro`
 
     const html = await htmlFormat(data)
     let assunto = `${assuntoFormat} - ${data.nomeFantasiaFabrica}`
     sendMailConfig(data.email, assunto, html)
+
+    await sendMailConfig(data.email, assunto, html, logID, data)
 }
 
 module.exports = FornecedorController;

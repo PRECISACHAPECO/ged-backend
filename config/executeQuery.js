@@ -21,28 +21,27 @@ const executeLog = async (nome, usuarioID, unidadeID, req) => {
 }
 
 
-const executeQuery = async (sql, params, operation, tableName, uniqueColumnName, id, logID) => {
-    // console.log("🚀 ~ executeQuery: sql, params, operation, tableName, uniqueColum   nName, id, logID:", sql, params, operation, tableName, uniqueColumnName, id, logID)
-
-
-    const sqlSelect = `SELECT * FROM ${tableName} WHERE ${uniqueColumnName} = ?`;
+const executeQuery = async (sql, params, operation, tableName, uniqueColumnName, id, logID, objEmail = null) => {
 
     try {
-        // Antes de executar a consulta, obtenha os dados atuais da tabela (antes da operação)
-        const [rowsBefore] = await db.promise().query(sqlSelect, [id]);
-        const beforeData = rowsBefore;
+        let changeData = null
+        if (operation == 'email') {
+            changeData = getChangedData(null, null, operation, objEmail)
+        } else {
+            const sqlSelect = `SELECT * FROM ${tableName} WHERE ${uniqueColumnName} = ?`;
+            // Antes de executar a consulta, obtenha os dados atuais da tabela (antes da operação)
+            const [rowsBefore] = await db.promise().query(sqlSelect, [id]);
+            const beforeData = rowsBefore;
 
-        // Execute a consulta real (insert, update ou delete)
-        const [results] = await db.promise().query(sql, params);
-        if (operation == 'insert') id = results.insertId
+            // Execute a consulta real (insert, update ou delete)
+            const [results] = await db.promise().query(sql, params);
+            if (operation == 'insert') id = results.insertId
 
-        // console.log('CONSULTA: ', sqlSelect, id)
-
-        // Após a execução da consulta, obtenha os dados atualizados da tabela (depois da operação)
-        const [rowsAfter] = await db.promise().query(sqlSelect, [id]);
-        const afterData = rowsAfter;
-
-        const changeData = getChangedData(beforeData, afterData, operation, uniqueColumnName)
+            // Após a execução da consulta, obtenha os dados atualizados da tabela (depois da operação)
+            const [rowsAfter] = await db.promise().query(sqlSelect, [id]);
+            const afterData = rowsAfter;
+            changeData = getChangedData(beforeData, afterData, operation, null)
+        }
 
         // Registre os detalhes na tabela de log
         logDatabaseOperation(operation, tableName, changeData, logID);
@@ -53,8 +52,11 @@ const executeQuery = async (sql, params, operation, tableName, uniqueColumnName,
     }
 };
 
-const getChangedData = (beforeData, afterData, operation, uniqueColumnName) => {
+const getChangedData = (beforeData, afterData, operation, objEmail) => {
     switch (operation) {
+        case 'email':
+            return objEmail
+            break
         case 'insert':
             return afterData[0]
             break

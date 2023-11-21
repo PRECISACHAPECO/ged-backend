@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
+const { executeQuery } = require('./executeQuery');
 
-const SendMailConfig = async (destinatario, assunto, html) => {
+const SendMailConfig = async (destinatario, assunto, html, logID, data) => {
 
     const transporter = nodemailer.createTransport({
         host: 'mail.gedagro.com.br',
@@ -22,13 +23,22 @@ const SendMailConfig = async (destinatario, assunto, html) => {
         html: html
     };
 
-    transporter.sendMail(mailOptions, function (error, info) {
+    transporter.sendMail(mailOptions, async function (error, info) {
         if (error) {
             console.log(error);
             return false;
         } else {
             console.log('Email enviado: ' + info.response);
+
+            const values = {
+                ...data,
+                email: destinatario,
+                assunto: assunto,
+            }
+
+            await executeQuery(null, [], 'email', 'usuario', null, null, logID, values)
             return true;
+
         }
     });
 

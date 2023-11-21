@@ -296,7 +296,7 @@ class ProfissionalController {
                 }
 
                 const html = await newUser(values);
-                await sendMailConfig(destinatario, assunto, html)
+                await sendMailConfig(destinatario, assunto, html, logID, values)
 
                 return res.status(200).json(profissionalID)
             }
@@ -521,6 +521,8 @@ class ProfissionalController {
                     }
                     accessPermissions(newData, logID)
 
+
+
                     // Envia email para email do profissional avisando que o mesmo agora é um usuário
                     const sqlProfessional = `
                     SELECT 
@@ -578,9 +580,7 @@ class ProfissionalController {
                     }
 
                     const html = await newUser(values);
-                    await sendMailConfig(destinatario, assunto, html)
-
-
+                    await sendMailConfig(destinatario, assunto, html, logID, values)
 
                     res.status(200).json({ message: 'Dados atualizados com sucesso!' })
                 }
