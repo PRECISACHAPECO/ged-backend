@@ -36,7 +36,7 @@ const executeQuery = async (sql, params, operation, tableName, uniqueColumnName,
         const [results] = await db.promise().query(sql, params);
         if (operation == 'insert') id = results.insertId
 
-        console.log('CONSULTA: ', sqlSelect, id)
+        // console.log('CONSULTA: ', sqlSelect, id)
 
         // Após a execução da consulta, obtenha os dados atualizados da tabela (depois da operação)
         const [rowsAfter] = await db.promise().query(sqlSelect, [id]);

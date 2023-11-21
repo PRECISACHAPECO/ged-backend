@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { executeQuery } = require('../config/executeQuery');
 require('dotenv/config')
 
 const addFormStatusMovimentation = async (parFormularioID, id, usuarioID, unidadeID, papelID, statusAnterior, statusAtual, observacao) => {
@@ -46,7 +47,7 @@ const formatFieldsToTable = async (table, fields) => {
 
 
 //* Função que atualiza ou adiciona permissões ao usuário
-const accessPermissions = (data) => {
+const accessPermissions = (data, logID) => {
     const boolToNumber = (bool) => { return bool ? 1 : 0 }
 
     // console.log("🚀 ~ data por propsssss:", data)
@@ -65,30 +66,29 @@ const accessPermissions = (data) => {
                     UPDATE permissao
                     SET ler = ?, inserir = ?, editar = ?, excluir = ?
                     WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
-                    const [resultMenu] = await db.promise().query(sqlMenu, [
-                        boolToNumber(menu.ler),
-                        boolToNumber(menu.inserir),
-                        boolToNumber(menu.editar),
-                        boolToNumber(menu.excluir),
-                        menu.rota,
-                        data.fields.unidadeID,
-                        data.fields.usuarioID,
-                        1
-                    ])
+
+                    await executeQuery(sqlMenu, [boolToNumber(menu.ler),
+                    boolToNumber(menu.inserir),
+                    boolToNumber(menu.editar),
+                    boolToNumber(menu.excluir),
+                    menu.rota,
+                    data.fields.unidadeID,
+                    data.fields.usuarioID,
+                        1], 'update', 'permissao', 'usuarioID', usuarioID, logID)
+
                 } else { //? Não existe, então insere
                     const sqlMenu = `
                     INSERT INTO permissao (rota, unidadeID, usuarioID, papelID, ler, inserir, editar, excluir)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-                    const [resultMenu] = await db.promise().query(sqlMenu, [
-                        menu.rota,
-                        data.fields.unidadeID,
-                        data.fields.usuarioID,
+
+                    await executeQuery(sqlMenu, [menu.rota,
+                    data.fields.unidadeID,
+                    data.fields.usuarioID,
                         1,
-                        boolToNumber(menu.ler),
-                        boolToNumber(menu.inserir),
-                        boolToNumber(menu.editar),
-                        boolToNumber(menu.excluir)
-                    ])
+                    boolToNumber(menu.ler),
+                    boolToNumber(menu.inserir),
+                    boolToNumber(menu.editar),
+                    boolToNumber(menu.excluir)], 'insert', 'permissao', 'permissaoID', null, logID)
                 }
             }
 
@@ -107,7 +107,8 @@ const accessPermissions = (data) => {
                         UPDATE permissao
                         SET ler = ?, inserir = ?, editar = ?, excluir = ?
                         WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
-                        const [resultSubmenu] = await db.promise().query(sqlSubmenu, [
+
+                        await executeQuery(sqlSubmenu, [
                             boolToNumber(submenu.ler),
                             boolToNumber(submenu.inserir),
                             boolToNumber(submenu.editar),
@@ -115,22 +116,21 @@ const accessPermissions = (data) => {
                             submenu.rota,
                             data.fields.unidadeID,
                             data.fields.usuarioID,
-                            1,
-                        ])
+                            1,], 'update', 'permissao', 'usuarioID', usuarioID, logID)
+
                     } else { //? Não existe, então insere
                         const sqlSubmenu = `
                         INSERT INTO permissao (rota, unidadeID, usuarioID, papelID, ler, inserir, editar, excluir)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-                        const [resultSubmenu] = await db.promise().query(sqlSubmenu, [
-                            submenu.rota,
-                            data.fields.unidadeID,
-                            data.fields.usuarioID,
+
+                        await executeQuery(sqlSubmenu, [submenu.rota,
+                        data.fields.unidadeID,
+                        data.fields.usuarioID,
                             1,
-                            boolToNumber(submenu.ler),
-                            boolToNumber(submenu.inserir),
-                            boolToNumber(submenu.editar),
-                            boolToNumber(submenu.excluir)
-                        ])
+                        boolToNumber(submenu.ler),
+                        boolToNumber(submenu.inserir),
+                        boolToNumber(submenu.editar),
+                        boolToNumber(submenu.excluir)], 'insert', 'permissao', 'permissaoID', null, logID)
                     }
                 }
             })

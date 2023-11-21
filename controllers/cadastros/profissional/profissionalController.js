@@ -519,7 +519,7 @@ class ProfissionalController {
                             usuarioID
                         },
                     }
-                    accessPermissions(newData)
+                    accessPermissions(newData, logID)
 
                     // Envia email para email do profissional avisando que o mesmo agora é um usuário
                     const sqlProfessional = `
