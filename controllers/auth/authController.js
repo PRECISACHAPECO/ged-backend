@@ -58,8 +58,6 @@ class AuthController {
     async login(req, res) {
         const { cpf, password } = req.body;
 
-        // return res.status(400).json({ message: 'Chegou aqui..... ', cpf, password });
-
         let error = {
             email: ['Algo está errado!!']
         }
@@ -258,7 +256,6 @@ class AuthController {
     //? Função que recebe os dados e envia o email com os dados de acesso
     async forgotPassword(req, res) {
         const { data } = req.body;
-        console.log("🚀 ~ data:", data)
         const type = req.query.type;
 
         let assunto = 'Redefinir senha'
@@ -277,8 +274,11 @@ class AuthController {
     //? Função que redefine a senha do usuário
     async routeForgotNewPassword(req, res) {
         const { data } = req.body;
+        const logID = await executeLog('Redefinir senha', data.usuarioID, 1, req)
+
         let sql = `UPDATE usuario SET senha = ? WHERE usuarioID = ?`;
-        const [result] = await db.promise().query(sql, [criptoMd5(data.senha), data.usuarioID]);
+        await executeQuery(sql, [criptoMd5(data.senha), data.usuarioID], 'update', 'usuario', 'usuarioID', data.usuarioID, logID)
+
         return res.status(200).json({ message: 'Senha alterada com sucesso!' });
     }
 }

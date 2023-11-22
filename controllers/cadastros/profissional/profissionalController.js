@@ -606,7 +606,7 @@ class ProfissionalController {
             if (!id || id <= 0) {
                 throw new Error("Dados incorretos");
             }
-            const logID = await executeLog('Edição da senha do profissional', id, data.unidadeID, req)
+            const logID = await executeLog('Troca de senha do profissional', id, data.unidadeID, req)
 
             // Verifica se é ADMIN
             const sqlAdmin = `SELECT admin FROM usuario WHERE usuarioID = ?`
