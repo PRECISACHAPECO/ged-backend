@@ -315,7 +315,7 @@ class ProfissionalController {
             const pathDestination = req.pathDestination
             const file = req.files[0]; //? Somente 1 arquivo
 
-            const logID = await executeLog('Atualização da imagem do profissional', usuarioID, unidadeID, req)
+            const logID = await executeLog('Edição da imagem do profissional', usuarioID, unidadeID, req)
 
             const sqlSelectPreviousPhoto = `SELECT imagem FROM profissional WHERE profissionalID = ?`;
             const sqlUpdatePhotoProfile = `UPDATE profissional SET imagem = ? WHERE profissionalID = ?`;

@@ -1254,7 +1254,9 @@ class FornecedorController {
     }
 
     async fornecedorStatus(req, res) {
-        const { unidadeID, cnpj, status } = req.body;
+        const { unidadeID, usuarioID, cnpj, status } = req.body;
+
+        const logID = await executeLog('Edição do status do formulário do fornecedor', usuarioID, unidadeID, req)
 
         // Verifica se já possui registro
         const sqlVerify = `
@@ -1268,14 +1270,16 @@ class FornecedorController {
             const sqlInsert = `
             INSERT INTO fabrica_fornecedor(unidadeID, fornecedorCnpj, status)
             VALUES(?, ?, ?)`
-            const [resultInsert] = await db.promise().query(sqlInsert, [unidadeID, cnpj, status])
+            // const [resultInsert] = await db.promise().query(sqlInsert, [unidadeID, cnpj, status])
+            const resultInsert = await executeQuery(sqlInsertUsuarioUnity, [unidadeID, cnpj, status], 'insert', 'fabrica_fornecedor', 'fabricaFornecedorID', null, logID)
         } else {
             // atualiza o status 
             const sqlUpdate = `
             UPDATE fabrica_fornecedor
             SET status = ?
                 WHERE unidadeID = ? AND fornecedorCnpj = ? `
-            const [resultUpdate] = await db.promise().query(sqlUpdate, [status, unidadeID, cnpj])
+            // const [resultUpdate] = await db.promise().query(sqlUpdate, [status, unidadeID, cnpj])
+            const resultUpdate = await executeQuery(sqlUpdate, [status, unidadeID, cnpj], 'update', 'fabrica_fornecedor', 'fabricaFornecedorID', unidadeID, logID)
         }
 
         // Verifica se já possui formulário preenchido pra minha empresa

@@ -380,6 +380,8 @@ class RecebimentoMpController {
 
         if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
 
+        const logID = await executeLog('Edição formulário do Recebimento Mp', usuarioID, unidadeID, req)
+
         const sqlSelect = `SELECT status FROM recebimentomp WHERE recebimentoMpID = ? `
         const [resultStatus] = await db.promise().query(sqlSelect, [id])
 
@@ -387,21 +389,31 @@ class RecebimentoMpController {
         const sqlStaticlHeader = `
         UPDATE recebimentomp SET data = ?, preencheProfissionalID = ?, fornecedorID = ?, dataConclusao = ?, aprovaProfissionalID = ?
             WHERE recebimentoMpID = ? `
-        const [resultStaticHeader] = await db.promise().query(sqlStaticlHeader, [
-            data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora}` : null,
-            data.fieldsHeader?.profissional?.id ?? null,
-            data.fieldsHeader?.fornecedor?.id ?? null,
-            data.fieldsFooter?.dataConclusao ? `${data.fieldsFooter.dataConclusao} ${data.fieldsFooter.horaConclusao} ` : null,
-            data.fieldsFooter?.profissional?.id ?? null,
-            id
-        ])
+        // const [resultStaticHeader] = await db.promise().query(sqlStaticlHeader, [
+        //     data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora}` : null,
+        //     data.fieldsHeader?.profissional?.id ?? null,
+        //     data.fieldsHeader?.fornecedor?.id ?? null,
+        //     data.fieldsFooter?.dataConclusao ? `${data.fieldsFooter.dataConclusao} ${data.fieldsFooter.horaConclusao} ` : null,
+        //     data.fieldsFooter?.profissional?.id ?? null,
+        //     id
+        // ])
+
+        const resultStaticHeader = await executeQuery(sqlStaticlHeader, [data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora}` : null,
+        data.fieldsHeader?.profissional?.id ?? null,
+        data.fieldsHeader?.fornecedor?.id ?? null,
+        data.fieldsFooter?.dataConclusao ? `${data.fieldsFooter.dataConclusao} ${data.fieldsFooter.horaConclusao} ` : null,
+        data.fieldsFooter?.profissional?.id ?? null,
+            id], 'update', 'recebimentomp', 'recebimentompID', id, logID)
+
+
 
         //? Atualizar o header dinâmico e setar o status        
         if (data.fields) {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
             let dataHeader = await formatFieldsToTable('par_recebimentomp', data.fields)
             const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentoMpID = ${id} `;
-            const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
+            // const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
+            const resultHeader = await executeQuery(sqlHeader, [dataHeader], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
         }
 
@@ -409,14 +421,25 @@ class RecebimentoMpController {
         if (data.produtos && data.produtos.length > 0) {
             // Deleta produtos do recebimento
             const sqlDeleteProduto = `DELETE FROM recebimentomp_produto WHERE recebimentoMpID = ? `
-            const [resultDeleteProduto] = await db.promise().query(sqlDeleteProduto, [id])
+            // const [resultDeleteProduto] = await db.promise().query(sqlDeleteProduto, [id])
+            const resultDeleteProduto = await executeQuery(sqlDeleteProduto, [id], 'delete', 'recebimentomp_produto', 'recebimentoMpID', id, logID)
             for (const produto of data.produtos) {
                 if (produto && produto.checked) { //? Marcou o produto no checkbox
                     if (produto && produto.produtoID > 0) {
                         const sqlInsertProduto = `
                         INSERT INTO recebimentomp_produto(recebimentoMpID, produtoID, quantidade, dataFabricacao, lote, nf, dataValidade, apresentacaoID)
                         VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
-                        const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [
+                        // const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [
+                        //     id,
+                        //     produto.produtoID,
+                        //     produto.quantidade ?? null,
+                        //     produto.dataFabricacao ?? null,
+                        //     produto.lote ?? null,
+                        //     produto.nf ?? null,
+                        //     produto.dataValidade ?? null,
+                        //     produto.apresentacao?.id ?? null
+                        // ])
+                        const resultInsertProduto = await executeQuery(sqlInsertProduto, [
                             id,
                             produto.produtoID,
                             produto.quantidade ?? null,
@@ -425,8 +448,8 @@ class RecebimentoMpController {
                             produto.nf ?? null,
                             produto.dataValidade ?? null,
                             produto.apresentacao?.id ?? null
-                        ])
-                        if (resultInsertProduto.length === 0) { return res.json('Error'); }
+                        ], 'insert', 'recebimentomp_produto', 'recebimentoMpProdutoID', null, logID)
+                        if (!resultInsertProduto) { return res.json('Error'); }
                     }
                 }
             }
@@ -448,21 +471,39 @@ class RecebimentoMpController {
 
                         if (resposta && resultVerificaResposta.length === 0) {
                             const sqlInsert = `INSERT INTO recebimentomp_resposta(recebimentoMpID, parRecebimentoMpModeloBlocoID, itemID, resposta, respostaID, obs) VALUES(?, ?, ?, ?, ?, ?)`
-                            const [resultInsert] = await db.promise().query(sqlInsert, [
+                            // const [resultInsert] = await db.promise().query(sqlInsert, [
+                            //     id,
+                            //     bloco.parRecebimentoMpModeloBlocoID,
+                            //     item.itemID,
+                            //     resposta,
+                            //     respostaID,
+                            //     observacao
+                            // ])
+                            const resultInsert = await executeQuery(sqlInsert, [
                                 id,
                                 bloco.parRecebimentoMpModeloBlocoID,
                                 item.itemID,
                                 resposta,
                                 respostaID,
                                 observacao
-                            ])
-                            if (resultInsert.length === 0) { return res.json('Error'); }
+                            ], 'insert', 'recebimentomp_resposta', 'recebimentoMpRespostaID', null, logID)
+
+                            if (!resultInsert) { return res.json('Error'); }
                         } else if (resposta && resultVerificaResposta.length > 0) {
                             const sqlUpdate = `
                             UPDATE recebimentomp_resposta 
                             SET resposta = ?, respostaID = ?, obs = ?, recebimentoMpID = ?
             WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
-                            const [resultUpdate] = await db.promise().query(sqlUpdate, [
+                            // const [resultUpdate] = await db.promise().query(sqlUpdate, [
+                            //     resposta,
+                            //     respostaID,
+                            //     observacao,
+                            //     id,
+                            //     id,
+                            //     bloco.parRecebimentoMpModeloBlocoID,
+                            //     item.itemID
+                            // ])
+                            const resultUpdate = await executeQuery(sqlUpdate, [
                                 resposta,
                                 respostaID,
                                 observacao,
@@ -470,12 +511,13 @@ class RecebimentoMpController {
                                 id,
                                 bloco.parRecebimentoMpModeloBlocoID,
                                 item.itemID
-                            ])
-                            if (resultUpdate.length === 0) { return res.json('Error'); }
+                            ], 'update', 'recebimentomp_resposta', 'recebimentoMpID', id, logID)
+                            if (!resultUpdate) { return res.json('Error'); }
                         }
                         else if (!resposta) {
                             const sqlDelete = `DELETE FROM recebimentomp_resposta WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
-                            const [resultDelete] = await db.promise().query(sqlDelete, [id, bloco.parRecebimentoMpModeloBlocoID, item.itemID])
+                            // const [resultDelete] = await db.promise().query(sqlDelete, [id, bloco.parRecebimentoMpModeloBlocoID, item.itemID])
+                            const resultDelete = await executeQuery(sqlDelete, [id, bloco.parRecebimentoMpModeloBlocoID, item.itemID], 'delete', 'recebimentomp_resposta', 'recebimentoMpID', id, logID)
                         }
                     }
                 }
@@ -485,19 +527,27 @@ class RecebimentoMpController {
 
         // Observação
         const sqlUpdateObs = `UPDATE recebimentomp SET obs = ?, obsConclusao = ? WHERE recebimentoMpID = ? `
-        const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.info?.obs, data?.obsConclusao, id])
-        if (resultUpdateObs.length === 0) { return res.json('Error'); }
+        // const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.info?.obs, data?.obsConclusao, id])
+        const resultUpdateObs = await executeQuery(sqlUpdateObs, [data.info?.obs, data?.obsConclusao, id], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
+        if (!resultUpdateObs) { return res.json('Error'); }
 
         //* Status
         const newStatus = !data.status || data.status < 30 ? 30 : data.status
 
         const sqlUpdateStatus = `UPDATE recebimentomp SET status = ?, dataFim = ?, finalizaProfissionalID = ? WHERE recebimentoMpID = ? `
-        const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [
+        // const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [
+        //     newStatus,
+        //     newStatus >= 40 ? new Date() : null,
+        //     newStatus >= 40 ? profissionalID : null,
+        //     id
+        // ])
+
+        const resultUpdateStatus = await executeQuery(sqlUpdateStatus, [
             newStatus,
             newStatus >= 40 ? new Date() : null,
             newStatus >= 40 ? profissionalID : null,
             id
-        ])
+        ], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
 
         //? Gera histórico de alteração de status (se houve alteração)
         if (resultStatus[0]['status'] != newStatus) {

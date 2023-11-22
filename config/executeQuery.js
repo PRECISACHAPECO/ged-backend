@@ -21,12 +21,14 @@ const executeLog = async (nome, usuarioID, unidadeID, req) => {
 }
 
 
-const executeQuery = async (sql, params, operation, tableName, uniqueColumnName, id, logID, objEmail = null) => {
+const executeQuery = async (sql, params, operation, tableName, uniqueColumnName, id, logID, objEmail = null, loginObj = null) => {
 
     try {
         let changeData = null
         if (operation == 'email') {
-            changeData = getChangedData(null, null, operation, objEmail)
+            changeData = getChangedData(null, null, operation, objEmail, null)
+        } else if (operation == 'login') {
+            changeData = getChangedData(null, null, operation, null, loginObj)
         } else {
             const sqlSelect = `SELECT * FROM ${tableName} WHERE ${uniqueColumnName} = ?`;
             // Antes de executar a consulta, obtenha os dados atuais da tabela (antes da operação)
@@ -52,10 +54,13 @@ const executeQuery = async (sql, params, operation, tableName, uniqueColumnName,
     }
 };
 
-const getChangedData = (beforeData, afterData, operation, objEmail) => {
+const getChangedData = (beforeData, afterData, operation, objEmail, loginObj) => {
     switch (operation) {
         case 'email':
             return objEmail
+            break
+        case 'login':
+            return loginObj
             break
         case 'insert':
             return afterData[0]

@@ -3,6 +3,7 @@ const db = require('../../config/db');
 require('dotenv/config')
 const { getMenu, criptoMd5 } = require('../../config/defaultConfig');
 const sendMailConfig = require('../../config/email');
+const { executeLog, executeQuery } = require('../../config/executeQuery');
 const NewPassword = require('../../email/template/EsqueciSenha/NewPassword');
 
 // ** JWT import
@@ -94,6 +95,7 @@ class AuthController {
                     },
                     unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.nomeFantasia, papelID: unidade.papelID, papel: unidade.papel }))
                 }
+
                 return res.status(202).json(response);
             }
 
@@ -108,6 +110,19 @@ class AuthController {
                     },
                     unidades: [{ unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia, papelID: result[0].papelID, papel: result[0].papel }]
                 }
+                const logID = await executeLog('Login', response.userData.usuarioID, result[0].unidadeID, req)
+                const sqlLatestAcess = 'UPDATE usuario SET ultimoAcesso = NOW() WHERE usuarioID = ?';
+
+                const responseFormat = {
+                    userData: response.userData,
+                    unidades: response.unidades
+                }
+
+                const loginObj = {
+                    responseFormat
+                }
+                await executeQuery(sqlLatestAcess, [response.userData.usuarioID], 'login', 'usuario', 'usuarioID', null, logID, null, loginObj)
+
                 return res.status(200).json(response);
             }
 
@@ -123,6 +138,21 @@ class AuthController {
             console.log(err)
             return res.status(500).json({ message: err.message });
         }
+    }
+
+    async saveDataLogMultiUnit(req, res) {
+        const data = req.body
+
+        const logID = await executeLog('LogOut', data.userData.usuarioID, data.unidadeID.unidadeID, req)
+        const sqlLatestAcess = 'UPDATE usuario SET ultimoAcesso = NOW() WHERE usuarioID = ?';
+
+        const responseFormat = data
+
+        const loginObj = {
+            responseFormat
+        }
+        await executeQuery(sqlLatestAcess, [data.userData.usuarioID], 'login', 'usuario', 'usuarioID', null, logID, null, loginObj)
+
     }
 
     async getAvailableRoutes(req, res) {

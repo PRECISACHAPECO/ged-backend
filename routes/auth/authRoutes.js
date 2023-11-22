@@ -13,6 +13,7 @@ const authController = new AuthController();
 const route = '/login';
 const routeForgotPassword = '/esqueceuSenha';
 authRoutes.post(`${route}`, authController.login);
+authRoutes.post(`${route}/saveDataLogMultiUnit`, authController.saveDataLogMultiUnit);
 authRoutes.get(`${route}`, authController.getAvailableRoutes);
 authRoutes.post(`${routeForgotPassword}`, authController.forgotPassword);
 authRoutes.post(`${routeForgotPassword}/validation`, authController.routeForgotEmailValidation);
