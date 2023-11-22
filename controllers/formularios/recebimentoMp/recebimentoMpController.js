@@ -4,6 +4,7 @@ const path = require('path');
 require('dotenv/config')
 const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
 const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts } = require('../../../config/defaultConfig');
+const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class RecebimentoMpController {
     async getList(req, res) {
@@ -48,18 +49,20 @@ class RecebimentoMpController {
 
     async insertData(req, res) {
         const data = req.body
+        console.log("🚀 ~ data:", data)
 
         if (!data.model.id || !data.unidadeID) return res.status(400).json({ message: 'Erro ao inserir formulário!' })
 
+        const logID = await executeLog('Criação de formulário do recebimento Mp', data.usuarioID, data.unidadeID, req)
+
+
         const sqlInsert = `INSERT INTO recebimentomp SET parRecebimentoMpModeloID = ?, data = ?, dataInicio = ?, abreProfissionalID = ?, unidadeID = ?`
-        const [resultInsert] = await db.promise().query(sqlInsert, [
-            data.model.id,
-            new Date(),
-            new Date(),
-            data.profissionalID,
-            data.unidadeID
-        ])
-        const recebimentoMpID = resultInsert.insertId
+
+        const recebimentoMpID = await executeQuery(sqlInsert, [data.model.id,
+        new Date(),
+        new Date(),
+        data.profissionalID,
+        data.unidadeID], 'insert', 'recebimentomp', 'recebimentompID', null, logID)
 
         return res.status(200).json({ recebimentoMpID })
     }
@@ -513,12 +516,12 @@ class RecebimentoMpController {
             const files = req.files; //? Array de arquivos
 
             const { usuarioID, unidadeID, produtoAnexoID, grupoAnexoItemID, parRecebimentoMpModeloBlocoID, itemOpcaoAnexoID } = req.body;
-            console.log("🚀 ~ parRecebimentoMpModeloBlocoID:", parRecebimentoMpModeloBlocoID)
 
             //? Verificar se há arquivos enviados
             if (!files || files.length === 0) {
                 return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
             }
+            const logID = await executeLog('Salvo anexo do formulário do recebimento Mp', data.usuarioID, data.unidadeID, req)
 
             let result = []
             for (let i = 0; i < files.length; i++) {
@@ -526,28 +529,23 @@ class RecebimentoMpController {
 
                 //? Insere em anexo
                 const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
-                const [resultInsert] = await db.promise().query(sqlInsert, [
-                    removeSpecialCharts(file.originalname),
+                const anexoID = await executeQuery(sqlInsert, [removeSpecialCharts(file.originalname),
                     pathDestination,
-                    file.filename,
-                    file.size,
-                    file.mimetype,
+                file.filename,
+                file.size,
+                file.mimetype,
                     usuarioID,
                     unidadeID,
-                    new Date()
-                ])
-                const anexoID = resultInsert.insertId;
+                new Date()], 'insert', 'anexo', 'anexoID', null, logID)
 
                 //? Insere em anexo_busca
                 const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, recebimentoMpID, produtoAnexoID, grupoAnexoItemID, parRecebimentoMpModeloBlocoID, itemOpcaoAnexoID) VALUES(?,?,?,?,?,?)`;
-                const [resultInsertBusca] = await db.promise().query(sqlInsertBusca, [
-                    anexoID,
+                await executeQuery(sqlInsertBusca, [anexoID,
                     id,
                     produtoAnexoID ?? null,
                     grupoAnexoItemID ?? null,
-                    parRecebimentoMpModeloBlocoID ?? null,
-                    itemOpcaoAnexoID ?? null
-                ])
+                    parFornecedorModeloBlocoID ?? null,
+                    itemOpcaoAnexoID ?? null], 'insert', 'anexo_busca', 'anexoBuscaID', null, logID)
 
                 const objAnexo = {
                     exist: true,
@@ -590,17 +588,17 @@ class RecebimentoMpController {
 
         //? Remove anexo do BD
         const sqlDelete = `DELETE FROM anexo WHERE anexoID = ?`;
-        const [resultDelete] = await db.promise().query(sqlDelete, [anexoID])
+        await executeQuery(sqlDelete, [anexoID], 'delete', 'anexo', 'anexoID', anexoID, logID)
 
         const sqlDeleteBusca = `DELETE FROM anexo_busca WHERE anexoID = ?`;
-        const [resultDeleteBusca] = await db.promise().query(sqlDeleteBusca, [anexoID])
+        await executeQuery(sqlDeleteBusca, [anexoID], 'delete', 'anexo_busca', 'anexoID', anexoID, logID)
 
         res.status(200).json(anexoID);
     }
 
 
-    deleteData(req, res) {
-        const { id } = req.params
+    async deleteData(req, res) {
+        const { id, usuarioID, unidadeID } = req.params
         const objDelete = {
             table: ['recebimentomp', 'recebimentomp_produto', 'recebimentomp_resposta'],
             column: 'recebimentoMpID'
@@ -609,15 +607,19 @@ class RecebimentoMpController {
         const arrPending = []
 
         if (!arrPending || arrPending.length === 0) {
-            return deleteItem(id, objDelete.table, objDelete.column, res)
+            const logID = await executeLog('Exclusão anexo no formulário do recebimento Mp', usuarioID, unidadeID, req)
+            return deleteItem(id, objDelete.table, objDelete.column, logID, res)
         }
 
+
+
         hasPending(id, arrPending)
-            .then((hasPending) => {
+            .then(async (hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objDelete.table, objDelete.column, res)
+                    const logID = await executeLog('Exclusão anexo no formulário do recebimento Mp', usuarioID, unidadeID, req)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
                 }
             })
             .catch((err) => {

@@ -11,8 +11,7 @@ const route = '/formularios/fornecedor';
 fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
 fornecedorRoutes.post(`${route}/getData/:id`, fornecedorController.getData);
 fornecedorRoutes.post(`${route}/updateData/:id`, fornecedorController.updateData);
-fornecedorRoutes.delete(`${route}/delete/:id`, fornecedorController.deleteData);
-fornecedorRoutes.post(`${route}/novo`, fornecedorController.insertData);
+fornecedorRoutes.delete(`${route}/delete/:id/:usuarioID/:unidadeID`, fornecedorController.deleteData);
 
 // Específicos
 fornecedorRoutes.post(`${route}/getFabricas`, fornecedorController.getFabricas);

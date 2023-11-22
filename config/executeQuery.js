@@ -90,6 +90,10 @@ const getChangedData = (beforeData, afterData, operation, objEmail) => {
 }
 
 const logDatabaseOperation = async (operation, tableName, changeData, logID) => {
+    console.log("🚀 ~ logID:", logID)
+
+
+
     try {
         // Construa a query de inserção na tabela de log
         const sqlInsertLog = 'INSERT INTO log_script (logID, operacao, tabela, alteracao) VALUES (?, ?, ?, ?)';
@@ -100,13 +104,6 @@ const logDatabaseOperation = async (operation, tableName, changeData, logID) => 
         console.error('Erro ao inserir log no banco de dados:', error);
     }
 };
-
-
-
-module.exports = logDatabaseOperation;
-
-
-
 
 
 

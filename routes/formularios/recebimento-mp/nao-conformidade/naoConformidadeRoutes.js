@@ -13,7 +13,7 @@ naoConformidadeRoutes.post(`${route}/new/getData`, naoConformidadeController.get
 naoConformidadeRoutes.post(`${route}/insertData`, naoConformidadeController.insertData);
 naoConformidadeRoutes.post(`${route}/updateData/:id`, naoConformidadeController.updateData);
 
-naoConformidadeRoutes.delete(`${route}/:id`, naoConformidadeController.deleteData);
+naoConformidadeRoutes.delete(`${route}/:id/:unidadeID/:usuarioID`, naoConformidadeController.deleteData);
 naoConformidadeRoutes.post(`${route}/changeFormStatus/:id`, naoConformidadeController.changeFormStatus);
 naoConformidadeRoutes.post(`${route}/verifyFormPending/:id`, naoConformidadeController.verifyFormPending);
 
