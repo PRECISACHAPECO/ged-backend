@@ -48,7 +48,7 @@ class LogController {
                 a.* 
             FROM log_script AS a
                 JOIN log b ON (a.logID = b.logID)
-            WHERE b.unidadeID = ? AND a.logID = ?
+            WHERE a.logID = ?
             `
             const [resultGetOne] = await db.promise().query(sqlgetOne, [unidadeID, logID])
 
