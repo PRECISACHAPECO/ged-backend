@@ -29,7 +29,7 @@ class LogController {
                 ) AS scripts
             FROM log AS a
                 JOIN usuario AS b ON (a.usuarioID = b.usuarioID)
-            WHERE a.unidadeID = ? ORDER BY a.dataHora DESC`
+             ORDER BY a.dataHora DESC`
             const [resultGetList] = await db.promise().query(sqlgetList, [unidadeID])
 
             res.status(200).json(resultGetList)
