@@ -241,4 +241,40 @@ const onlyNumbers = (string) => {
     return string.replace(/[^0-9]/g, '');
 }
 
-module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts };
+function extrairEnderecoCompleto(unidade) {
+    const {
+        logradouro,
+        numero,
+        complemento,
+        bairro,
+        cidade,
+        uf,
+        cep
+    } = unidade;
+
+    // Verificar se os campos obrigatórios existem
+    if (logradouro && numero && bairro && cidade && uf && cep) {
+        // Construir o endereço apenas com os campos existentes
+        let enderecoCompleto = `${logradouro}, ${numero}`;
+
+        // Adicionar complemento se existir
+        if (complemento) enderecoCompleto += `, ${complemento}`;
+
+        enderecoCompleto += `, ${bairro}, ${cidade}, ${uf}, ${cep}`;
+        return enderecoCompleto;
+    } else {
+        // Identificar campos ausentes
+        const camposAusentes = [];
+        if (!logradouro) camposAusentes.push('logradouro');
+        if (!numero) camposAusentes.push('numero');
+        if (!bairro) camposAusentes.push('bairro');
+        if (!cidade) camposAusentes.push('cidade');
+        if (!uf) camposAusentes.push('uf');
+        if (!cep) camposAusentes.push('cep');
+
+        return `Campos ausentes: ${camposAusentes.join(', ')}. Verifique os dados.`;
+    }
+}
+
+
+module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts, extrairEnderecoCompleto };

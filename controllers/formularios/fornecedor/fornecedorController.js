@@ -595,7 +595,6 @@ class FornecedorController {
     async updateData(req, res) {
         const { id } = req.params
         const data = req.body.form
-        console.log("🚀 ~ data:", data)
         const { usuarioID, papelID, unidadeID } = req.body.auth
 
         const logID = await executeLog('Edição formulário do fornecedor', usuarioID, unidadeID, req)
@@ -626,6 +625,8 @@ class FornecedorController {
             usuarioID,
         data.fieldsHeader.razaoSocial ?? null,
         data.fieldsHeader.nomeFantasia ?? null], 'update', 'fornecedor', 'fornecedorID', id, logID)
+
+
 
         //? Atualizar o header dinâmico e setar o status        
         if (data.fields > 0) {

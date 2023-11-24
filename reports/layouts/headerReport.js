@@ -1,5 +1,6 @@
 
 const db = require('../../config/db');
+const { extrairEnderecoCompleto } = require('../../config/defaultConfig');
 
 const headerReport = async (req, res) => {
     let data = req.body
@@ -12,15 +13,23 @@ const headerReport = async (req, res) => {
         unidadeID = resultUnidade[0]['unidadeID'] //? unidadeID da fábrica
     }
 
-    const sqlGetCabecalhoReport = 'SELECT tituloRelatorio, cabecalhoRelatorio FROM unidade WHERE unidadeID = ?'
+    const sqlGetCabecalhoReport = 'SELECT * FROM unidade WHERE unidadeID = ?'
     const [resultSqlGetCabecalhoReport] = await db.promise().query(sqlGetCabecalhoReport, [unidadeID]);
+    console.log("🚀 ~ resultSqlGetCabecalhoReport:", resultSqlGetCabecalhoReport)
+
+    const sqlDataUnity = 'SELECT * FROM unidade WHERE unidadeID = ?'
+    const [resultSqlDataUnity] = await db.promise().query(sqlDataUnity, [data.unidadeID])
+
+
+
 
     if (resultSqlGetCabecalhoReport.length <= 0) return
 
     const result = {
         unidade: {
             ...resultSqlGetCabecalhoReport[0],
-            url: resultSqlGetCabecalhoReport[0].cabecalhoRelatorio ? `${process.env.BASE_URL_UPLOADS}report/${resultSqlGetCabecalhoReport[0].cabecalhoRelatorio}` : null,
+            url: resultSqlGetCabecalhoReport[0].cabecalhoRelatorio ? `${process.env.BASE_URL_UPLOADS}${resultSqlGetCabecalhoReport[0].cabecalhoRelatorio}` : null,
+            endereco: extrairEnderecoCompleto(resultSqlGetCabecalhoReport[0]),
         }
     }
 
