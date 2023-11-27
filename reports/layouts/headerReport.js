@@ -15,7 +15,6 @@ const headerReport = async (req, res) => {
 
     const sqlGetCabecalhoReport = 'SELECT * FROM unidade WHERE unidadeID = ?'
     const [resultSqlGetCabecalhoReport] = await db.promise().query(sqlGetCabecalhoReport, [unidadeID]);
-    console.log("🚀 ~ resultSqlGetCabecalhoReport:", resultSqlGetCabecalhoReport)
 
     const sqlDataUnity = 'SELECT * FROM unidade WHERE unidadeID = ?'
     const [resultSqlDataUnity] = await db.promise().query(sqlDataUnity, [data.unidadeID])
