@@ -11,7 +11,6 @@ const dadosFornecedor = async (req, res) => {
     const sqlStatus = 'SELECT status FROM fornecedor WHERE fornecedorID = ?'
     const [resultSqlStatus] = await db.promise().query(sqlStatus, [data.fornecedorID])
     const status = resultSqlStatus[0].status
-    console.log("🚀 ~ status:", status)
 
     // Dados da unidade fabrica
     const sqlDataUnity = 'SELECT * FROM unidade WHERE unidadeID = ?'
