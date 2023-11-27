@@ -4,22 +4,63 @@ async function dynamic(data, modelo) {
     const resultData = [];
     // Fields header fixos
     const sqlFornecedorFixos = `
-    SELECT a.* FROM fornecedor AS  a WHERE a.fornecedorID = ?`
+    SELECT 
+    a.*,
+    a.nome AS nomeFantasia,
+    b.nome AS quemAbriu,
+    c.nome AS aprovaProfissional,
+    DATE_FORMAT(a.dataInicio, '%d/%m/%Y') AS dataInicio,
+    DATE_FORMAT(a.dataInicio, '%H:%i:%s') AS horaInicio,
+    DATE_FORMAT(a.dataFim, '%d/%m/%Y') AS dataFim,
+    DATE_FORMAT(a.dataFim, '%H:%i:%s') AS horaFim    
+FROM fornecedor AS a
+JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
+LEFT JOIN profissional AS c ON (a.aprovaProfissionalID = c.profissionalID)
+WHERE a.fornecedorID = ?`
     const [resultSqlFornecedor] = await db.promise().query(sqlFornecedorFixos, [data.fornecedorID])
+    const resultFornecedorFixos = resultSqlFornecedor[0]
 
     const header = [
         {
             'name': 'CNPJ',
-            'value': resultSqlFornecedor[0].cnpj
+            'value': resultFornecedorFixos.cnpj
         },
         {
             'name': 'Nome Fantasia',
-            'value': resultSqlFornecedor[0].nome
+            'value': resultFornecedorFixos.nome
         },
         {
             'name': 'Razao Social',
-            'value': resultSqlFornecedor[0].razaoSocial
-        }
+            'value': resultFornecedorFixos.razaoSocial
+        },
+        {
+            'name': 'Quem Abriu',
+            'value': resultFornecedorFixos.quemAbriu
+        },
+        {
+            'name': 'Data Inicio',
+            'value': resultFornecedorFixos.dataInicio
+        },
+        {
+            'name': 'Data Fim',
+            'value': resultFornecedorFixos.dataFim
+        },
+        {
+            'name': 'Hora Inicio',
+            'value': resultFornecedorFixos.horaInicio
+        },
+        {
+            'name': 'Hora Fim',
+            'value': resultFornecedorFixos.horaFim
+        },
+        {
+            'name': 'Quem prenche',
+            'value': resultFornecedorFixos.quemPreenche == 2 ? 'Fornecedor' : 'Fabrica'
+        },
+        {
+            'name': 'Aprova Profissional',
+            'value': resultFornecedorFixos.aprovaProfissional
+        },
     ]
 
     resultData.push(...header)
@@ -65,13 +106,14 @@ async function dynamic(data, modelo) {
 
     // Blocos e itens
     const sqlBlocks = `
-    SELECT nome AS nomeBloco
+    SELECT nome, parFornecedorModeloBlocoID
     FROM par_fornecedor_modelo_bloco
-    WHERE parFornecedorModeloID = 2 AND status = 1
+    WHERE parFornecedorModeloID = ? AND status = 1
     ORDER BY ordem ASC`;
 
-    const [resultSqlBlocks] = await db.promise().query(sqlBlocks, [data.fornecedorID]);
 
+
+    const [resultSqlBlocks] = await db.promise().query(sqlBlocks, [modelo]);
     const blocks = [];
 
     for (const block of resultSqlBlocks) {
@@ -79,23 +121,23 @@ async function dynamic(data, modelo) {
 
         const sqlItensBlock = `
         SELECT 
-            b.nome,
-            c.resposta
-        FROM fornecedor_resposta AS c
-        JOIN par_fornecedor_modelo_bloco AS a ON (c.parFornecedorModeloBlocoID = a.parFornecedorModeloBlocoID)
-        JOIN item AS b ON (c.itemID = b.itemID)
-        
-        WHERE c.fornecedorID = ? AND a.parFornecedorModeloBlocoID = ?`;
+        i.nome,
 
+        (SELECT fr.resposta
+        FROM fornecedor_resposta AS fr 
+        WHERE fr.fornecedorID = ? AND fr.parFornecedorModeloBlocoID = pfbi.parFornecedorModeloBlocoID AND fr.itemID = pfbi.itemID) AS resposta
+
+    FROM par_fornecedor_modelo_bloco_item AS pfbi 
+        LEFT JOIN item AS i ON(pfbi.itemID = i.itemID)
+    WHERE pfbi.parFornecedorModeloBlocoID = ? AND pfbi.status = 1
+    ORDER BY pfbi.ordem ASC`;
         const [resultSqlItensBlock] = await db.promise().query(sqlItensBlock, [data.fornecedorID, blockID]);
 
         blocks.push({
-            nomeBloco: block.nomeBloco,
+            nome: block.nome,
             itens: resultSqlItensBlock,
         });
     }
-
-
 
     return {
         header: resultData,

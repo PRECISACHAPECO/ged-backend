@@ -8,9 +8,10 @@ const dadosFornecedor = async (req, res) => {
     const data = req.body.data
 
     // Dados do fornecedor
-    const sqlStatus = 'SELECT status FROM fornecedor WHERE fornecedorID = ?'
+    const sqlStatus = 'SELECT status, parFornecedorModeloID FROM fornecedor WHERE fornecedorID = ?'
     const [resultSqlStatus] = await db.promise().query(sqlStatus, [data.fornecedorID])
     const status = resultSqlStatus[0].status
+    const modelo = resultSqlStatus[0].parFornecedorModeloID
 
     // Dados da unidade fabrica
     const sqlDataUnity = 'SELECT * FROM unidade WHERE unidadeID = ?'
@@ -28,7 +29,7 @@ const dadosFornecedor = async (req, res) => {
 
 
     // Se status maior ou igual a 40 busca os dados do fornecedor senão da configurações_fornecedor
-    let statusData = status >= 40 ? await static(data) : await dynamic(data)
+    let statusData = status >= 40 ? await static(data) : await dynamic(data, modelo)
     const result = {
         ...statusData,
         unidade: resultSqlDataUnity[0].nomeFantasia,
