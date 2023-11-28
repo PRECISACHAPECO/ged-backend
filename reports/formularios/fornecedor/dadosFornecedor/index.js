@@ -1,6 +1,6 @@
 
-const { arraysIguais } = require('../../configs/config');
-const db = require('../../../config/db');
+const { arraysIguais } = require('../../../configs/config');
+const db = require('../../../../config/db');
 const static = require('./static');
 const dynamic = require('./dynamic');
 
