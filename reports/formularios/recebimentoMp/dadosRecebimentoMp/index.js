@@ -1,14 +1,31 @@
 
 const db = require('../../../../config/db');
+const static = require('./static');
+const dynamic = require('./dynamic');
 
 const dadosRecebimentoMp = async (req, res) => {
     const data = req.body
-    console.log(data)
-    return
 
+    // Dados do recebimento
+    const sqlStatus = 'SELECT status, parRecebimentoMpModeloID FROM recebimentomp WHERE recebimentompID = ?'
+    const [resultSqlStatus] = await db.promise().query(sqlStatus, [data.recebimentoMpID])
+    // const status = resultSqlStatus[0].status
+    const status = 20
+    const modelo = resultSqlStatus[0].parRecebimentoMpModeloID
+
+    // Dados da unidade fabrica
+    const sqlDataUnity = 'SELECT * FROM unidade WHERE unidadeID = ?'
+    const [resultSqlDataUnity] = await db.promise().query(sqlDataUnity, [data.unidadeID])
+
+
+    // Se status maior ou igual a 40 busca os dados do recebimentoMP senão da configurações_recebimentoMP
+    let statusData = status >= 40 ? await static(data) : await dynamic(data, modelo)
     const result = {
-        name: 'Jonatan'
-    };
+        ...statusData,
+        unidade: resultSqlDataUnity[0].nomeFantasia,
+        status: status,
+        modelo: modelo
+    }
     res.json(result)
 }
 
