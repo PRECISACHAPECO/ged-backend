@@ -5,7 +5,7 @@ const static = require('./static');
 const dynamic = require('./dynamic');
 
 const dadosFornecedor = async (req, res) => {
-    const data = req.body.data
+    const data = req.body
 
     // Dados do fornecedor
     const sqlStatus = 'SELECT status, parFornecedorModeloID FROM fornecedor WHERE fornecedorID = ?'

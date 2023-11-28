@@ -20,8 +20,6 @@ const headerReport = async (req, res) => {
     const [resultSqlDataUnity] = await db.promise().query(sqlDataUnity, [data.unidadeID])
 
 
-
-
     if (resultSqlGetCabecalhoReport.length <= 0) return
 
     const result = {

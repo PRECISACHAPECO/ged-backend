@@ -2,8 +2,9 @@
 const db = require('../../../../config/db');
 
 const dadosRecebimentoMp = async (req, res) => {
-    const data = req.body.data
-
+    const data = req.body
+    console.log(data)
+    return
 
     const result = {
         name: 'Jonatan'
