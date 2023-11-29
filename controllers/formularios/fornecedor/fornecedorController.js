@@ -87,8 +87,6 @@ class FornecedorController {
     async saveRelatorio(req, res) {
         const pathDestination = req.pathDestination
         const files = req.files;
-        console.log("🚀 ~ files:", files)
-        console.log("🚀 ~ pathDestination:", pathDestination)
     }
 
 
