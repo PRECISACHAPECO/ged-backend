@@ -8,7 +8,7 @@ const dadosRecebimentoMp = async (req, res) => {
 
     // Dados do recebimento
     const sqlStatus = 'SELECT status, parRecebimentoMpModeloID FROM recebimentomp WHERE recebimentompID = ?'
-    const [resultSqlStatus] = await db.promise().query(sqlStatus, [data.recebimentoMpID])
+    const [resultSqlStatus] = await db.promise().query(sqlStatus, [data.id])
     // const status = resultSqlStatus[0].status
     const status = 20
     const modelo = resultSqlStatus[0].parRecebimentoMpModeloID

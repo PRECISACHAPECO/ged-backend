@@ -52,4 +52,12 @@ fornecedorRoutes.post(`${route}/saveAnexo/:id/:folder/:usuarioID/:unidadeID`, (r
     configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.unidadeID, pathDestination)
 }, fornecedorController.saveAnexo);
 
+//? MULTER: Salva relatório
+fornecedorRoutes.post(`${route}/saveRelatorio/:id/:usuarioID/:unidadeID`, (req, res, next) => {
+    const pathDestination = `uploads/${req.params.unidadeID}/fornecedor/relatorio/original`
+    req.pathDestination = pathDestination
+    configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.unidadeID, pathDestination, false)
+}, fornecedorController.saveRelatorio);
+
+
 module.exports = fornecedorRoutes;

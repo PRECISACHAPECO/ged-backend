@@ -17,7 +17,7 @@ JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
 LEFT JOIN profissional AS c ON (a.aprovaProfissionalID = c.profissionalID)
 WHERE a.fornecedorID = ?;
 `
-    const [resultSqlFornecedor] = await db.promise().query(sqlFornecedor, [data.fornecedorID])
+    const [resultSqlFornecedor] = await db.promise().query(sqlFornecedor, [data.id])
     const resultData = resultSqlFornecedor[0]
 
     const header = [
@@ -110,7 +110,7 @@ WHERE a.fornecedorID = ?;
     WHERE a.fornecedorID = ?
     GROUP BY b.parFornecedorModeloBlocoID`;
 
-    const [resultSqlBlocks] = await db.promise().query(sqlBlocks, [data.fornecedorID]);
+    const [resultSqlBlocks] = await db.promise().query(sqlBlocks, [data.id]);
 
     const blocks = [];
 
@@ -127,7 +127,7 @@ WHERE a.fornecedorID = ?;
         
         WHERE c.fornecedorID = ? AND a.parFornecedorModeloBlocoID = ?`;
 
-        const [resultSqlItensBlock] = await db.promise().query(sqlItensBlock, [data.fornecedorID, blockID]);
+        const [resultSqlItensBlock] = await db.promise().query(sqlItensBlock, [data.id, blockID]);
 
         blocks.push({
             nomeBloco: block.nomeBloco,

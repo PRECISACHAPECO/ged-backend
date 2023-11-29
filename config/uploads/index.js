@@ -34,13 +34,13 @@ const getFileMaxSize = async (unidadeID) => {
     return result[0].anexosTamanhoMaximo ?? 5
 }
 
-const configureMulterMiddleware = async (req, res, next, usuarioID, unidadeID, pathDestination) => {
+const configureMulterMiddleware = async (req, res, next, usuarioID, unidadeID, pathDestination, nameWithTime = true) => {
     //? Parâmetros pro multer
     const maxSize = await getFileMaxSize(unidadeID)
     const allowedUnityExtensions = await getExtensions(usuarioID, unidadeID)
     const maxOriginalSize = 100 //? Imagem até 100MB (antes de redimensionar)
     const imageMaxDimensionToResize = 1024
-    multerFiles(req, res, next, usuarioID, pathDestination, maxOriginalSize, maxSize, allowedUnityExtensions, imageMaxDimensionToResize)
+    multerFiles(req, res, next, usuarioID, pathDestination, maxOriginalSize, maxSize, allowedUnityExtensions, imageMaxDimensionToResize, nameWithTime)
 }
 
 module.exports = { configureMulterMiddleware }

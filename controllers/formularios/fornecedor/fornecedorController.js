@@ -82,6 +82,17 @@ class FornecedorController {
     }
 
     //* Salva os anexos do formulário na pasta uploads/anexo e insere os dados na tabela anexo
+
+
+    async saveRelatorio(req, res) {
+        const pathDestination = req.pathDestination
+        const files = req.files;
+        console.log("🚀 ~ files:", files)
+        console.log("🚀 ~ pathDestination:", pathDestination)
+    }
+
+
+
     async saveAnexo(req, res) {
 
         try {

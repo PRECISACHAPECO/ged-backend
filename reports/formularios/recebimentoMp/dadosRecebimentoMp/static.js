@@ -75,6 +75,10 @@ WHERE a.recebimentoMpID = ?;
             'value': resultData.obs,
         },
         {
+            'name': 'Observação conclusão',
+            'value': resultData.obsConclusao,
+        },
+        {
             'name': 'CEP',
             'value': resultData.cep
 
@@ -105,6 +109,7 @@ WHERE a.recebimentoMpID = ?;
         },
 
     ]
+
 
 
     const values = {

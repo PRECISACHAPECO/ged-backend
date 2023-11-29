@@ -6,14 +6,14 @@ const fs = require('fs');
 const { mkdirSync } = require('fs');
 const { removeSpecialCharts } = require('../defaultConfig');
 
-const defineFileName = (originalName, usuarioID) => {
+const defineFileName = (originalName, usuarioID, nameWithTime) => {
     //? yyyymmdd-hms
     const dateTimeNow = new Date().toISOString().replace(/[-:.]/g, '').replace('T', '-').split('.')[0].slice(0, 15);
-    const fileName = `${dateTimeNow}-${usuarioID}-${removeSpecialCharts(originalName)}`;
+    const fileName = nameWithTime ? `${dateTimeNow}-${usuarioID}-${removeSpecialCharts(originalName)}` : `${usuarioID}-${removeSpecialCharts(originalName)}`;
     return fileName;
 };
 
-const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOriginalSize, maxSize, allowedUnityExtensions, imageMaxDimensionToResize) => {
+const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOriginalSize, maxSize, allowedUnityExtensions, imageMaxDimensionToResize, nameWithTime) => {
     //* Verifica se o diretório de destino existe, senão cria recursivamente
     try {
         mkdirSync(pathDestination, { recursive: true }); // Cria diretórios recursivamente
@@ -33,7 +33,7 @@ const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOrigin
             }
         },
         filename: function (req, file, cb) {
-            cb(null, defineFileName(file.originalname, usuarioID));
+            cb(null, defineFileName(file.originalname, usuarioID, nameWithTime));
         }
     });
 
@@ -77,7 +77,7 @@ const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOrigin
 
             // Processa todos os tipos de arquivos
             const filePromises = req.files.map(file => {
-                const fileName = defineFileName(file.originalname, usuarioID);
+                const fileName = defineFileName(file.originalname, usuarioID, nameWithTime);
                 if (file.mimetype.startsWith('image')) {
                     // Se for uma imagem, redimensione
                     return new Promise((resolve, reject) => {

@@ -17,7 +17,7 @@ FROM fornecedor AS a
 JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
 LEFT JOIN profissional AS c ON (a.aprovaProfissionalID = c.profissionalID)
 WHERE a.fornecedorID = ?`
-    const [resultSqlFornecedor] = await db.promise().query(sqlFornecedorFixos, [data.fornecedorID])
+    const [resultSqlFornecedor] = await db.promise().query(sqlFornecedorFixos, [data.id])
     const resultFornecedorFixos = resultSqlFornecedor[0]
 
     const header = [
@@ -91,7 +91,7 @@ WHERE a.fornecedorID = ?`
         } else {
             sqlQuery = `SELECT  ${columns[i]} FROM fornecedor WHERE fornecedorID = ?`;
         }
-        const [queryResult] = await db.promise().query(sqlQuery, [data.fornecedorID]);
+        const [queryResult] = await db.promise().query(sqlQuery, [data.id]);
 
         resultData.push({
             name: titleColumns[i],
@@ -131,7 +131,7 @@ WHERE a.fornecedorID = ?`
         LEFT JOIN item AS i ON(pfbi.itemID = i.itemID)
     WHERE pfbi.parFornecedorModeloBlocoID = ? AND pfbi.status = 1
     ORDER BY pfbi.ordem ASC`;
-        const [resultSqlItensBlock] = await db.promise().query(sqlItensBlock, [data.fornecedorID, blockID]);
+        const [resultSqlItensBlock] = await db.promise().query(sqlItensBlock, [data.id, blockID]);
 
         blocks.push({
             nome: block.nome,

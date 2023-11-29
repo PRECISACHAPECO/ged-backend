@@ -21,9 +21,8 @@ LEFT JOIN fornecedor AS e ON (a.fornecedorID = e.fornecedorID)
 
 WHERE a.recebimentoMpID = ?;
 `
-    const [resultSqlRecebimentoMp] = await db.promise().query(sqlRecebimentoMp, [data.recebimentoMpID])
+    const [resultSqlRecebimentoMp] = await db.promise().query(sqlRecebimentoMp, [data.id])
     const resultData = resultSqlRecebimentoMp[0]
-    const modelo = resultData.parRecebimentoMpModeloID
 
     const header = [
         {
@@ -109,6 +108,7 @@ WHERE a.recebimentoMpID = ?;
         },
 
     ]
+
 
 
     const values = {

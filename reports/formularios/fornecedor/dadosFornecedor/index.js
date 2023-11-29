@@ -9,7 +9,7 @@ const dadosFornecedor = async (req, res) => {
 
     // Dados do fornecedor
     const sqlStatus = 'SELECT status, parFornecedorModeloID FROM fornecedor WHERE fornecedorID = ?'
-    const [resultSqlStatus] = await db.promise().query(sqlStatus, [data.fornecedorID])
+    const [resultSqlStatus] = await db.promise().query(sqlStatus, [data.id])
     const status = resultSqlStatus[0].status
     const modelo = resultSqlStatus[0].parFornecedorModeloID
 
@@ -25,7 +25,7 @@ const dadosFornecedor = async (req, res) => {
     FROM fornecedor_produto AS a
     JOIN produto AS b ON (a.produtoID = b.produtoID)
     WHERE a.fornecedorID = ?`
-    const [resultSqlProduct] = await db.promise().query(sqlProduct, [data.fornecedorID])
+    const [resultSqlProduct] = await db.promise().query(sqlProduct, [data.id])
 
 
     // Se status maior ou igual a 40 busca os dados do fornecedor senão da configurações_fornecedor
