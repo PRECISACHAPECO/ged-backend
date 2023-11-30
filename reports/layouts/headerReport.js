@@ -10,7 +10,7 @@ const headerReport = async (req, res) => {
     //? Se fornecedor: Obtém unidadeID da fábrica (quem define o padrão do formulário)
     if (data.papelID == 2) {
         const sqlUnity = `SELECT *, unidadeID FROM fornecedor WHERE fornecedorID = ? LIMIT 1`;
-        const [resultUnidade] = await db.promise().query(sqlUnity, [data.fornecedorID]);
+        const [resultUnidade] = await db.promise().query(sqlUnity, [data.id]);
         unidadeID = resultUnidade[0]?.unidadeID //? unidadeID da fábrica
     }
 
@@ -19,7 +19,6 @@ const headerReport = async (req, res) => {
 
     if (resultSqlGetCabecalhoReport.length == 0) return
 
-    console.log("🚀 ~ unidadeID:", unidadeID)
     const result = {
         unidade: {
             ...resultSqlGetCabecalhoReport[0],
