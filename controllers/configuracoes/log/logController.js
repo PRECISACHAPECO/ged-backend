@@ -29,6 +29,7 @@ class LogController {
                 ) AS scripts
             FROM log AS a
                 JOIN usuario AS b ON (a.usuarioID = b.usuarioID)
+            WHERE a.unidadeID = ?
              ORDER BY a.dataHora DESC`
             const [resultGetList] = await db.promise().query(sqlgetList, [unidadeID])
 
@@ -48,7 +49,7 @@ class LogController {
                 a.* 
             FROM log_script AS a
                 JOIN log b ON (a.logID = b.logID)
-            WHERE a.logID = ?
+            WHERE b.unidadeID = ? AND a.logID = ? 
             `
             const [resultGetOne] = await db.promise().query(sqlgetOne, [unidadeID, logID])
 
