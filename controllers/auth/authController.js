@@ -236,9 +236,7 @@ class AuthController {
     //? Função que valida se o CPF é válido e retorna o mesmo para o front / para redefinir senha
     async routeForgotEmailValidation(req, res) {
         const { data } = req.body;
-        console.log("🚀 ~ data:", data)
         const type = req.query.type;
-        console.log("🚀 ~ type:", type)
 
         if (type == 'login') {
             let sql = `SELECT * FROM usuario WHERE cpf = ?`;

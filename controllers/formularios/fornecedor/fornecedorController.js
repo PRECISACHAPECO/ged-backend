@@ -89,8 +89,6 @@ class FornecedorController {
         const files = req.files;
     }
 
-
-
     async saveAnexo(req, res) {
 
         try {

@@ -4,7 +4,6 @@ const { extrairEnderecoCompleto } = require('../../config/defaultConfig');
 
 const headerReport = async (req, res) => {
     let data = req.body
-    console.log("🚀 ~ data:", data)
     let unidadeID = data.unidadeID
 
     //? Se fornecedor: Obtém unidadeID da fábrica (quem define o padrão do formulário)

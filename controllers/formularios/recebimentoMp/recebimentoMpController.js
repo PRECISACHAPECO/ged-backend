@@ -49,7 +49,6 @@ class RecebimentoMpController {
 
     async insertData(req, res) {
         const data = req.body
-        console.log("🚀 ~ data:", data)
 
         if (!data.model.id || !data.unidadeID) return res.status(400).json({ message: 'Erro ao inserir formulário!' })
 
@@ -661,8 +660,6 @@ class RecebimentoMpController {
             return deleteItem(id, objDelete.table, objDelete.column, logID, res)
         }
 
-
-
         hasPending(id, arrPending)
             .then(async (hasPending) => {
                 if (hasPending) {
@@ -676,6 +673,12 @@ class RecebimentoMpController {
                 console.log(err);
                 res.status(500).json(err);
             });
+    }
+
+    async saveRelatorio(req, res) {
+        const pathDestination = req.pathDestination
+        const files = req.files;
+        console.log("🚀 ~ saveRelatorio recebimentoMP files:", files)
     }
 }
 
