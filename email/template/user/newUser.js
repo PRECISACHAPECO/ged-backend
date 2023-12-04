@@ -22,7 +22,7 @@ async function newUser(values) {
     <div class="content">
       <h1 class="title">Olá, ${values.nome} </h1>
       <p>Foi criado um Login de Acesso ao sistema GEDagro na ${values.nomeFantasiaFabrica}.</p>
-      <p>Você pode acessar o sistema através do endereço <a href="${urlBase}/login">${urlBase}login</a> </p>
+      <p>Você pode acessar o sistema através do endereço <a href="${urlBase}login">${urlBase}login</a> </p>
       <div style="margin-top: 10px;">
       <p>Usuário  <br/><strong>${values.cpf}</strong></p>
       <p>Senha  <br/><strong>${values.senha}</strong></p>

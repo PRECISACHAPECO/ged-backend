@@ -6,7 +6,7 @@ const urlBase = process.env.BASE_URL;
 
 
 async function alterPassword(values) {
-    const rotaDirect = values.papelID == 1 ? `${urlBase}/esqueceu-sua-senha?type=login` : `${urlBase}/esqueceu-sua-senha?type=fornecedor`
+    const rotaDirect = values.papelID == 1 ? `${urlBase}esqueceu-sua-senha?type=login` : `${urlBase}esqueceu-sua-senha?type=fornecedor`
 
     let html = `
     <html>`;
