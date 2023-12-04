@@ -22,7 +22,7 @@ const headerReport = async (req, res) => {
     const result = {
         unidade: {
             ...resultSqlGetCabecalhoReport[0],
-            url: resultSqlGetCabecalhoReport[0].cabecalhoRelatorio ? `${process.env.BASE_URL_UPLOADS}${resultSqlGetCabecalhoReport[0].cabecalhoRelatorio}` : null,
+            url: resultSqlGetCabecalhoReport[0].cabecalhoRelatorio ? `${process.env.BASE_URL_API}${resultSqlGetCabecalhoReport[0].cabecalhoRelatorio}` : null,
             endereco: extrairEnderecoCompleto(resultSqlGetCabecalhoReport[0]),
         }
     }

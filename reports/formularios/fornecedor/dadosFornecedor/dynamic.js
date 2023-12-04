@@ -5,18 +5,18 @@ async function dynamic(data, modelo) {
     // Fields header fixos
     const sqlFornecedorFixos = `
     SELECT 
-    a.*,
-    a.nome AS nomeFantasia,
-    b.nome AS quemAbriu,
-    c.nome AS aprovaProfissional,
-    DATE_FORMAT(a.dataInicio, '%d/%m/%Y') AS dataInicio,
-    DATE_FORMAT(a.dataInicio, '%H:%i:%s') AS horaInicio,
-    DATE_FORMAT(a.dataFim, '%d/%m/%Y') AS dataFim,
-    DATE_FORMAT(a.dataFim, '%H:%i:%s') AS horaFim    
-FROM fornecedor AS a
-JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
-LEFT JOIN profissional AS c ON (a.aprovaProfissionalID = c.profissionalID)
-WHERE a.fornecedorID = ?`
+        a.*,
+        a.nome AS nomeFantasia,
+        b.nome AS quemAbriu,
+        c.nome AS aprovaProfissional,
+        DATE_FORMAT(a.dataInicio, '%d/%m/%Y') AS dataInicio,
+        DATE_FORMAT(a.dataInicio, '%H:%i:%s') AS horaInicio,
+        DATE_FORMAT(a.dataFim, '%d/%m/%Y') AS dataFim,
+        DATE_FORMAT(a.dataFim, '%H:%i:%s') AS horaFim    
+    FROM fornecedor AS a
+    JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
+    LEFT JOIN profissional AS c ON (a.aprovaProfissionalID = c.profissionalID)
+    WHERE a.fornecedorID = ?`
     const [resultSqlFornecedor] = await db.promise().query(sqlFornecedorFixos, [data.id])
     const resultFornecedorFixos = resultSqlFornecedor[0]
 
