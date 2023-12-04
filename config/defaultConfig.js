@@ -218,7 +218,6 @@ const removeSpecialCharts = (str) => {
         newStr += index === 0 ? onlyLetters : `_${onlyLetters}`
     })
 
-    console.log("🚀 ~ removeSpecialCharts:", newStr)
     return newStr ?? 'undefined...'
 }
 

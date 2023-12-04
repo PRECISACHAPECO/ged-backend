@@ -59,7 +59,6 @@ const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOrigin
 
     // Use um middleware de tratamento de erros do Multer
     upload.array('files[]')(req, res, async function (err) {
-        console.log('req.files: ', req.files)
         if (err instanceof multer.MulterError) {
             //! Valida tamanho do arquivo (antes de redimensionar)
             if (err.code === 'LIMIT_FILE_SIZE') {
