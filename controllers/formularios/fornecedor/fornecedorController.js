@@ -129,8 +129,6 @@ class FornecedorController {
         }
     }
 
-
-
     async saveAnexo(req, res) {
 
         try {

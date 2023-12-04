@@ -25,18 +25,11 @@ recebimentoMpRoutes.post(`${route}/saveAnexo/:id/:folder/:usuarioID/:unidadeID`,
     configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.unidadeID, pathDestination)
 }, recebimentoMpController.saveAnexo);
 
-// recebimentoMpRoutes.delete(`${route}/:id`, recebimentoMpController.deleteData);
-// recebimentoMpRoutes.delete(`${route}/deleteAnexo/:grupoAnexoItemID/:id/:unidadeID/:usuarioID`, recebimentoMpController.deleteAnexo);
-// recebimentoMpRoutes.post(`${route}/novo`, recebimentoMpController.insertData);
-
-// OLD
-// recebimentoMpRoutes.get(`${route}/getList/:unidadeID`, recebimentoMpController.getList);
-// recebimentoMpRoutes.post(`${route}/getData/:id`, recebimentoMpController.getData);
-// recebimentoMpRoutes.post(`${route}/new/getData`, recebimentoMpController.getNewData);
-// recebimentoMpRoutes.post(`${route}/insertData`, recebimentoMpController.insertData);
-// recebimentoMpRoutes.post(`${route}/updateData/:id`, recebimentoMpController.updateData);
-// recebimentoMpRoutes.delete(`${route}/:id`, recebimentoMpController.deleteData);
-// recebimentoMpRoutes.post(`${route}/changeFormStatus/:id`, recebimentoMpController.changeFormStatus);
-// recebimentoMpRoutes.post(`${route}/verifyFormPending/:id`, recebimentoMpController.verifyFormPending);
+//? MULTER: Salva relatório
+recebimentoMpRoutes.post(`${route}/saveRelatorio/:id/:usuarioID/:unidadeID`, (req, res, next) => {
+    const pathDestination = `uploads/${req.params.unidadeID}/recebimento-mp/relatorio/original`
+    req.pathDestination = pathDestination
+    configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.unidadeID, pathDestination, false)
+}, recebimentoMpController.saveRelatorio);
 
 module.exports = recebimentoMpRoutes;

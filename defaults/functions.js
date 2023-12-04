@@ -50,7 +50,6 @@ const formatFieldsToTable = async (table, fields) => {
 const accessPermissions = (data, logID) => {
     const boolToNumber = (bool) => { return bool ? 1 : 0 }
 
-    // console.log("🚀 ~ data por propsssss:", data)
     data.menu && data.menu.length > 0 && data.menu.map(async (menuGroup) => {
         menuGroup.menu && menuGroup.menu.length > 0 && menuGroup.menu.map(async (menu, indexMenu) => {
             //? Editou menu

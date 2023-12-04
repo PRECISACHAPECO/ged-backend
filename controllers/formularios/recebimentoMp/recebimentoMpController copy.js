@@ -137,7 +137,6 @@ class RecebimentoMpController {
         if (data.fields) {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
             dataHeader = await formatFieldsToTable('par_recebimentomp', data.fields)
-            console.log("🚀 ~ dataHeader:", dataHeader)
             const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentoMpID = ${id}`;
             const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
