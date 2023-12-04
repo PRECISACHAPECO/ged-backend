@@ -74,7 +74,7 @@ const accessPermissions = (data, logID) => {
                     menu.rota,
                     data.fields.unidadeID,
                     data.fields.usuarioID,
-                        1], 'update', 'permissao', 'usuarioID', usuarioID, logID)
+                        1], 'update', 'permissao', 'usuarioID', data.fields.usuarioID, logID)
 
                 } else { //? Não existe, então insere
                     const sqlMenu = `
@@ -116,7 +116,7 @@ const accessPermissions = (data, logID) => {
                             submenu.rota,
                             data.fields.unidadeID,
                             data.fields.usuarioID,
-                            1,], 'update', 'permissao', 'usuarioID', usuarioID, logID)
+                            1,], 'update', 'permissao', 'usuarioID', data.fields.usuarioID, logID)
 
                     } else { //? Não existe, então insere
                         const sqlSubmenu = `
