@@ -77,7 +77,7 @@ class FornecedorController {
 
             return res.status(200).json({ message: 'Notificação enviada com sucesso!' })
         } catch (error) {
-            console.log(error)
+            (error)
         }
     }
 
@@ -86,7 +86,47 @@ class FornecedorController {
 
     async saveRelatorio(req, res) {
         const pathDestination = req.pathDestination
-        const files = req.files;
+        const { id, usuarioID, unidadeID } = req.params;
+        const file = req.files;
+
+
+        try {
+            //? Verificar se há arquivos enviados
+            if (!file || file.length === 0) {
+                return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+            }
+
+            const logID = await executeLog('Salvo relatório no formulário do fornecedor', usuarioID, unidadeID, req)
+
+            //? Insere em anexodd
+            const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
+            const anexoID = await executeQuery(sqlInsert, [removeSpecialCharts(file.originalname),
+                pathDestination,
+            file.filename,
+            file.size,
+            file.mimetype,
+                usuarioID,
+                unidadeID,
+            new Date()], 'insert', 'anexo', 'anexoID', null, logID)
+            console.log("🚀 ~ anexoID:", anexoID)
+
+            return
+            //? Insere em anexo_busca
+            const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, unidadeID, parFornecedorModeloBlocoID) VALUES(?,?,?,?,?,?)`;
+
+            await executeQuery(sqlInsertBusca, [anexoID,
+                id,
+                73 ?? null,
+                1 ?? null,
+                2 ?? null,
+            ], 'insert', 'anexo_busca', 'anexoBuscaID', null, logID)
+
+            return res.status(200).json({ message: 'Relatório salvo com sucesso!' })
+
+
+        } catch (error) {
+            console.log(error)
+        }
     }
 
     async saveAnexo(req, res) {
@@ -105,11 +145,13 @@ class FornecedorController {
 
             const logID = await executeLog('Salvo anexo no formulário do fornecedor', usuarioID, unidadeID, req)
 
+
+
             let result = []
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
 
-                //? Insere em anexo
+                //? Insere em anexodd
                 const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
 
 
