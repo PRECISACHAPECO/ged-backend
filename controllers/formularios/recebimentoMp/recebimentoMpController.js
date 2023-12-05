@@ -74,37 +74,38 @@ class RecebimentoMpController {
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao listar formulário!' }) }
 
             const sqlResult = `
-        SELECT
-        r.parRecebimentoMpModeloID,
-            r.unidadeID,
-            DATE_FORMAT(r.dataInicio, '%Y-%m-%d') AS dataInicio,
+            SELECT
+                r.parRecebimentoMpModeloID,
+                r.unidadeID,
+                DATE_FORMAT(r.dataInicio, '%Y-%m-%d') AS dataInicio,
                 DATE_FORMAT(r.dataInicio, '%H:%i') AS horaInicio,
-                    r.abreProfissionalID,
-                    pa.nome AS abreProfissionalNome,
+                r.abreProfissionalID,
+                pa.nome AS abreProfissionalNome,
+                r.naoConformidade,
 
-                        -- Fornecedor
+                -- Fornecedor
                 f.fornecedorID,
-            CONCAT(f.nome, " (", f.cnpj, ")") AS nomeFornecedor,
+                CONCAT(f.nome, " (", f.cnpj, ")") AS nomeFornecedor,
                 f.telefone AS telefoneFornecedor,
-                    CONCAT(f.cidade, "/", f.estado) AS cidadeFornecedor,
+                CONCAT(f.cidade, "/", f.estado) AS cidadeFornecedor,
 
-                        DATE_FORMAT(r.data, '%Y-%m-%d') AS data,
-                            IF(r.data, DATE_FORMAT(r.data, '%H:%i'), DATE_FORMAT(NOW(), '%H:%i')) AS hora,
-                                r.preencheProfissionalID,
-                                pp.nome AS preencheProfissionalNome,
+                DATE_FORMAT(r.data, '%Y-%m-%d') AS data,
+                IF(r.data, DATE_FORMAT(r.data, '%H:%i'), DATE_FORMAT(NOW(), '%H:%i')) AS hora,
+                r.preencheProfissionalID,
+                pp.nome AS preencheProfissionalNome,
 
-                                    DATE_FORMAT(r.dataConclusao, '%Y-%m-%d') AS dataConclusao,
-                                        IF(r.dataConclusao, DATE_FORMAT(r.dataConclusao, '%H:%i'), DATE_FORMAT(NOW(), '%H:%i')) AS horaConclusao,
-                                            r.aprovaProfissionalID,
-                                            pap.nome AS aprovaProfissionalNome,
+                DATE_FORMAT(r.dataConclusao, '%Y-%m-%d') AS dataConclusao,
+                IF(r.dataConclusao, DATE_FORMAT(r.dataConclusao, '%H:%i'), DATE_FORMAT(NOW(), '%H:%i')) AS horaConclusao,
+                r.aprovaProfissionalID,
+                pap.nome AS aprovaProfissionalNome,
 
-                                                DATE_FORMAT(r.dataFim, '%Y-%m-%d') AS dataFim,
-                                                    DATE_FORMAT(r.dataFim, '%H:%i') AS horaFim,
-                                                        r.finalizaProfissionalID,
-                                                        pf.nome AS finalizaProfissionalNome,
+                DATE_FORMAT(r.dataFim, '%Y-%m-%d') AS dataFim,
+                DATE_FORMAT(r.dataFim, '%H:%i') AS horaFim,
+                r.finalizaProfissionalID,
+                pf.nome AS finalizaProfissionalNome,
 
-                                                            u.nomeFantasia,
-                                                            u.cnpj
+                u.nomeFantasia,
+                u.cnpj
             FROM recebimentomp AS r
                 LEFT JOIN unidade AS u ON(r.unidadeID = u.unidadeID)
                 LEFT JOIN profissional AS pa ON(r.abreProfissionalID = pa.profissionalID)
@@ -180,16 +181,15 @@ class RecebimentoMpController {
             //? Produtos
             const sqlProdutos = `
             SELECT
-        rp.recebimentoMpProdutoID,
-            rp.quantidade,
-            DATE_FORMAT(rp.dataFabricacao, '%Y-%m-%d') AS dataFabricacao,
+                rp.recebimentoMpProdutoID,
+                rp.quantidade,
+                DATE_FORMAT(rp.dataFabricacao, '%Y-%m-%d') AS dataFabricacao,
                 rp.lote,
                 rp.nf,
                 DATE_FORMAT(rp.dataValidade, '%Y-%m-%d') AS dataValidade,
 
-                    a.apresentacaoID,
-                    a.nome AS apresentacao
-                
+                a.apresentacaoID,
+                a.nome AS apresentacao                
             FROM recebimentomp_produto AS rp
                 JOIN produto AS p ON(rp.produtoID = p.produtoID)
                 JOIN unidademedida AS um ON(p.unidadeMedidaID = um.unidadeMedidaID)
@@ -206,7 +206,7 @@ class RecebimentoMpController {
             }
 
             const sqlBlocos = `
-        SELECT *
+            SELECT *
             FROM par_recebimentomp_modelo_bloco
             WHERE parRecebimentoMpModeloID = ? AND status = 1
             ORDER BY ordem ASC`
@@ -244,7 +244,7 @@ class RecebimentoMpController {
                             //? Verifica se cada anexo exigido existe 1 ou mais arquivos anexados
                             const sqlArquivosAnexadosResposta = `
                             SELECT *
-            FROM anexo AS a 
+                            FROM anexo AS a 
                                 JOIN anexo_busca AS ab ON(a.anexoID = ab.anexoID)
                             WHERE ab.recebimentoMpID = ? AND ab.parRecebimentoMpModeloBlocoID = ? AND ab.itemOpcaoAnexoID = ? `
                             const [resultArquivosAnexadosResposta] = await db.promise().query(sqlArquivosAnexadosResposta, [id, bloco.parRecebimentoMpModeloBlocoID, respostaAnexo.itemOpcaoAnexoID])
@@ -284,13 +284,13 @@ class RecebimentoMpController {
 
             //* Última movimentação do formulário
             const sqlLastMovimentation = `
-        SELECT
-        u.nome,
-            un.nomeFantasia,
-            s1.nome AS statusAnterior,
+            SELECT
+                u.nome,
+                un.nomeFantasia,
+                s1.nome AS statusAnterior,
                 s2.nome AS statusAtual,
-                    DATE_FORMAT(m.dataHora, '%d/%m/%Y %H:%i') AS dataHora,
-                        m.observacao
+                DATE_FORMAT(m.dataHora, '%d/%m/%Y %H:%i') AS dataHora,
+                m.observacao
             FROM movimentacaoformulario AS m
                 JOIN usuario AS u ON(m.usuarioID = u.usuarioID)
                 JOIN unidade AS un ON(m.unidadeID = un.unidadeID)
@@ -361,9 +361,10 @@ class RecebimentoMpController {
                 info: {
                     obs: resultOtherInformations[0].obs,
                     status: resultOtherInformations[0].status,
+                    naoConformidade: result[0].naoConformidade == 1 ? true : false,
                     cabecalhoModelo: resultCabecalhoModelo[0].cabecalho
                 },
-                link: `${process.env.BASE_URL} formularios / recebimento - mp ? id = ${id} `
+                link: `${process.env.BASE_URL} formularios / recebimento - mp ? id = ${id} `,
             }
 
             res.status(200).json(data);
@@ -388,23 +389,14 @@ class RecebimentoMpController {
         const sqlStaticlHeader = `
         UPDATE recebimentomp SET data = ?, preencheProfissionalID = ?, fornecedorID = ?, dataConclusao = ?, aprovaProfissionalID = ?
             WHERE recebimentoMpID = ? `
-        // const [resultStaticHeader] = await db.promise().query(sqlStaticlHeader, [
-        //     data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora}` : null,
-        //     data.fieldsHeader?.profissional?.id ?? null,
-        //     data.fieldsHeader?.fornecedor?.id ?? null,
-        //     data.fieldsFooter?.dataConclusao ? `${data.fieldsFooter.dataConclusao} ${data.fieldsFooter.horaConclusao} ` : null,
-        //     data.fieldsFooter?.profissional?.id ?? null,
-        //     id
-        // ])
-
-        const resultStaticHeader = await executeQuery(sqlStaticlHeader, [data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora}` : null,
-        data.fieldsHeader?.profissional?.id ?? null,
-        data.fieldsHeader?.fornecedor?.id ?? null,
-        data.fieldsFooter?.dataConclusao ? `${data.fieldsFooter.dataConclusao} ${data.fieldsFooter.horaConclusao} ` : null,
-        data.fieldsFooter?.profissional?.id ?? null,
-            id], 'update', 'recebimentomp', 'recebimentompID', id, logID)
-
-
+        const resultStaticHeader = await executeQuery(sqlStaticlHeader, [
+            data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora}` : null,
+            data.fieldsHeader?.profissional?.id ?? null,
+            data.fieldsHeader?.fornecedor?.id ?? null,
+            data.fieldsFooter?.dataConclusao ? `${data.fieldsFooter.dataConclusao} ${data.fieldsFooter.horaConclusao} ` : null,
+            data.fieldsFooter?.profissional?.id ?? null,
+            id
+        ], 'update', 'recebimentomp', 'recebimentompID', id, logID)
 
         //? Atualizar o header dinâmico e setar o status        
         if (data.fields) {
@@ -526,23 +518,16 @@ class RecebimentoMpController {
 
         // Observação
         const sqlUpdateObs = `UPDATE recebimentomp SET obs = ?, obsConclusao = ? WHERE recebimentoMpID = ? `
-        // const [resultUpdateObs] = await db.promise().query(sqlUpdateObs, [data.info?.obs, data?.obsConclusao, id])
         const resultUpdateObs = await executeQuery(sqlUpdateObs, [data.info?.obs, data?.obsConclusao, id], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
         if (!resultUpdateObs) { return res.json('Error'); }
 
         //* Status
         const newStatus = !data.status || data.status < 30 ? 30 : data.status
 
-        const sqlUpdateStatus = `UPDATE recebimentomp SET status = ?, dataFim = ?, finalizaProfissionalID = ? WHERE recebimentoMpID = ? `
-        // const [resultUpdateStatus] = await db.promise().query(sqlUpdateStatus, [
-        //     newStatus,
-        //     newStatus >= 40 ? new Date() : null,
-        //     newStatus >= 40 ? profissionalID : null,
-        //     id
-        // ])
-
+        const sqlUpdateStatus = `UPDATE recebimentomp SET status = ?, naoConformidade = ?, dataFim = ?, finalizaProfissionalID = ? WHERE recebimentoMpID = ? `
         const resultUpdateStatus = await executeQuery(sqlUpdateStatus, [
             newStatus,
+            data?.naoConformidade ? '1' : '0',
             newStatus >= 40 ? new Date() : null,
             newStatus >= 40 ? profissionalID : null,
             id

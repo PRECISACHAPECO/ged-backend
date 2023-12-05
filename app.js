@@ -19,10 +19,10 @@ const url = 'https://api.autentique.com.br/v2/graphql';
 
 
 // Resgatar documento assinado 
-const query = ` query { document(id: "f4662093f2b786a69ccbfbb4987c1815a4c7c255382165d9e") { files { signed } } }`;
-const config = { headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json' }, };
-// Realizando a requisição POST
-axios.post(url, { query }, config).then((response) => { console.log(response.data.data.document.files.signed); }).catch((error) => { console.error('Erro na requisição: ', error); });
+// const query = ` query { document(id: "f4662093f2b786a69ccbfbb4987c1815a4c7c255382165d9e") { files { signed } } }`;
+// const config = { headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json' }, };
+// // Realizando a requisição POST
+// axios.post(url, { query }, config).then((response) => { console.log(response.data.data.document.files.signed); }).catch((error) => { console.error('Erro na requisição: ', error); });
 
 
 // Assinar documento
