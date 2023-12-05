@@ -87,8 +87,7 @@ class FornecedorController {
     async saveRelatorio(req, res) {
         const pathDestination = req.pathDestination
         const { id, usuarioID, unidadeID } = req.params;
-        const file = req.files;
-
+        const file = req.files[0];
 
         try {
             //? Verificar se há arquivos enviados
@@ -100,29 +99,24 @@ class FornecedorController {
 
             //? Insere em anexodd
             const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
-            const anexoID = await executeQuery(sqlInsert, [removeSpecialCharts(file.originalname),
+            const anexoID = await executeQuery(sqlInsert, [
+                removeSpecialCharts(file.originalname),
                 pathDestination,
-            file.filename,
-            file.size,
-            file.mimetype,
+                file.filename,
+                file.size,
+                file.mimetype,
                 usuarioID,
                 unidadeID,
-            new Date()], 'insert', 'anexo', 'anexoID', null, logID)
-            console.log("🚀 ~ anexoID:", anexoID)
+                new Date()], 'insert', 'anexo', 'anexoID', null, logID)
 
-            return
             //? Insere em anexo_busca
-            const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, unidadeID, parFornecedorModeloBlocoID) VALUES(?,?,?,?,?,?)`;
-
+            const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, unidadeID) VALUES(?,?,?)`;
             await executeQuery(sqlInsertBusca, [anexoID,
                 id,
-                73 ?? null,
-                1 ?? null,
-                2 ?? null,
+                unidadeID
             ], 'insert', 'anexo_busca', 'anexoBuscaID', null, logID)
 
             return res.status(200).json({ message: 'Relatório salvo com sucesso!' })
-
 
         } catch (error) {
             console.log(error)
