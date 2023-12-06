@@ -1,6 +1,11 @@
 const db = require('../config/db');
 const { executeQuery } = require('../config/executeQuery');
 require('dotenv/config')
+const fs = require('fs');
+const axios = require('axios');
+const FormData = require('form-data');
+const path = require('path');
+
 
 const addFormStatusMovimentation = async (parFormularioID, id, usuarioID, unidadeID, papelID, statusAnterior, statusAtual, observacao) => {
 
@@ -147,4 +152,64 @@ const hasUnidadeID = async (table) => {
     return result.length === 0 ? false : true;
 }
 
-module.exports = { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, accessPermissions };
+const createDocument = async (email, path) => {
+    const apiToken = process.env.AUTENTIQUE_TOKEN
+    const url = 'https://api.autentique.com.br/v2/graphql';
+    const query = `
+  mutation CreateDocumentMutation($document: DocumentInput!, $signers: [SignerInput!]!, $file: Upload!) {
+    createDocument( sandbox: true, document: $document, signers: $signers, file: $file) {
+      id
+      name
+      signatures {
+        public_id
+        name
+        email
+        created_at
+        action { name }
+        link { short_link }
+        user { name}
+      }
+    }
+  }
+`;
+
+    const variables = {
+        document: {
+            name: "Contrato de marketing",
+        },
+        signers: [
+            {
+                email: email,
+                action: "SIGN",
+                positions: [{ "x": "100.0", "y": "100.0", "z": 1, "element": "SIGNATURE" }]
+            },
+
+        ],
+        file: fs.createReadStream(path),
+    };
+
+    const formData = new FormData();
+    formData.append('operations', JSON.stringify({ query, variables }));
+    formData.append('map', JSON.stringify({ '0': ['variables.file'] }));
+    formData.append('0', fs.createReadStream(path));
+
+    const config = {
+        headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            ...formData.getHeaders(),
+        },
+    };
+
+
+    // Realizando a requisição POST
+    try {
+        const response = await axios.post(url, formData, config)
+        const id = response.data.data.createDocument.id
+
+        return id
+    } catch (error) {
+        console.error('Erro na requisição: ', error);
+    }
+}
+
+module.exports = { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, accessPermissions, createDocument };

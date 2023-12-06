@@ -1,11 +1,13 @@
 const db = require('../../../config/db');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
+const FormData = require('form-data');
 require('dotenv/config')
 const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts } = require('../../../config/defaultConfig');
 const conclusionFormFornecedor = require('../../../email/template/fornecedor/conclusionFormFornecedor');
 const sendMailConfig = require('../../../config/email');
-const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
+const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, createDocument } = require('../../../defaults/functions');
 
 //? Email
 const layoutNotification = require('../../../email/template/notificacao');
@@ -14,6 +16,28 @@ const instructionsExistFornecedor = require('../../../email/template/fornecedor/
 const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class FornecedorController {
+    async assinaturaRelatorio(req, res) {
+        const { id, usuarioID, unidadeID } = req.params
+
+        // Dados usuario
+        const sqlUser = `SELECT email FROM usuario WHERE usuarioID = ?`
+        const [user] = await db.promise().query(sqlUser, [usuarioID])
+
+        //Dados do relatório do fornecedor
+        const sqlRelatorio = `
+        SELECT 
+            a.*
+        FROM anexo AS a
+            JOIN anexo_busca AS b ON (a.anexoID = b.anexoID)
+        WHERE b.fornecedorID = ? AND b.principal = 1`
+        const [resultRelatorio] = await db.promise().query(sqlRelatorio, [id])
+        const path = `${resultRelatorio[0].diretorio}/${resultRelatorio[0].arquivo}`
+
+        const idDocument = await createDocument(user[0].email, path)
+
+        return res.status(200).json(idDocument)
+    }
+
     async getFornecedoresAprovados(req, res) {
         const { unidadeID } = req.body
         const sql = `
@@ -110,10 +134,11 @@ class FornecedorController {
                 new Date()], 'insert', 'anexo', 'anexoID', null, logID)
 
             //? Insere em anexo_busca
-            const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, unidadeID) VALUES(?,?,?)`;
+            const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, unidadeID, principal) VALUES(?,?,?, ?)`;
             await executeQuery(sqlInsertBusca, [anexoID,
                 id,
-                unidadeID
+                unidadeID,
+                1
             ], 'insert', 'anexo_busca', 'anexoBuscaID', null, logID)
 
             return res.status(200).json({ message: 'Relatório salvo com sucesso!' })
@@ -625,7 +650,7 @@ class FornecedorController {
                     status: resultOtherInformations[0].status,
                     cabecalhoModelo: resultCabecalhoModelo[0].cabecalho
                 },
-                link: `${process.env.BASE_URL}formularios/fornecedor?id=${id}`
+                link: `${process.env.BASE_URL}formularios/fornecedor?id=${id}`,
             }
 
             res.status(200).json(data);

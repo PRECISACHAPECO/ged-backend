@@ -56,12 +56,13 @@ fornecedorRoutes.post(`${route}/saveAnexo/:id/:folder/:usuarioID/:unidadeID`, (r
 fornecedorRoutes.post(`${route}/saveRelatorio/:id/:usuarioID/:unidadeID`, (req, res, next) => {
     const pathDestination = `uploads/${req.params.unidadeID}/fornecedor/relatorio/original`
     req.pathDestination = pathDestination
-
-    console.log("🚀 ~~~~~~~ pathDestination:", pathDestination)
-
-
     configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.unidadeID, pathDestination, false)
 }, fornecedorController.saveRelatorio);
+
+
+// Assinatura relatório
+fornecedorRoutes.post(`${route}/assinaturaRelatorio/:id/:usuarioID/:unidadeID`, fornecedorController.assinaturaRelatorio);
+
 
 
 module.exports = fornecedorRoutes;

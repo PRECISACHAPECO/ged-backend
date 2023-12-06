@@ -19,14 +19,14 @@ const url = 'https://api.autentique.com.br/v2/graphql';
 
 
 // Resgatar documento assinado 
-// const query = ` query { document(id: "f4662093f2b786a69ccbfbb4987c1815a4c7c255382165d9e") { files { signed } } }`;
+// const query = ` query { document(id: "3d05cee498e60899378c7c540cea13e3d595a0e37193d3705") { files { signed } } }`;
 // const config = { headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json' }, };
 // // Realizando a requisição POST
 // axios.post(url, { query }, config).then((response) => { console.log(response.data.data.document.files.signed); }).catch((error) => { console.error('Erro na requisição: ', error); });
 
 
 // Assinar documento
-// const query = `mutation { signDocument(id: "f4662093f2b786a69ccbfbb4987c1815a4c7c255382165d9e")}`;
+// const query = `mutation { signDocument(id: "3d05cee498e60899378c7c540cea13e3d595a0e37193d3705")}`;
 // const config = { headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json' }, };
 // // Realizando a requisição POST
 // axios.post(url, { query }, config).then((response) => { console.log(response.data); }).catch((error) => { console.error('Erro na requisição: ', error); });
@@ -59,7 +59,10 @@ const url = 'https://api.autentique.com.br/v2/graphql';
 //     },
 //     signers: [
 //         {
+//             // email: "ropioo@gmail.com",
 //             email: "jonatankalmeidakk28@gmail.com",
+//             // email: "roberto.delavy@gmail.com",
+
 //             action: "SIGN",
 //             positions: [{ "x": "100.0", "y": "100.0", "z": 1, "element": "SIGNATURE" }]
 //         },
@@ -84,6 +87,7 @@ const url = 'https://api.autentique.com.br/v2/graphql';
 // axios.post(url, formData, config)
 //     .then((response) => {
 //         console.log(response.data);
+//         // console.log(response.data.data.);
 
 //     })
 //     .catch((error) => {
