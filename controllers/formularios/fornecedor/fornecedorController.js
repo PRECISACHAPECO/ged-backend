@@ -29,8 +29,8 @@ class FornecedorController {
             a.*
         FROM anexo AS a
             JOIN anexo_busca AS b ON (a.anexoID = b.anexoID)
-        WHERE b.fornecedorID = ? AND b.principal = 1`
-        const [resultRelatorio] = await db.promise().query(sqlRelatorio, [id])
+        WHERE b.fornecedorID = ? AND a.usuarioID = ? AND b.principal = 1`
+        const [resultRelatorio] = await db.promise().query(sqlRelatorio, [id, usuarioID])
         const path = `${resultRelatorio[0].diretorio}/${resultRelatorio[0].arquivo}`
 
         const idDocument = await createDocument(user[0].email, path)
@@ -134,9 +134,10 @@ class FornecedorController {
                 new Date()], 'insert', 'anexo', 'anexoID', null, logID)
 
             //? Insere em anexo_busca
-            const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, unidadeID, principal) VALUES(?,?,?, ?)`;
+            const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, usuarioID, unidadeID, principal) VALUES(?,?,?,?,?)`;
             await executeQuery(sqlInsertBusca, [anexoID,
                 id,
+                usuarioID,
                 unidadeID,
                 1
             ], 'insert', 'anexo_busca', 'anexoBuscaID', null, logID)

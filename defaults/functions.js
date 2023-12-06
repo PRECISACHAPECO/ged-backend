@@ -153,6 +153,7 @@ const hasUnidadeID = async (table) => {
 }
 
 const createDocument = async (email, path) => {
+    console.log("🚀 ~ path:", path)
     const apiToken = process.env.AUTENTIQUE_TOKEN
     const url = 'https://api.autentique.com.br/v2/graphql';
     const query = `
