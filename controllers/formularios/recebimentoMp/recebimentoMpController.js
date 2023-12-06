@@ -365,6 +365,7 @@ class RecebimentoMpController {
                     cabecalhoModelo: resultCabecalhoModelo[0].cabecalho
                 },
                 link: `${process.env.BASE_URL} formularios / recebimento - mp ? id = ${id} `,
+                naoConformidades: await getNaoConformidades(id)
             }
 
             res.status(200).json(data);
@@ -630,7 +631,6 @@ class RecebimentoMpController {
         res.status(200).json(anexoID);
     }
 
-
     async deleteData(req, res) {
         const { id, usuarioID, unidadeID } = req.params
         const objDelete = {
@@ -664,6 +664,89 @@ class RecebimentoMpController {
         const pathDestination = req.pathDestination
         const files = req.files;
         console.log("🚀 ~ saveRelatorio recebimentoMP files:", files)
+    }
+}
+
+//! Não conformidade 
+const getNaoConformidades = async (recebimentoMpID) => {
+    try {
+        if (!recebimentoMpID) return [];
+
+        //? Obtém todas as não conformidades do recebimento
+        const sql = `
+        SELECT 
+            rn.recebimentoMpNaoConformidadeID,
+            DATE_FORMAT(rn.data, '%Y-%m-%d') AS data,
+            DATE_FORMAT(rn.data, '%H:%i') AS hora,
+            pp.profissionalID AS profissionalIDPreenchimento,
+            pp.nome AS profissionalNomePreenchimento,
+            rn.tipo,
+            pr.produtoID,
+            pr.nome AS produtoNome,
+            rn.descricao,
+            rn.acoesSolicitadas,
+            rn.fornecedorPreenche,
+            rn.obsFornecedor, 
+            DATE_FORMAT(rn.dataFornecedor, '%Y-%m-%d') AS dataFornecedor,
+            DATE_FORMAT(rn.dataFornecedor, '%H:%i') AS horaFornecedor,
+            u.usuarioID AS usuarioIDFornecedor,
+            u.nome AS usuarioNomeFornecedor,
+            rn.conclusao,
+            DATE_FORMAT(rn.dataConclusao, '%Y-%m-%d') AS dataConclusao,
+            DATE_FORMAT(rn.dataConclusao, '%H:%i') AS horaConclusao,
+            pc.profissionalID AS profissionalIDConclusao,
+            pc.nome AS profissionalNomeConclusao,
+            rn.status
+        FROM recebimentomp_naoconformidade AS rn
+            LEFT JOIN profissional AS pp ON (rn.profissionalIDPreenchimento = pp.profissionalID)                
+            LEFT JOIN produto AS pr ON (rn.produtoID = pr.produtoID)
+            LEFT JOIN usuario AS u ON (rn.usuarioID = u.usuarioID)
+            LEFT JOIN profissional AS pc ON (rn.profissionalIDConclusao = pc.profissionalID)
+        WHERE rn.recebimentoMpID = ? `
+        const [result] = await db.promise().query(sql, [recebimentoMpID])
+
+        let arrData = []
+        for (const row of result) {
+            const data = {
+                'recebimentoMpNaoConformidadeID': row.recebimentoMpNaoConformidadeID,
+                'fornecedorPreenche': row.fornecedorPreenche == 1 ? true : false,
+                'data': row.data,
+                'hora': row.hora,
+                'profissionalPreenchimento': {
+                    id: row.profissionalIDPreenchimento,
+                    nome: row.profissionalNomePreenchimento
+                },
+                'tipo': row.tipo,
+                'produto': {
+                    id: row.produtoID,
+                    nome: row.produtoNome
+                },
+                'descricao': row.descricao,
+                'acoesSolicitadas': row.acoesSolicitadas,
+                'obsFornecedor': row.obsFornecedor,
+                'dataFornecedor': row.dataFornecedor,
+                'horaFornecedor': row.horaFornecedor,
+                'usuarioFornecedor': {
+                    id: row.usuarioIDFornecedor,
+                    nome: row.usuarioNomeFornecedor
+                },
+                'conclusao': row.conclusao,
+                'dataConclusao': row.dataConclusao,
+                'horaConclusao': row.horaConclusao,
+                'profissionalConclusao': {
+                    id: row.profissionalIDConclusao,
+                    nome: row.profissionalNomeConclusao
+                },
+                'status': row.status
+            }
+
+            arrData.push(data)
+        }
+
+        return arrData
+
+    } catch (error) {
+        console.log(error)
     }
 }
 

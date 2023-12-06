@@ -7,14 +7,15 @@ const recebimentoMpController = new RecebimentoMpController();
 
 const route = '/formularios/recebimento-mp';
 
-// NEW
 recebimentoMpRoutes.get(`${route}/getList/:unidadeID`, recebimentoMpController.getList);
 recebimentoMpRoutes.post(`${route}/getData/:id`, recebimentoMpController.getData);
 recebimentoMpRoutes.post(`${route}/insertData`, recebimentoMpController.insertData);
 recebimentoMpRoutes.delete(`${route}/delete/:id/:usuarioID/:unidadeID`, recebimentoMpController.deleteData);
-
 recebimentoMpRoutes.get(`${route}/getModels/:unidadeID`, recebimentoMpController.getModels);
 recebimentoMpRoutes.post(`${route}/updateData/:id`, recebimentoMpController.updateData);
+
+//! Não Conformidade
+// recebimentoMpRoutes.get(`${route}/nao-conformidade/getData/:recebimentoMpID`, recebimentoMpController.getNaoConformidades);
 
 //? MULTER: Upload de arquivo
 recebimentoMpRoutes.delete(`${route}/deleteAnexo/:id/:anexoID/:unidadeID/:usuarioID/:folder`, recebimentoMpController.deleteAnexo);
