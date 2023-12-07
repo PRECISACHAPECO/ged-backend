@@ -7,7 +7,7 @@ require('dotenv/config')
 const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts } = require('../../../config/defaultConfig');
 const conclusionFormFornecedor = require('../../../email/template/fornecedor/conclusionFormFornecedor');
 const sendMailConfig = require('../../../config/email');
-const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, createDocument } = require('../../../defaults/functions');
+const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, createDocument, getDocumentSignature } = require('../../../defaults/functions');
 
 //? Email
 const layoutNotification = require('../../../email/template/notificacao');
@@ -29,13 +29,25 @@ class FornecedorController {
             a.*
         FROM anexo AS a
             JOIN anexo_busca AS b ON (a.anexoID = b.anexoID)
-        WHERE b.fornecedorID = ? AND a.usuarioID = ? AND b.principal = 1`
-        const [resultRelatorio] = await db.promise().query(sqlRelatorio, [id, usuarioID])
+        WHERE b.fornecedorID = ? AND b.principal = 1`
+        const [resultRelatorio] = await db.promise().query(sqlRelatorio, [id])
         const path = `${resultRelatorio[0].diretorio}/${resultRelatorio[0].arquivo}`
+
+        if (!path) return res.status(400).json({ error: 'Nenhum arquivo enviado.' })
+        if (!user[0].email) return res.status(400).json({ error: 'Nenhum email encontrado.' })
 
         const idDocument = await createDocument(user[0].email, path)
 
         return res.status(200).json(idDocument)
+    }
+
+
+    saveSignatureReport = async (req, res) => {
+        const { id, usuarioID, unidadeID } = req.params
+
+        console.log("chegou no controlerrrr")
+
+
     }
 
     async getFornecedoresAprovados(req, res) {
@@ -121,6 +133,19 @@ class FornecedorController {
 
             const logID = await executeLog('Salvo relatório no formulário do fornecedor', usuarioID, unidadeID, req)
 
+            const sqlAnexoId = `SELECT anexoID FROM anexo_busca WHERE fornecedorID = ? AND principal = 1`
+            const [resultAnexoId] = await db.promise().query(sqlAnexoId, [id])
+            const anexoId = resultAnexoId[0]?.anexoID
+
+
+            //Deletar o atual
+            const sqlDelete = `DELETE FROM anexo WHERE anexoID = ?`
+            await executeQuery(sqlDelete, [anexoId], 'delete', 'anexo', 'anexoID', null, logID)
+            // delete anexo busca
+            const sqlDeleteBusca = `DELETE FROM anexo_busca WHERE anexoID = ?`
+            await executeQuery(sqlDeleteBusca, [anexoId], 'delete', 'anexo_busca', 'anexoBuscaID', null, logID)
+
+
             //? Insere em anexodd
             const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
             const anexoID = await executeQuery(sqlInsert, [
@@ -134,10 +159,9 @@ class FornecedorController {
                 new Date()], 'insert', 'anexo', 'anexoID', null, logID)
 
             //? Insere em anexo_busca
-            const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, usuarioID, unidadeID, principal) VALUES(?,?,?,?,?)`;
+            const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, unidadeID, principal) VALUES(?,?,?,?)`;
             await executeQuery(sqlInsertBusca, [anexoID,
                 id,
-                usuarioID,
                 unidadeID,
                 1
             ], 'insert', 'anexo_busca', 'anexoBuscaID', null, logID)
