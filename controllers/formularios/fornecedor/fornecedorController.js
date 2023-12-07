@@ -42,7 +42,7 @@ class FornecedorController {
     }
 
     saveSignedDocument = async (req, res) => {
-        const { id, usuarioID, unidadeID, hashSignedDocument } = req.params
+        const { id, usuarioID, unidadeID, hashSignedDocument } = req.body
 
         const pathReport = await getDocumentSignature(hashSignedDocument)
         const signed = await signedReport(pathReport)
@@ -51,6 +51,9 @@ class FornecedorController {
         if (signed) {
             const pathDestination = `uploads/${unidadeID}/fornecedor/relatorio/assinado/`
             const fileName = `${usuarioID}-${id}-fornecedor.pdf`
+
+            return res.status(200).json({ message: 'Documento assinado com sucesso!' })
+
             const saveSignedDocument = await createSignedDocumentAndSave(pathReport, pathDestination + fileName)
 
             if (saveSignedDocument !== false) {

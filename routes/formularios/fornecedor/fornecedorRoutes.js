@@ -69,6 +69,6 @@ fornecedorRoutes.post(`${route}/saveRelatorio/:id/:usuarioID/:unidadeID`, (req, 
 fornecedorRoutes.post(`${route}/createDocumentAutentique/:id/:usuarioID/:unidadeID`, fornecedorController.createDocumentAutentique);
 
 //? MULTER: Salva relatório assinado vindo do autentique
-fornecedorRoutes.post(`${route}/saveSignedDocument/:id/:usuarioID/:unidadeID/:hashSignedDocument`, fornecedorController.saveSignedDocument);
+fornecedorRoutes.post(`${route}/saveSignedDocument`, fornecedorController.saveSignedDocument);
 
 module.exports = fornecedorRoutes;
