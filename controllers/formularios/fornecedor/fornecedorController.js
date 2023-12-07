@@ -44,36 +44,8 @@ class FornecedorController {
 
     saveSignatureReport = async (req, res) => {
         const { id, usuarioID, unidadeID } = req.params
-        const idReport = req.body.id
 
-        const pathReport = await getDocumentSignature(idReport)
-
-        const signedReport = async () => {
-            try {
-                const response = await axios.head(pathReport)
-                return true
-            } catch (err) {
-                console.log({ message: 'documento não assinado' })
-                return false
-            }
-
-        }
-        const signed = await signedReport()
-
-        if (signed) {
-            const formData = new FormData()
-            formData.append('id', id)
-            formData.append('idReport', idReport)
-
-
-        } else {
-            return res.status(400).json({ error: 'Documento não assinado.' })
-        }
-
-
-
-
-
+        console.log("chegou no controlerrrr")
 
 
     }

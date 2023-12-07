@@ -4,8 +4,12 @@ const fornecedorRoutes = Router();
 const { configureMulterMiddleware } = require('../../../config/uploads');
 
 const FornecedorController = require('../../../controllers/formularios/fornecedor/fornecedorController');
+const { getDocumentSignature, signedReport } = require('../../../defaults/functions');
 const fornecedorController = new FornecedorController();
 const route = '/formularios/fornecedor';
+const fs = require('fs');
+const path = require('path');
+const FormData = require('form-data');
 
 // Padrões
 fornecedorRoutes.post(`${route}/getList`, fornecedorController.getList);
@@ -65,11 +69,68 @@ fornecedorRoutes.post(`${route}/assinaturaRelatorio/:id/:usuarioID/:unidadeID`, 
 // Baixa relatório assinado
 // fornecedorRoutes.post(`${route}/saveSignatureReport/:id/:usuarioID/:unidadeID`, fornecedorController.saveSignatureReport);
 //? MULTER: Salva relatório assinado vindo do autentique
-fornecedorRoutes.post(`${route}/saveSignatureReport/:id/:usuarioID/:unidadeID/:reportSignature`, (req, res, next) => {
-    const pathDestination = `uploads/${req.params.unidadeID}/fornecedor/relatorio/assinado`
-    req.pathDestination = pathDestination
-    configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.unidadeID, pathDestination, false)
+fornecedorRoutes.post(`${route}/saveSignatureReport/:id/:usuarioID/:unidadeID/:reportSignature`, async (req, res, next) => {
+    const { id, usuarioID, unidadeID, reportSignature } = req.params
+    const pathReport = await getDocumentSignature(reportSignature)
+    const signed = await signedReport(pathReport) // verifica se o arquivo foi assinado
+
+
+
+
+
+
+    if (signed) {
+        // Cria arquivo pdf
+        const formData = new FormData();
+        formData.append('files[]', fs.createReadStream(pathReport));
+        console.log("🚀 ~ formData:", formData)
+
+        const pathDestination = `uploads/${unidadeID}/fornecedor/relatorio/assinado`
+        // gravar arquivo no pathDestination 
+        const options = {
+            method: 'POST',
+            url: 'https://api.cloudmersive.com_parse/v1/parse/convert',
+            headers: {
+
+
+                'Content-Type': 'multipart/form-data'
+
+            },
+            formData: formData
+        };
+
+
+        const response = await axios.request(options).catch(function (error) {
+            if (error.response) {
+                console.log(error.response.data);
+                console.log(error.response.status);
+                console.log(error.response.headers);
+            } else if (error.request) {
+                console.log(error.request);
+            } else {
+                console.log('Error', error.message);
+            }
+            console.log(error.config);
+        });
+        console.log("🚀 ~ response:", response)
+
+
+
+
+
+
+
+
+
+        req.pathDestination = pathDestination
+        configureMulterMiddleware(req, res, next, usuarioID, unidadeID, pathDestination, false)
+    } else {
+        res.status(400).json({ message: 'Relatório não assinado' })
+    }
 }, fornecedorController.saveSignatureReport);
+
+
+
 
 
 

@@ -233,5 +233,16 @@ const getDocumentSignature = async (idReport) => {
     }
 };
 
+const signedReport = async (pathReport) => {
+    try {
+        const response = await axios.head(pathReport)
+        return true
+    } catch (err) {
+        console.log({ message: 'documento não assinado' })
+        return false
+    }
 
-module.exports = { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, accessPermissions, createDocument, getDocumentSignature };
+}
+
+
+module.exports = { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, accessPermissions, createDocument, getDocumentSignature, signedReport };
