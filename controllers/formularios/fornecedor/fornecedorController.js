@@ -3,11 +3,13 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const FormData = require('form-data');
+const { PDFDocument } = require('pdf-lib');
+
 require('dotenv/config')
 const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts } = require('../../../config/defaultConfig');
 const conclusionFormFornecedor = require('../../../email/template/fornecedor/conclusionFormFornecedor');
 const sendMailConfig = require('../../../config/email');
-const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, createDocument, getDocumentSignature } = require('../../../defaults/functions');
+const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, createDocument, getDocumentSignature, signedReport } = require('../../../defaults/functions');
 
 //? Email
 const layoutNotification = require('../../../email/template/notificacao');
@@ -16,7 +18,7 @@ const instructionsExistFornecedor = require('../../../email/template/fornecedor/
 const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class FornecedorController {
-    async assinaturaRelatorio(req, res) {
+    async createDocumentAutentique(req, res) {
         const { id, usuarioID, unidadeID } = req.params
 
         // Dados usuario
@@ -41,13 +43,25 @@ class FornecedorController {
         return res.status(200).json(idDocument)
     }
 
+    saveSignedDocument = async (req, res) => {
+        const { id, usuarioID, unidadeID, hashSignedDocument } = req.params
 
-    saveSignatureReport = async (req, res) => {
-        const { id, usuarioID, unidadeID } = req.params
+        const pathReport = await getDocumentSignature(hashSignedDocument)
+        const signed = await signedReport(pathReport)
 
-        console.log("chegou no controlerrrr")
+        //* O documento foi assinado no autentique
+        if (signed) {
+            const pathDestination = `uploads/${unidadeID}/fornecedor/relatorio/assinado/${usuarioID}-${id}-fornecedor.pdf`
+            const saveSignedDocument = await createSignedDocumentAndSave(pathReport, pathDestination)
 
-
+            if (saveSignedDocument !== false) {
+                return res.status(200).json({ message: 'Documento assinado com sucesso!' })
+            } else {
+                return res.status(404).json({ error: 'Erro ao assinar documento.' })
+            }
+        } else {
+            return res.status(400).json({ error: 'Documento não assinado.' })
+        }
     }
 
     async getFornecedoresAprovados(req, res) {
@@ -1609,6 +1623,29 @@ const sendMail = async (data, logID) => {
     sendMailConfig(data.email, assunto, html)
 
     await sendMailConfig(data.email, assunto, html, logID, data)
+}
+
+const createSignedDocumentAndSave = async (pathAutentique, pathDestination) => {
+    try {
+        const response = await axios({
+            method: 'get',
+            url: pathAutentique,
+            responseType: 'stream',
+        })
+
+        // Salvar o PDF localmente usando o fs
+        const stream = fs.createWriteStream(pathDestination);
+        response.data.pipe(stream);
+
+        return new Promise((resolve, reject) => {
+            stream.on('finish', resolve);
+            stream.on('error', reject);
+        });
+
+    } catch (e) {
+        console.log(e);
+        return false
+    }
 }
 
 module.exports = FornecedorController;
