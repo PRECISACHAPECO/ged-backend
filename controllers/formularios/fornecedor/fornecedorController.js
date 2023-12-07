@@ -62,8 +62,8 @@ class FornecedorController {
                 const anexoId = resultAnexoId[0]?.anexoID
                 const sqlDelete = `DELETE FROM anexo WHERE anexoID = ?`
                 const sqlDeleteBusca = `DELETE FROM anexo_busca WHERE anexoID = ?`
-                await executeQuery(sqlDelete, [anexoId], 'delete', 'anexo', 'anexoID', null, logID)
-                await executeQuery(sqlDeleteBusca, [anexoId], 'delete', 'anexo_busca', 'anexoBuscaID', null, logID)
+                await executeQuery(sqlDelete, [anexoId], 'delete', 'anexo', 'anexoID', anexoId, logID)
+                await executeQuery(sqlDeleteBusca, [anexoId], 'delete', 'anexo_busca', 'anexoBuscaID', anexoId, logID)
 
                 //? Insere em anexo
                 const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
