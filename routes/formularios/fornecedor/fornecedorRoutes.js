@@ -62,6 +62,14 @@ fornecedorRoutes.post(`${route}/saveRelatorio/:id/:usuarioID/:unidadeID`, (req, 
 
 // Assinatura relatório
 fornecedorRoutes.post(`${route}/assinaturaRelatorio/:id/:usuarioID/:unidadeID`, fornecedorController.assinaturaRelatorio);
+// Baixa relatório assinado
+// fornecedorRoutes.post(`${route}/saveSignatureReport/:id/:usuarioID/:unidadeID`, fornecedorController.saveSignatureReport);
+//? MULTER: Salva relatório assinado vindo do autentique
+fornecedorRoutes.post(`${route}/saveSignatureReport/:id/:usuarioID/:unidadeID/:reportSignature`, (req, res, next) => {
+    const pathDestination = `uploads/${req.params.unidadeID}/fornecedor/relatorio/assinado`
+    req.pathDestination = pathDestination
+    configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.unidadeID, pathDestination, false)
+}, fornecedorController.saveSignatureReport);
 
 
 

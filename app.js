@@ -18,8 +18,8 @@ const apiToken = process.env.AUTENTIQUE_TOKEN
 const url = 'https://api.autentique.com.br/v2/graphql';
 
 
-// Resgatar documento assinado 
-// const query = ` query { document(id: "3d05cee498e60899378c7c540cea13e3d595a0e37193d3705") { files { signed } } }`;
+// Resgatar documento assinado
+// const query = ` query { document(id: "54ff5008df91eb31a22fb6d376edde02e356b81da2be1a8dc") { files { signed } } }`;
 // const config = { headers: { 'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json' }, };
 // // Realizando a requisição POST
 // axios.post(url, { query }, config).then((response) => { console.log(response.data.data.document.files.signed); }).catch((error) => { console.error('Erro na requisição: ', error); });

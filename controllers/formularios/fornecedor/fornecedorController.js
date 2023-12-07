@@ -7,7 +7,7 @@ require('dotenv/config')
 const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts } = require('../../../config/defaultConfig');
 const conclusionFormFornecedor = require('../../../email/template/fornecedor/conclusionFormFornecedor');
 const sendMailConfig = require('../../../config/email');
-const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, createDocument } = require('../../../defaults/functions');
+const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, createDocument, getDocumentSignature } = require('../../../defaults/functions');
 
 //? Email
 const layoutNotification = require('../../../email/template/notificacao');
@@ -39,6 +39,43 @@ class FornecedorController {
         const idDocument = await createDocument(user[0].email, path)
 
         return res.status(200).json(idDocument)
+    }
+
+
+    saveSignatureReport = async (req, res) => {
+        const { id, usuarioID, unidadeID } = req.params
+        const idReport = req.body.id
+
+        const pathReport = await getDocumentSignature(idReport)
+
+        const signedReport = async () => {
+            try {
+                const response = await axios.head(pathReport)
+                return true
+            } catch (err) {
+                console.log({ message: 'documento não assinado' })
+                return false
+            }
+
+        }
+        const signed = await signedReport()
+
+        if (signed) {
+            const formData = new FormData()
+            formData.append('id', id)
+            formData.append('idReport', idReport)
+
+
+        } else {
+            return res.status(400).json({ error: 'Documento não assinado.' })
+        }
+
+
+
+
+
+
+
     }
 
     async getFornecedoresAprovados(req, res) {

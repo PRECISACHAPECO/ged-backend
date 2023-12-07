@@ -153,7 +153,6 @@ const hasUnidadeID = async (table) => {
 }
 
 const createDocument = async (email, path) => {
-    console.log("🚀 ~ path:", path)
     const apiToken = process.env.AUTENTIQUE_TOKEN
     const url = 'https://api.autentique.com.br/v2/graphql';
     const query = `
@@ -213,4 +212,26 @@ const createDocument = async (email, path) => {
     }
 }
 
-module.exports = { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, accessPermissions, createDocument };
+const getDocumentSignature = async (idReport) => {
+    const apiToken = process.env.AUTENTIQUE_TOKEN
+    const url = 'https://api.autentique.com.br/v2/graphql';
+    try {
+        const query = `query { document(id: "${idReport}") { files { signed } } }`;
+        const config = {
+            headers: {
+                'Authorization': `Bearer ${apiToken}`,
+                'Content-Type': 'application/json'
+            },
+        };
+
+        // Realizing the POST request
+        const response = await axios.post(url, { query }, config);
+
+        return response.data.data.document.files.signed
+    } catch (error) {
+        console.error('Error in the request:', error);
+    }
+};
+
+
+module.exports = { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID, accessPermissions, createDocument, getDocumentSignature };
