@@ -71,7 +71,7 @@ class FornecedorController {
                     'Relatório assinado',
                     pathDestination,
                     fileName,
-                    307200,
+                    '307200',
                     'application/pdf',
                     usuarioID,
                     unidadeID,
