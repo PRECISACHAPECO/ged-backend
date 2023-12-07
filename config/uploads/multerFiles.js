@@ -116,10 +116,10 @@ const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOrigin
                 //? Excluir tudo que estiver na pasta temp/* (imagens originais)
                 try {
                     const tempPath = path.join('uploads/temp');
-                    const tempFiles = await fs.readdir(tempPath);
+                    const tempFiles = await fs.promises.readdir(tempPath);
                     for (const file of tempFiles) {
                         const filePath = path.join(tempPath, file);
-                        await fs.unlink(filePath); // Use fs.promises.unlink para excluir cada arquivo
+                        await fs.promises.unlink(filePath); // Use fs.promises.unlink para excluir cada arquivo
                     }
                 } catch (error) {
                     console.error('Erro ao excluir arquivos da pasta temp:', error);

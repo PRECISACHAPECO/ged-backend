@@ -389,7 +389,7 @@ class RecebimentoMpController {
         //? Atualiza header e footer fixos
         const sqlStaticlHeader = `
         UPDATE recebimentomp SET data = ?, preencheProfissionalID = ?, fornecedorID = ?, dataConclusao = ?, aprovaProfissionalID = ?
-            WHERE recebimentoMpID = ? `
+        WHERE recebimentoMpID = ? `
         const resultStaticHeader = await executeQuery(sqlStaticlHeader, [
             data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora}` : null,
             data.fieldsHeader?.profissional?.id ?? null,
@@ -404,7 +404,6 @@ class RecebimentoMpController {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
             let dataHeader = await formatFieldsToTable('par_recebimentomp', data.fields)
             const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentoMpID = ${id} `;
-            // const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
             const resultHeader = await executeQuery(sqlHeader, [dataHeader], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
             if (resultHeader.length === 0) { return res.status(500).json('Error'); }
         }
@@ -523,16 +522,81 @@ class RecebimentoMpController {
         if (!resultUpdateObs) { return res.json('Error'); }
 
         //* Status
-        const newStatus = !data.status || data.status < 30 ? 30 : data.status
+        const newStatus = data.info.status < 30 ? 30 : data.info.status
 
         const sqlUpdateStatus = `UPDATE recebimentomp SET status = ?, naoConformidade = ?, dataFim = ?, finalizaProfissionalID = ? WHERE recebimentoMpID = ? `
         const resultUpdateStatus = await executeQuery(sqlUpdateStatus, [
             newStatus,
-            data?.naoConformidade ? '1' : '0',
+            data.info.naoConformidade ? '1' : '0',
             newStatus >= 40 ? new Date() : null,
             newStatus >= 40 ? profissionalID : null,
             id
         ], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
+
+        //! Atualiza não conformidades, caso haja
+        if (data.info.naoConformidade && data.naoConformidades.length > 0) {
+            for (const nc of data.naoConformidades) {
+                if (nc.recebimentoMpNaoConformidadeID > 0) { //? Atualiza
+                    const sqlUpdateNaoConformidade = `
+                    UPDATE recebimentomp_naoconformidade 
+                    SET 
+                        data = ?, 
+                        profissionalIDPreenchimento = ?, 
+                        tipo = ?, 
+                        produtoID = ?, 
+                        descricao = ?, 
+                        acoesSolicitadas = ?, 
+                        fornecedorPreenche = ?, 
+                        obsFornecedor = ?, 
+                        dataFornecedor = ?, 
+                        usuarioID = ?, 
+                        conclusao = ?, 
+                        dataConclusao = ?, 
+                        profissionalIDConclusao = ?, 
+                        status = ?
+                    WHERE recebimentoMpNaoConformidadeID = ? `
+                    const resultUpdateNaoConformidade = await executeQuery(sqlUpdateNaoConformidade, [
+                        nc.data + ' ' + nc.hora,
+                        nc.profissionalPreenchimento?.id,
+                        nc.tipo,
+                        nc.produto?.id,
+                        nc.descricao,
+                        nc.acoesSolicitadas,
+                        nc.fornecedorPreenche ? '1' : '0',
+                        nc.obsFornecedor,
+                        nc.dataFornecedor + ' ' + nc.horaFornecedor,
+                        nc.usuarioFornecedor?.id,
+                        nc.conclusao,
+                        nc.dataConclusao + ' ' + nc.horaConclusao,
+                        nc.profissionalConclusao?.id,
+                        nc.status,
+                        nc.recebimentoMpNaoConformidadeID
+                    ], 'update', 'recebimentomp_naoconformidade', 'recebimentoMpNaoConformidadeID', nc.recebimentoMpNaoConformidadeID, logID)
+                } else {                                    //? Insere
+                    const sqlInsertNaoConformidade = `
+                    INSERT INTO recebimentomp_naoconformidade
+                    (recebimentoMpID, data, profissionalIDPreenchimento, tipo, produtoID, descricao, acoesSolicitadas, fornecedorPreenche, obsFornecedor, dataFornecedor, usuarioID, conclusao, dataConclusao, profissionalIDConclusao, status)`
+                    const resultInsertNaoConformidade = await executeQuery(sqlInsertNaoConformidade, [
+                        id,
+                        nc.data ? nc.data + ' ' + nc.hora : null,
+                        nc.profissionalPreenchimento?.id ? nc.profissionalPreenchimento?.id : null,
+                        nc.tipo,
+                        nc.produto?.id ? nc.produto?.id : null,
+                        nc.descricao,
+                        nc.acoesSolicitadas,
+                        nc.fornecedorPreenche ? '1' : '0',
+                        nc.obsFornecedor,
+                        nc.dataFornecedor ? nc.dataFornecedor + ' ' + nc.horaFornecedor : null,
+                        nc.usuarioFornecedor?.id ? nc.usuarioFornecedor?.id : null,
+                        nc.conclusao,
+                        nc.dataConclusao ? nc.dataConclusao + ' ' + nc.horaConclusao : null,
+                        nc.profissionalConclusao?.id ? nc.profissionalConclusao?.id : null,
+                        nc.status ?? null
+                    ], 'insert', 'recebimentomp_naoconformidade', 'recebimentoMpNaoConformidadeID', null, logID)
+                }
+            }
+
+        }
 
         //? Gera histórico de alteração de status (se houve alteração)
         if (resultStatus[0]['status'] != newStatus) {
@@ -556,7 +620,7 @@ class RecebimentoMpController {
             if (!files || files.length === 0) {
                 return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
             }
-            const logID = await executeLog('Salvo anexo do formulário do recebimento Mp', data.usuarioID, data.unidadeID, req)
+            const logID = await executeLog('Salvo anexo do formulário do recebimento Mp', usuarioID, unidadeID, req)
 
             let result = []
             for (let i = 0; i < files.length; i++) {
@@ -579,7 +643,7 @@ class RecebimentoMpController {
                     id,
                     produtoAnexoID ?? null,
                     grupoAnexoItemID ?? null,
-                    parFornecedorModeloBlocoID ?? null,
+                    parRecebimentoMpModeloBlocoID ?? null,
                     itemOpcaoAnexoID ?? null], 'insert', 'anexo_busca', 'anexoBuscaID', null, logID)
 
                 const objAnexo = {
@@ -620,6 +684,8 @@ class RecebimentoMpController {
                 }
             });
         }
+
+        const logID = await executeLog('Remoção de anexo do formulário do recebimento Mp', usuarioID, unidadeID, req)
 
         //? Remove anexo do BD
         const sqlDelete = `DELETE FROM anexo WHERE anexoID = ?`;
@@ -663,7 +729,6 @@ class RecebimentoMpController {
     async saveRelatorio(req, res) {
         const pathDestination = req.pathDestination
         const files = req.files;
-        console.log("🚀 ~ saveRelatorio recebimentoMP files:", files)
     }
 }
 

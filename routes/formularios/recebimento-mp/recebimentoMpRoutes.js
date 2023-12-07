@@ -14,9 +14,6 @@ recebimentoMpRoutes.delete(`${route}/delete/:id/:usuarioID/:unidadeID`, recebime
 recebimentoMpRoutes.get(`${route}/getModels/:unidadeID`, recebimentoMpController.getModels);
 recebimentoMpRoutes.post(`${route}/updateData/:id`, recebimentoMpController.updateData);
 
-//! Não Conformidade
-// recebimentoMpRoutes.get(`${route}/nao-conformidade/getData/:recebimentoMpID`, recebimentoMpController.getNaoConformidades);
-
 //? MULTER: Upload de arquivo
 recebimentoMpRoutes.delete(`${route}/deleteAnexo/:id/:anexoID/:unidadeID/:usuarioID/:folder`, recebimentoMpController.deleteAnexo);
 recebimentoMpRoutes.post(`${route}/saveAnexo/:id/:folder/:usuarioID/:unidadeID`, (req, res, next) => {
