@@ -2,8 +2,6 @@ const db = require('../../../config/db');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
-const FormData = require('form-data');
-const { PDFDocument } = require('pdf-lib');
 
 require('dotenv/config')
 const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts } = require('../../../config/defaultConfig');
@@ -51,10 +49,48 @@ class FornecedorController {
 
         //* O documento foi assinado no autentique
         if (signed) {
-            const pathDestination = `uploads/${unidadeID}/fornecedor/relatorio/assinado/${usuarioID}-${id}-fornecedor.pdf`
-            const saveSignedDocument = await createSignedDocumentAndSave(pathReport, pathDestination)
+            const pathDestination = `uploads/${unidadeID}/fornecedor/relatorio/assinado/`
+            const fileName = `${usuarioID}-${id}-fornecedor.pdf`
+            const saveSignedDocument = await createSignedDocumentAndSave(pathReport, pathDestination + fileName)
 
             if (saveSignedDocument !== false) {
+                const logID = await executeLog('Relatório de fornecedor assinado na Autentique', usuarioID, unidadeID, req)
+
+                //? Remover o atual
+                const sqlAnexoId = `SELECT anexoID FROM anexo_busca WHERE fornecedorID = ? AND principal = 1 AND assinado = 1`
+                const [resultAnexoId] = await db.promise().query(sqlAnexoId, [id])
+                const anexoId = resultAnexoId[0]?.anexoID
+                const sqlDelete = `DELETE FROM anexo WHERE anexoID = ?`
+                const sqlDeleteBusca = `DELETE FROM anexo_busca WHERE anexoID = ?`
+                await executeQuery(sqlDelete, [anexoId], 'delete', 'anexo', 'anexoID', null, logID)
+                await executeQuery(sqlDeleteBusca, [anexoId], 'delete', 'anexo_busca', 'anexoBuscaID', null, logID)
+
+                //? Insere em anexo
+                const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
+                const anexoID = await executeQuery(sqlInsert, [
+                    'Relatório assinado',
+                    pathDestination,
+                    fileName,
+                    307200,
+                    'application/pdf',
+                    usuarioID,
+                    unidadeID,
+                    new Date()
+                ], 'insert', 'anexo', 'anexoID', null, logID)
+
+                //? Insere em anexo_busca
+                const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, unidadeID, principal, assinado) VALUES(?,?,?,?,?)`;
+                await executeQuery(sqlInsertBusca, [anexoID,
+                    id,
+                    unidadeID,
+                    1,
+                    1
+                ], 'insert', 'anexo_busca', 'anexoBuscaID', null, logID)
+
+                //? Update em fornecedor setando assinado com 1 
+                const sqlUpdate = `UPDATE fornecedor SET assinado = 1 WHERE fornecedorID = ?`
+                await executeQuery(sqlUpdate, [id], 'update', 'fornecedor', 'fornecedorID', id, logID)
+
                 return res.status(200).json({ message: 'Documento assinado com sucesso!' })
             } else {
                 return res.status(404).json({ error: 'Erro ao assinar documento.' })

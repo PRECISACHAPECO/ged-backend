@@ -17,9 +17,7 @@ const executeLog = async (nome, usuarioID, unidadeID, req) => {
     } catch (error) {
         console.error('Erro ao inserir log no banco de dados:', error);
     }
-
 }
-
 
 const executeQuery = async (sql, params, operation, tableName, uniqueColumnName, id, logID, objEmail = null, loginObj = null) => {
 
@@ -36,7 +34,8 @@ const executeQuery = async (sql, params, operation, tableName, uniqueColumnName,
             const beforeData = rowsBefore;
 
             // Execute a consulta real (insert, update ou delete)
-            const [results] = await db.promise().query(sql, params);
+            if (operation == 'delete' && rowsBefore.length == 0) return false //! É exclusão, mas não existe o registro, ignora...
+            const [results] = await db.promise().query(sql, params); //* Executa query...
             if (operation == 'insert') id = results.insertId
 
             // Após a execução da consulta, obtenha os dados atualizados da tabela (depois da operação)
