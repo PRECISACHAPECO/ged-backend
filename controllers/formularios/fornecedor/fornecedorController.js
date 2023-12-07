@@ -1668,21 +1668,49 @@ const createSignedDocumentAndSave = async (pathAutentique, pathDestination) => {
             method: 'get',
             url: pathAutentique,
             responseType: 'stream',
-        })
+        });
 
-        // Salvar o PDF localmente usando o fs
-        const stream = fs.createWriteStream(pathDestination);
-        response.data.pipe(stream);
+        // Criar uma Promise para resolver quando o arquivo for salvo
+        const saveFilePromise = new Promise((resolve, reject) => {
+            const stream = response.data.pipe(fs.createWriteStream(pathDestination));
 
-        return new Promise((resolve, reject) => {
             stream.on('finish', resolve);
             stream.on('error', reject);
         });
 
-    } catch (e) {
-        console.log(e);
-        return false
+        // Aguardar até que o arquivo seja salvo com sucesso
+        await saveFilePromise;
+
+        console.log('Arquivo salvo com sucesso:', pathDestination);
+        return true;
+
+    } catch (error) {
+        console.error('Erro ao salvar o arquivo:', error.message);
+        return false;
     }
-}
+};
+
+// const createSignedDocumentAndSave = async (pathAutentique, pathDestination) => {
+//     try {
+//         const response = await axios({
+//             method: 'get',
+//             url: pathAutentique,
+//             responseType: 'stream',
+//         })
+
+//         // Salvar o PDF localmente usando o fs
+//         const stream = fs.createWriteStream(pathDestination);
+//         response.data.pipe(stream);
+
+//         return new Promise((resolve, reject) => {
+//             stream.on('finish', resolve);
+//             stream.on('error', reject);
+//         });
+
+//     } catch (e) {
+//         console.log(e);
+//         return false
+//     }
+// }
 
 module.exports = FornecedorController;
