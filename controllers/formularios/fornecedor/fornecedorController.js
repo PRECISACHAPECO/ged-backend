@@ -41,8 +41,8 @@ class FornecedorController {
     }
 
     saveSignedDocument = async (req, res) => {
+        const { id, usuarioID, unidadeID, hashSignedDocument } = req.body;
         try {
-            const { id, usuarioID, unidadeID, hashSignedDocument } = req.body;
 
             const pathReport = await getDocumentSignature(hashSignedDocument); // Pega a url do pdf
             const signed = await signedReport(pathReport); // Verifica se o documento foi assinado
@@ -119,7 +119,6 @@ class FornecedorController {
             res.status(500).json({ error: 'Erro interno do servidor.' });
         }
     };
-
 
 
     async getFornecedoresAprovados(req, res) {
