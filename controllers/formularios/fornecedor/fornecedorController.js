@@ -51,8 +51,8 @@ class FornecedorController {
             const pathDestination = `uploads/${unidadeID}/fornecedor/relatorio/assinado/`
             const fileName = `${usuarioID}-${id}-fornecedor.pdf`
 
-            const saveSignedDocument = await createSignedDocumentAndSave(pathReport, (pathDestination + fileName)) //! ERRO NO SERVIDOR
             return
+            const saveSignedDocument = await createSignedDocumentAndSave(pathReport, (pathDestination + fileName)) //! ERRO NO SERVIDOR
 
             if (saveSignedDocument !== false) {
                 const logID = await executeLog('Relatório de fornecedor assinado na Autentique', usuarioID, unidadeID, req)
