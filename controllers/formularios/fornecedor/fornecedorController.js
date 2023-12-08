@@ -70,22 +70,55 @@ class FornecedorController {
                         stream.on('error', reject);
                     });
 
-                    // Se tudo ocorrer bem, você pode enviar uma resposta de sucesso
+                    const logID = await executeLog('Relatório de fornecedor assinado na Autentique', usuarioID, unidadeID, req)
+
+                    //? Remover o atual
+                    const sqlAnexoId = `SELECT anexoID FROM anexo_busca WHERE fornecedorID = ? AND principal = 1 AND assinado = 1`
+                    const [resultAnexoId] = await db.promise().query(sqlAnexoId, [id])
+                    const anexoId = resultAnexoId[0]?.anexoID
+                    const sqlDelete = `DELETE FROM anexo WHERE anexoID = ?`
+                    const sqlDeleteBusca = `DELETE FROM anexo_busca WHERE anexoID = ?`
+                    await executeQuery(sqlDelete, [anexoId], 'delete', 'anexo', 'anexoID', anexoId, logID)
+                    await executeQuery(sqlDeleteBusca, [anexoId], 'delete', 'anexo_busca', 'anexoBuscaID', anexoId, logID)
+
+                    //? Insere em anexo
+                    const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
+                    const anexoID = await executeQuery(sqlInsert, [
+                        'Relatório assinado',
+                        pathDestination,
+                        fileName,
+                        '307200',
+                        'application/pdf',
+                        usuarioID,
+                        unidadeID,
+                        new Date()
+                    ], 'insert', 'anexo', 'anexoID', null, logID)
+
+                    //? Insere em anexo_busca
+                    const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, unidadeID, principal, assinado) VALUES(?,?,?,?,?)`;
+                    await executeQuery(sqlInsertBusca, [anexoID,
+                        id,
+                        unidadeID,
+                        1,
+                        1
+                    ], 'insert', 'anexo_busca', 'anexoBuscaID', null, logID)
+
+                    //? Update em fornecedor setando assinado com 1 
+                    const sqlUpdate = `UPDATE fornecedor SET assinado = 1 WHERE fornecedorID = ?`
+                    await executeQuery(sqlUpdate, [id], 'update', 'fornecedor', 'fornecedorID', id, logID)
+
                     res.status(200).json({ success: true, message: 'Documento assinado e salvo com sucesso.' });
 
                 } catch (e) {
                     console.log(e, 'error', pathReport, `${pathDestination}/${fileName}`);
-                    // Se ocorrer um erro, envie uma resposta de erro
                     res.status(500).json({ error: 'Erro ao salvar o documento assinado.' });
                 }
 
             } else {
-                // Se o documento não estiver assinado, envie uma resposta de erro
                 res.status(400).json({ error: 'Documento não assinado.' });
             }
         } catch (error) {
             console.error(error);
-            // Se ocorrer um erro inesperado, envie uma resposta de erro
             res.status(500).json({ error: 'Erro interno do servidor.' });
         }
     };
