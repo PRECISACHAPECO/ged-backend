@@ -1662,11 +1662,13 @@ const sendMail = async (data, logID) => {
 }
 
 const createSignedDocumentAndSave = async (pathAutentique, pathDestination) => {
+    console.log("🚀 ~ pathAutentique:", pathAutentique)
     try {
         const response = await axios({
             method: 'get',
             url: pathAutentique,
             responseType: 'stream',
+            maxRedirects: 5, // ajuste conforme necessário
         })
 
         // Salvar o PDF localmente usando o fs
