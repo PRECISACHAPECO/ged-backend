@@ -576,23 +576,26 @@ class RecebimentoMpController {
                     const sqlInsertNaoConformidade = `
                     INSERT INTO recebimentomp_naoconformidade
                     (recebimentoMpID, data, profissionalIDPreenchimento, tipo, produtoID, descricao, acoesSolicitadas, fornecedorPreenche, obsFornecedor, dataFornecedor, usuarioID, conclusao, dataConclusao, profissionalIDConclusao, status)`
-                    const resultInsertNaoConformidade = await executeQuery(sqlInsertNaoConformidade, [
+                    const dataInsert = [
                         id,
-                        nc.data ? nc.data + ' ' + nc.hora : null,
+                        // se tiver data, pegar os primeiros 10 caracteres 
+                        nc.data ? nc.data.substring(0, 10) + ' ' + nc.hora : null,
                         nc.profissionalPreenchimento?.id ? nc.profissionalPreenchimento?.id : null,
-                        nc.tipo,
+                        nc.tipo ?? null,
                         nc.produto?.id ? nc.produto?.id : null,
                         nc.descricao,
                         nc.acoesSolicitadas,
                         nc.fornecedorPreenche ? '1' : '0',
-                        nc.obsFornecedor,
-                        nc.dataFornecedor ? nc.dataFornecedor + ' ' + nc.horaFornecedor : null,
+                        nc.obsFornecedor ?? null,
+                        nc.dataFornecedor ? nc.dataFornecedor.substring(0, 10) + ' ' + nc.horaFornecedor : null,
                         nc.usuarioFornecedor?.id ? nc.usuarioFornecedor?.id : null,
-                        nc.conclusao,
-                        nc.dataConclusao ? nc.dataConclusao + ' ' + nc.horaConclusao : null,
+                        nc.conclusao ?? null,
+                        nc.dataConclusao ? nc.dataConclusao.substring(0, 10) + ' ' + nc.horaConclusao : null,
                         nc.profissionalConclusao?.id ? nc.profissionalConclusao?.id : null,
                         nc.status ?? null
-                    ], 'insert', 'recebimentomp_naoconformidade', 'recebimentoMpNaoConformidadeID', null, logID)
+                    ]
+                    console.log("🚀 ~ dataInsert:", dataInsert)
+                    const resultInsertNaoConformidade = await executeQuery(sqlInsertNaoConformidade, dataInsert, 'insert', 'recebimentomp_naoconformidade', 'recebimentoMpNaoConformidadeID', null, logID)
                 }
             }
 

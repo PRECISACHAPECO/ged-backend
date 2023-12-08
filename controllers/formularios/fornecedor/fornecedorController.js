@@ -2,6 +2,7 @@ const db = require('../../../config/db');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const multer = require('multer');
 
 require('dotenv/config')
 const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts } = require('../../../config/defaultConfig');
