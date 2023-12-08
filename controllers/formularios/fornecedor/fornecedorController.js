@@ -1689,7 +1689,7 @@ const sendMail = async (data, logID) => {
 // }
 
 const createSignedDocumentAndSave = async (pathAutentique, pathDestination) => {
-    return console.log('pathAutentique, pathDestination', pathAutentique, pathDestination)
+    return res.status(200).json('pathAutentique, pathDestination', pathAutentique, pathDestination)
 }
 
 module.exports = FornecedorController;
