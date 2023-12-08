@@ -1661,30 +1661,33 @@ const sendMail = async (data, logID) => {
     await sendMailConfig(data.email, assunto, html, logID, data)
 }
 
+// const createSignedDocumentAndSave = async (pathAutentique, pathDestination) => {
+//     console.log("🚀 ~ pathAutentique:", pathAutentique)
+//     try {
+//         const response = await axios({
+//             method: 'get',
+//             url: pathAutentique,
+//             responseType: 'stream',
+//             maxRedirects: 5, // ajuste conforme necessário
+//         })
+
+//         // Salvar o PDF localmente usando o fs
+//         const stream = fs.createWriteStream(pathDestination);
+//         response.data.pipe(stream);
+
+//         return new Promise((resolve, reject) => {
+//             stream.on('finish', resolve);
+//             stream.on('error', reject);
+//         });
+
+//     } catch (e) {
+//         console.log(e, 'error', pathAutentique, pathDestination)
+//         return false;
+//     }
+// }
+
 const createSignedDocumentAndSave = async (pathAutentique, pathDestination) => {
-    console.log("🚀 ~ pathAutentique:", pathAutentique)
-    try {
-        const response = await axios({
-            method: 'get',
-            url: pathAutentique,
-            responseType: 'stream',
-            maxRedirects: 5, // ajuste conforme necessário
-        })
-
-        // Salvar o PDF localmente usando o fs
-        const stream = fs.createWriteStream(pathDestination);
-        response.data.pipe(stream);
-
-        return new Promise((resolve, reject) => {
-            stream.on('finish', resolve);
-            stream.on('error', reject);
-        });
-
-    } catch (e) {
-        console.log(e, 'error', pathAutentique, pathDestination)
-        return false;
-        return false
-    }
+    return console.log('pathAutentique, pathDestination', pathAutentique, pathDestination)
 }
 
 module.exports = FornecedorController;
