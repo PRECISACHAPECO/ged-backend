@@ -42,8 +42,6 @@ class FornecedorController {
 
     saveSignedDocument = async (req, res) => {
         const { id, usuarioID, unidadeID, hashSignedDocument } = req.body
-        console.log("🚀 ~ id, usuarioID, unidadeID, hashSignedDocument:", id, usuarioID, unidadeID, hashSignedDocument)
-        return
 
         const pathReport = await getDocumentSignature(hashSignedDocument)
         const signed = await signedReport(pathReport)
