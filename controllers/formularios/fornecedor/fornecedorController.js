@@ -52,7 +52,34 @@ class FornecedorController {
             const fileName = `${usuarioID}-${id}-fornecedor.pdf`
 
 
-            const saveSignedDocument = await createSignedDocumentAndSave(pathReport, ('dddfff/dddddd')) //! ERRO NO SERVIDOR
+            // const saveSignedDocument = await createSignedDocumentAndSave(pathReport, ('dddfff/dddddd')) //! ERRO NO SERVIDOR
+            const createSignedDocumentAndSave = async (pathReport, pathDestination) => {
+                console.log("🚀 ~ pathAutentique:", pathAutentique)
+                res.status(200).json('pathAutentique, pathDestination', pathAutentique, pathDestination)
+                return
+                try {
+                    const response = await axios({
+                        method: 'get',
+                        url: pathAutentique,
+                        responseType: 'stream',
+                        maxRedirects: 5, // ajuste conforme necessário
+                    })
+
+                    // Salvar o PDF localmente usando o fs
+                    const stream = fs.createWriteStream(pathDestination);
+                    response.data.pipe(stream);
+
+                    return new Promise((resolve, reject) => {
+                        stream.on('finish', resolve);
+                        stream.on('error', reject);
+                    });
+
+                } catch (e) {
+                    console.log(e, 'error', pathAutentique, pathDestination)
+                    return false;
+                }
+            }
+            createSignedDocumentAndSave()
             return
 
             if (saveSignedDocument !== false) {
