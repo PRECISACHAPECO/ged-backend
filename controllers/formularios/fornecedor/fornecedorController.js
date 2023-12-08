@@ -41,93 +41,56 @@ class FornecedorController {
     }
 
     saveSignedDocument = async (req, res) => {
-        const { id, usuarioID, unidadeID, hashSignedDocument } = req.body
+        try {
+            const { id, usuarioID, unidadeID, hashSignedDocument } = req.body;
 
-        const pathReport = await getDocumentSignature(hashSignedDocument)
-        const signed = await signedReport(pathReport)
+            const pathReport = await getDocumentSignature(hashSignedDocument);
+            const signed = await signedReport(pathReport);
 
-        //* O documento foi assinado no autentique
-        if (signed) {
-            const pathDestination = `uploads/${unidadeID}/fornecedor/relatorio/assinado/`
-            const fileName = `${usuarioID}-${id}-fornecedor.pdf`
+            // O documento foi assinado no Autentique
+            if (signed) {
+                const pathDestination = `uploads/${unidadeID}/fornecedor/relatorio/assinado/`;
+                const fileName = `${usuarioID}-${id}-fornecedor.pdf`;
 
+                console.log("🚀 ~ pathReport, pathDestination", pathReport, `${pathDestination}/${fileName}`);
 
-            // const saveSignedDocument = await createSignedDocumentAndSave(pathReport, ('dddfff/dddddd')) //! ERRO NO SERVIDOR
-            const createSignedDocumentAndSave = async (pathReport, pathDestination) => {
-                console.log("🚀 ~ pathAutentique:", pathAutentique)
-                res.status(200).json('pathAutentique, pathDestination', pathAutentique, pathDestination)
-                return
                 try {
                     const response = await axios({
                         method: 'get',
-                        url: pathAutentique,
+                        url: pathReport,
                         responseType: 'stream',
-                        maxRedirects: 5, // ajuste conforme necessário
-                    })
+                    });
 
                     // Salvar o PDF localmente usando o fs
-                    const stream = fs.createWriteStream(pathDestination);
+                    const stream = fs.createWriteStream(`${pathDestination}/${fileName}`);
                     response.data.pipe(stream);
 
-                    return new Promise((resolve, reject) => {
+                    await new Promise((resolve, reject) => {
                         stream.on('finish', resolve);
                         stream.on('error', reject);
                     });
 
+                    // Se tudo ocorrer bem, você pode enviar uma resposta de sucesso
+                    res.status(200).json({ success: true, message: 'Documento assinado e salvo com sucesso.' });
+
                 } catch (e) {
-                    console.log(e, 'error', pathAutentique, pathDestination)
-                    return false;
+                    console.log(e, 'error', pathReport, `${pathDestination}/${fileName}`);
+                    // Se ocorrer um erro, envie uma resposta de erro
+                    res.status(500).json({ error: 'Erro ao salvar o documento assinado.' });
                 }
-            }
-            createSignedDocumentAndSave()
-            return
 
-            if (saveSignedDocument !== false) {
-                const logID = await executeLog('Relatório de fornecedor assinado na Autentique', usuarioID, unidadeID, req)
-
-                //? Remover o atual
-                const sqlAnexoId = `SELECT anexoID FROM anexo_busca WHERE fornecedorID = ? AND principal = 1 AND assinado = 1`
-                const [resultAnexoId] = await db.promise().query(sqlAnexoId, [id])
-                const anexoId = resultAnexoId[0]?.anexoID
-                const sqlDelete = `DELETE FROM anexo WHERE anexoID = ?`
-                const sqlDeleteBusca = `DELETE FROM anexo_busca WHERE anexoID = ?`
-                await executeQuery(sqlDelete, [anexoId], 'delete', 'anexo', 'anexoID', anexoId, logID)
-                await executeQuery(sqlDeleteBusca, [anexoId], 'delete', 'anexo_busca', 'anexoBuscaID', anexoId, logID)
-
-                //? Insere em anexo
-                const sqlInsert = `INSERT INTO anexo(titulo, diretorio, arquivo, tamanho, tipo, usuarioID, unidadeID, dataHora) VALUES(?,?,?,?,?,?,?,?)`;
-                const anexoID = await executeQuery(sqlInsert, [
-                    'Relatório assinado',
-                    pathDestination,
-                    fileName,
-                    '307200',
-                    'application/pdf',
-                    usuarioID,
-                    unidadeID,
-                    new Date()
-                ], 'insert', 'anexo', 'anexoID', null, logID)
-
-                //? Insere em anexo_busca
-                const sqlInsertBusca = `INSERT INTO anexo_busca(anexoID, fornecedorID, unidadeID, principal, assinado) VALUES(?,?,?,?,?)`;
-                await executeQuery(sqlInsertBusca, [anexoID,
-                    id,
-                    unidadeID,
-                    1,
-                    1
-                ], 'insert', 'anexo_busca', 'anexoBuscaID', null, logID)
-
-                //? Update em fornecedor setando assinado com 1 
-                const sqlUpdate = `UPDATE fornecedor SET assinado = 1 WHERE fornecedorID = ?`
-                await executeQuery(sqlUpdate, [id], 'update', 'fornecedor', 'fornecedorID', id, logID)
-
-                return res.status(200).json({ message: 'Documento assinado com sucesso!' })
             } else {
-                return res.status(404).json({ error: 'Erro ao assinar documento.' })
+                // Se o documento não estiver assinado, envie uma resposta de erro
+                res.status(400).json({ error: 'Documento não assinado.' });
             }
-        } else {
-            return res.status(400).json({ error: 'Documento não assinado.' })
+        } catch (error) {
+            console.error(error);
+            // Se ocorrer um erro inesperado, envie uma resposta de erro
+            res.status(500).json({ error: 'Erro interno do servidor.' });
         }
-    }
+    };
+
+
 
     async getFornecedoresAprovados(req, res) {
         const { unidadeID } = req.body
