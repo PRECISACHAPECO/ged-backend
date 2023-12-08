@@ -52,7 +52,7 @@ class FornecedorController {
             const fileName = `${usuarioID}-${id}-fornecedor.pdf`
 
 
-            const saveSignedDocument = await createSignedDocumentAndSave(pathReport, (pathDestination + fileName)) //! ERRO NO SERVIDOR
+            const saveSignedDocument = await createSignedDocumentAndSave(pathReport, ('dddfff/dddddd')) //! ERRO NO SERVIDOR
             return
 
             if (saveSignedDocument !== false) {
