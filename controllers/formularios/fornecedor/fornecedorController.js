@@ -44,16 +44,13 @@ class FornecedorController {
         try {
             const { id, usuarioID, unidadeID, hashSignedDocument } = req.body;
 
-            const pathReport = await getDocumentSignature(hashSignedDocument);
-            const signed = await signedReport(pathReport);
+            const pathReport = await getDocumentSignature(hashSignedDocument); // Pega a url do pdf
+            const signed = await signedReport(pathReport); // Verifica se o documento foi assinado
 
             // O documento foi assinado no Autentique
             if (signed) {
                 const pathDestination = `uploads/${unidadeID}/fornecedor/relatorio/assinado/`;
                 const fileName = `${usuarioID}-${id}-fornecedor.pdf`;
-
-                console.log("🚀 ~ pathReport, pathDestination", pathReport, `${pathDestination}/${fileName}`);
-
                 try {
                     const response = await axios({
                         method: 'get',
