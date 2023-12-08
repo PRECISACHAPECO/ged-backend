@@ -1681,7 +1681,8 @@ const createSignedDocumentAndSave = async (pathAutentique, pathDestination) => {
         });
 
     } catch (e) {
-        console.log(e);
+        console.log(e, 'error', pathAutentique, pathDestination)
+        return false;
         return false
     }
 }
