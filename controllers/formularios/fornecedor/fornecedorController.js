@@ -2,7 +2,6 @@ const db = require('../../../config/db');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
-const multer = require('multer');
 
 require('dotenv/config')
 const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts } = require('../../../config/defaultConfig');
@@ -38,7 +37,6 @@ class FornecedorController {
         if (!user[0].email) return res.status(400).json({ error: 'Nenhum email encontrado.' })
 
         const idDocument = await createDocument(user[0].email, path)
-
         return res.status(200).json(idDocument)
     }
 
