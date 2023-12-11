@@ -58,6 +58,7 @@ routes.use(urlBase + '/cadastros', ProfissionalRouter);
 const formularios = require("./configuracoes/formularios/formulariosRoutes");
 const formularioFornecedor = require("./configuracoes/formularios/fornecedor/fornecedorRoutes");
 const formularioRecebimentoMp = require("./configuracoes/formularios/recebimentoMp/recebimentoMpRoutes");
+const formularioRecebimentoMpNaoConformidade = require("./configuracoes/formularios/recebimentoMpNaoConformidade/recebimentoMpNaoConformidadeRoutes");
 const formularioLimpeza = require("./configuracoes/formularios/limpeza/limpezaRoutes");
 const unidade = require("./configuracoes/unidade/unidadeRoutes");
 const UsuarioRouter = require("./configuracoes/usuario/usuarioRoutes");
@@ -68,6 +69,7 @@ const LogRouter = require("./configuracoes/log/logRoutes")
 routes.use(urlBase + '/configuracoes', formularios);
 routes.use(urlBase + '/configuracoes', formularioFornecedor);
 routes.use(urlBase + '/configuracoes', formularioRecebimentoMp);
+routes.use(urlBase + '/configuracoes', formularioRecebimentoMpNaoConformidade);
 routes.use(urlBase + '/configuracoes', formularioLimpeza);
 routes.use(urlBase + '/configuracoes', unidade);
 routes.use(urlBase + '/configuracoes', UsuarioRouter);

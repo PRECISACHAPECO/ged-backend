@@ -75,6 +75,32 @@ class ProfissionalController {
                     const [tempResultAprovaMP] = await db.promise().query(sqlProfissionalAprovaMP, [modeloID])
                     resultProfissionalAprova = tempResultAprovaMP
                     break;
+
+                case 3: //* Não conformidade do recebimento de MP
+                    //? Profissional que preenche
+                    const sqlProfissionalNCPreencheMP = `
+                    SELECT
+                        b.profissionalID AS id, 
+                        b.nome
+                    FROM par_recebimentomp_naoconformidade_modelo_profissional AS a
+                        JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
+                    WHERE a.parRecebimentoMpNaoConformidadeModeloID = ? AND a.tipo = 1
+                    ORDER BY b.nome ASC`
+                    const [tempResultNCPreencheMP] = await db.promise().query(sqlProfissionalNCPreencheMP, [modeloID])
+                    resultProfissionalPreenche = tempResultNCPreencheMP
+
+                    //? Profissional que aprova
+                    const sqlProfissionalNCAprovaMP = `
+                    SELECT
+                        b.profissionalID AS id, 
+                        b.nome
+                    FROM par_recebimentomp_naoconformidade_modelo_profissional AS a
+                        JOIN profissional AS b ON (a.profissionalID = b.profissionalID)
+                    WHERE a.parRecebimentoMpNaoConformidadeModeloID = ? AND a.tipo = 2
+                    ORDER BY b.nome ASC`
+                    const [tempResultNCAprovaMP] = await db.promise().query(sqlProfissionalNCAprovaMP, [modeloID])
+                    resultProfissionalAprova = tempResultNCAprovaMP
+                    break;
             }
 
             const result = {

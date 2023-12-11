@@ -298,24 +298,18 @@ class RecebimentoMpController {
                         const sqlNewBlock = `
                         INSERT INTO par_recebimentomp_modelo_bloco(parRecebimentoMpModeloID, ordem, nome, obs, unidadeID, status) 
                         VALUES (?, ?, ?, ?, ?, ?)`
-                        // const [resultNewBlock] = await db.promise().query(sqlNewBlock, [
-                        //     id,
-                        //     block.dados.ordem,
-                        //     block.dados.nome,
-                        //     (block.dados.obs ? 1 : 0),
-                        //     unidadeID,
-                        //     (block.dados.status ? 1 : 0)
-                        // ])
-                        const resultNewBlock = await executeQuery(sqlNewBlock, [id,
+
+                        const resultNewBlock = await executeQuery(sqlNewBlock, [
+                            id,
                             block.dados.ordem,
                             block.dados.nome,
                             (block.dados.obs ? 1 : 0),
                             unidadeID,
-                            (block.dados.status ? 1 : 0)], 'insert', 'par_recebimentomp_modelo_bloco', 'parRecebimentoMpModeloBlocoID', null, logID)
-
+                            (block.dados.status ? 1 : 0)
+                        ], 'insert', 'par_recebimentomp_modelo_bloco', 'parRecebimentoMpModeloBlocoID', null, logID)
 
                         if (!resultNewBlock) { return res.json(err); }
-                        block.dados.parRecebimentoMpModeloBlocoID = resultNewBlock.insertId //? parRecebimentoMpModeloBlocoID que acabou de ser gerado
+                        block.dados.parRecebimentoMpModeloBlocoID = resultNewBlock //? parRecebimentoMpModeloBlocoID que acabou de ser gerado
                     }
 
                     //? Itens 

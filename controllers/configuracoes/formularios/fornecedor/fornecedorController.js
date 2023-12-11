@@ -177,7 +177,6 @@ class FornecedorController {
 
             const logID = await executeLog('Edição modelo fornecedor', usuarioID, unidadeID, req)
 
-
             //? Model
             const sqlModel = `
             UPDATE par_fornecedor_modelo
@@ -293,15 +292,17 @@ class FornecedorController {
                         INSERT INTO par_fornecedor_modelo_bloco(parFornecedorModeloID, ordem, nome, obs, unidadeID, status) 
                         VALUES (?, ?, ?, ?, ?, ?)`
 
-                        const resultNewBlock = await executeQuery(sqlNewBlock, [id,
+                        const resultNewBlock = await executeQuery(sqlNewBlock, [
+                            id,
                             block.dados.ordem,
                             block.dados.nome,
                             (block.dados.obs ? 1 : 0),
                             unidadeID,
-                            (block.dados.status ? 1 : 0)], 'insert', 'par_fornecedor_modelo_bloco', 'parFornecedorModeloBlocoID', null, logID)
+                            (block.dados.status ? 1 : 0)
+                        ], 'insert', 'par_fornecedor_modelo_bloco', 'parFornecedorModeloBlocoID', null, logID)
 
                         if (!resultNewBlock) { return res.json(err); }
-                        block.dados.parFornecedorModeloBlocoID = resultNewBlock.insertId //? parFornecedorModeloBlocoID que acabou de ser gerado
+                        block.dados.parFornecedorModeloBlocoID = resultNewBlock //? parFornecedorModeloBlocoID que acabou de ser gerado
                     }
 
                     //? Itens 
