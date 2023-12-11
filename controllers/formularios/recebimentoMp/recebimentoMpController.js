@@ -86,8 +86,11 @@ class RecebimentoMpController {
                 -- Fornecedor
                 f.fornecedorID,
                 CONCAT(f.nome, " (", f.cnpj, ")") AS nomeFornecedor,
+                f.nome AS nomeFornecedor_,
+                f.cnpj AS cnpjFornecedor,
                 f.telefone AS telefoneFornecedor,
                 CONCAT(f.cidade, "/", f.estado) AS cidadeFornecedor,
+                uf.cabecalhoRelatorio AS fotoFornecedor,
 
                 DATE_FORMAT(r.data, '%Y-%m-%d') AS data,
                 IF(r.data, DATE_FORMAT(r.data, '%H:%i'), DATE_FORMAT(NOW(), '%H:%i')) AS hora,
@@ -113,6 +116,7 @@ class RecebimentoMpController {
                 LEFT JOIN profissional AS pap ON(r.aprovaProfissionalID = pap.profissionalID)
                 LEFT JOIN profissional AS pf ON(r.finalizaProfissionalID = pf.profissionalID)
                 LEFT JOIN fornecedor AS f ON(r.fornecedorID = f.fornecedorID)
+                LEFT JOIN unidade AS uf ON (f.cnpj = uf.cnpj)
             WHERE r.recebimentoMpID = ? `
             const [result] = await db.promise().query(sqlResult, [id])
             const unidade = {
@@ -187,7 +191,8 @@ class RecebimentoMpController {
                 rp.lote,
                 rp.nf,
                 DATE_FORMAT(rp.dataValidade, '%Y-%m-%d') AS dataValidade,
-
+                p.produtoID,
+                p.nome AS produto,
                 a.apresentacaoID,
                 a.nome AS apresentacao                
             FROM recebimentomp_produto AS rp
@@ -199,10 +204,15 @@ class RecebimentoMpController {
             const [resultProdutos] = await db.promise().query(sqlProdutos, [id])
 
             for (const produto of resultProdutos) {
+                produto['checked'] = true
                 produto['apresentacao'] = produto['apresentacaoID'] > 0 ? {
                     id: produto['apresentacaoID'],
                     nome: produto['apresentacao']
                 } : null
+                produto['produto'] = {
+                    id: produto['produtoID'],
+                    nome: produto['produto']
+                }
             }
 
             const sqlBlocos = `
@@ -330,8 +340,11 @@ class RecebimentoMpController {
                     fornecedor: result[0].fornecedorID > 0 ? {
                         id: result[0].fornecedorID,
                         nome: result[0].nomeFornecedor,
+                        nome_: result[0].nomeFornecedor_,
+                        cnpj_: result[0].cnpjFornecedor,
                         telefone: result[0].telefoneFornecedor,
-                        cidade: result[0].cidadeFornecedor
+                        cidade: result[0].cidadeFornecedor,
+                        foto: result[0].fotoFornecedor ? `${process.env.BASE_URL_API}${result[0].fotoFornecedor}` : null
                     } : null
                 },
                 fieldsFooter: {
@@ -365,7 +378,13 @@ class RecebimentoMpController {
                     cabecalhoModelo: resultCabecalhoModelo[0].cabecalho
                 },
                 link: `${process.env.BASE_URL} formularios / recebimento - mp ? id = ${id} `,
-                naoConformidades: await getNaoConformidades(id)
+                naoConformidade: {
+                    itens: await getNaoConformidades(id),
+                    // varrer array resultProdutos e retornar somente o objeto produto 
+                    produtos: resultProdutos.map(produto => {
+                        return produto.produto
+                    })
+                }
             }
 
             res.status(200).json(data);
@@ -409,7 +428,7 @@ class RecebimentoMpController {
         }
 
         //? Produtos
-        if (data.produtos && data.produtos.length > 0) {
+        if (data.info.status < 40 && data.produtos && data.produtos.length > 0) {
             // Deleta produtos do recebimento
             const sqlDeleteProduto = `DELETE FROM recebimentomp_produto WHERE recebimentoMpID = ? `
             // const [resultDeleteProduto] = await db.promise().query(sqlDeleteProduto, [id])
@@ -534,71 +553,16 @@ class RecebimentoMpController {
         ], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
 
         //! Atualiza não conformidades, caso haja
-        if (data.info.naoConformidade && data.naoConformidades.length > 0) {
-            for (const nc of data.naoConformidades) {
-                if (nc.recebimentoMpNaoConformidadeID > 0) { //? Atualiza
-                    const sqlUpdateNaoConformidade = `
-                    UPDATE recebimentomp_naoconformidade 
-                    SET 
-                        data = ?, 
-                        profissionalIDPreenchimento = ?, 
-                        tipo = ?, 
-                        produtoID = ?, 
-                        descricao = ?, 
-                        acoesSolicitadas = ?, 
-                        fornecedorPreenche = ?, 
-                        obsFornecedor = ?, 
-                        dataFornecedor = ?, 
-                        usuarioID = ?, 
-                        conclusao = ?, 
-                        dataConclusao = ?, 
-                        profissionalIDConclusao = ?, 
-                        status = ?
-                    WHERE recebimentoMpNaoConformidadeID = ? `
-                    const resultUpdateNaoConformidade = await executeQuery(sqlUpdateNaoConformidade, [
-                        nc.data + ' ' + nc.hora,
-                        nc.profissionalPreenchimento?.id,
-                        nc.tipo,
-                        nc.produto?.id,
-                        nc.descricao,
-                        nc.acoesSolicitadas,
-                        nc.fornecedorPreenche ? '1' : '0',
-                        nc.obsFornecedor,
-                        nc.dataFornecedor + ' ' + nc.horaFornecedor,
-                        nc.usuarioFornecedor?.id,
-                        nc.conclusao,
-                        nc.dataConclusao + ' ' + nc.horaConclusao,
-                        nc.profissionalConclusao?.id,
-                        nc.status,
-                        nc.recebimentoMpNaoConformidadeID
-                    ], 'update', 'recebimentomp_naoconformidade', 'recebimentoMpNaoConformidadeID', nc.recebimentoMpNaoConformidadeID, logID)
-                } else {                                    //? Insere
-                    const sqlInsertNaoConformidade = `
-                    INSERT INTO recebimentomp_naoconformidade
-                    (recebimentoMpID, data, profissionalIDPreenchimento, tipo, produtoID, descricao, acoesSolicitadas, fornecedorPreenche, obsFornecedor, dataFornecedor, usuarioID, conclusao, dataConclusao, profissionalIDConclusao, status)`
-                    const dataInsert = [
-                        id,
-                        // se tiver data, pegar os primeiros 10 caracteres 
-                        nc.data ? nc.data.substring(0, 10) + ' ' + nc.hora : null,
-                        nc.profissionalPreenchimento?.id ? nc.profissionalPreenchimento?.id : null,
-                        nc.tipo ?? null,
-                        nc.produto?.id ? nc.produto?.id : null,
-                        nc.descricao,
-                        nc.acoesSolicitadas,
-                        nc.fornecedorPreenche ? '1' : '0',
-                        nc.obsFornecedor ?? null,
-                        nc.dataFornecedor ? nc.dataFornecedor.substring(0, 10) + ' ' + nc.horaFornecedor : null,
-                        nc.usuarioFornecedor?.id ? nc.usuarioFornecedor?.id : null,
-                        nc.conclusao ?? null,
-                        nc.dataConclusao ? nc.dataConclusao.substring(0, 10) + ' ' + nc.horaConclusao : null,
-                        nc.profissionalConclusao?.id ? nc.profissionalConclusao?.id : null,
-                        nc.status ?? null
-                    ]
-                    console.log("🚀 ~ dataInsert:", dataInsert)
-                    const resultInsertNaoConformidade = await executeQuery(sqlInsertNaoConformidade, dataInsert, 'insert', 'recebimentomp_naoconformidade', 'recebimentoMpNaoConformidadeID', null, logID)
+        if (data.info.naoConformidade) {
+            if (data.naoConformidade.itens.length > 0) {
+                for (const nc of data.naoConformidade.itens) {
+                    nc.recebimentoMpNaoConformidadeID > 0 ? await updateNc(nc, id, logID) : await insertNc(nc, id, logID)
                 }
+            } else {
+                //? Gerou não conformidade, insere uma vazia
+                const sqlInsert = `INSERT INTO recebimentomp_naoconformidade(recebimentoMpID, data, profissionalIDPreenchimento) VALUES(?, ?, ?)`
+                const [resultInsert] = await db.promise().query(sqlInsert, [id, new Date(), profissionalID])
             }
-
         }
 
         //? Gera histórico de alteração de status (se houve alteração)
@@ -965,5 +929,64 @@ const getSqlOtherInfos = () => {
     WHERE recebimentoMpID = ? `
     return sql
 }
+
+const insertNc = async (nc, id, logID) => {
+    const sqlInsertNaoConformidade = `
+    INSERT INTO recebimentomp_naoconformidade(recebimentoMpID, data, profissionalIDPreenchimento, tipo, produtoID, descricao, acoesSolicitadas, fornecedorPreenche, obsFornecedor, dataFornecedor, usuarioID, conclusao, dataConclusao, profissionalIDConclusao, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    nc.hora = nc.hora ? nc.hora : '00:00'
+    nc.horaFornecedor = nc.horaFornecedor ? nc.horaFornecedor : '00:00'
+    nc.horaConclusao = nc.horaConclusao ? nc.horaConclusao : '00:00'
+    const dataInsert = [
+        id,
+        nc.data ? nc.data.substring(0, 10) + ' ' + nc.hora : null,
+        nc.profissionalPreenchimento?.id ? nc.profissionalPreenchimento?.id : null,
+        nc.tipo ?? null,
+        nc.produto?.id ? nc.produto?.id : null,
+        nc.descricao,
+        nc.acoesSolicitadas,
+        nc.fornecedorPreenche ? '1' : '0',
+        nc.obsFornecedor ?? null,
+        nc.dataFornecedor ? nc.dataFornecedor.substring(0, 10) + ' ' + nc.horaFornecedor : null,
+        nc.usuarioFornecedor?.id ? nc.usuarioFornecedor?.id : null,
+        nc.conclusao ?? null,
+        nc.dataConclusao ? nc.dataConclusao.substring(0, 10) + ' ' + nc.horaConclusao : null,
+        nc.profissionalConclusao?.id ? nc.profissionalConclusao?.id : null,
+        nc.status ?? null
+    ]
+    const resultInsertNaoConformidade = await executeQuery(sqlInsertNaoConformidade, dataInsert, 'insert', 'recebimentomp_naoconformidade', 'recebimentoMpNaoConformidadeID', null, logID)
+
+    return true
+}
+
+const updateNc = async (nc, id, logID) => {
+    console.log("🚀 ~ updateNc:", nc)
+
+    const sqlUpdateNaoConformidade = `
+    UPDATE recebimentomp_naoconformidade
+    SET data = ?, profissionalIDPreenchimento = ?, tipo = ?, produtoID = ?, descricao = ?, acoesSolicitadas = ?, fornecedorPreenche = ?, obsFornecedor = ?, dataFornecedor = ?, usuarioID = ?, conclusao = ?, dataConclusao = ?, profissionalIDConclusao = ?, status = ?
+    WHERE recebimentoMpNaoConformidadeID = ? `
+    nc.hora = nc.hora ? nc.hora : '00:00'
+    nc.horaFornecedor = nc.horaFornecedor ? nc.horaFornecedor : '00:00'
+    nc.horaConclusao = nc.horaConclusao ? nc.horaConclusao : '00:00'
+    const dataUpdate = [
+        nc.data ? nc.data.substring(0, 10) + ' ' + nc.hora : null,
+        nc.profissionalPreenchimento?.id ? nc.profissionalPreenchimento?.id : null,
+        nc.tipo ?? null,
+        nc.produto?.id ? nc.produto?.id : null,
+        nc.descricao,
+        nc.acoesSolicitadas,
+        nc.fornecedorPreenche ? '1' : '0',
+        nc.obsFornecedor ?? null,
+        nc.dataFornecedor ? nc.dataFornecedor.substring(0, 10) + ' ' + nc.horaFornecedor : null,
+        nc.usuarioFornecedor?.id ? nc.usuarioFornecedor?.id : null,
+        nc.conclusao ?? null,
+        nc.dataConclusao ? nc.dataConclusao.substring(0, 10) + ' ' + nc.horaConclusao : null,
+        nc.profissionalConclusao?.id ? nc.profissionalConclusao?.id : null,
+        nc.status ?? null,
+        nc.recebimentoMpNaoConformidadeID
+    ]
+    const resultUpdateNaoConformidade = await executeQuery(sqlUpdateNaoConformidade, dataUpdate, 'update', 'recebimentomp_naoconformidade', 'recebimentoMpNaoConformidadeID', nc.recebimentoMpNaoConformidadeID, logID)
+}
+
 
 module.exports = RecebimentoMpController;

@@ -42,32 +42,38 @@ class ProdutoController {
             	SELECT IF(COUNT(*) > 0, 1, 0)
                 FROM recebimentomp_produto AS rp 
                 WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
+                LIMIT 1
             ) AS checked,            
             (
             	SELECT rp.quantidade
                 FROM recebimentomp_produto AS rp 
                 WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
+                LIMIT 1
             ) AS quantidade,
             (
             	SELECT DATE_FORMAT(rp.dataFabricacao, '%Y-%m-%d')
                 FROM recebimentomp_produto AS rp 
                 WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
+                LIMIT 1
             ) AS dataFabricacao,
             (
             	SELECT DATE_FORMAT(rp.dataValidade, '%Y-%m-%d')
                 FROM recebimentomp_produto AS rp 
                 WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
+                LIMIT 1
             ) AS dataValidade,
             (
             	SELECT rp.apresentacaoID
                 FROM recebimentomp_produto AS rp 
                 WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
+                LIMIT 1
             ) AS apresentacaoID,
             (
             	SELECT a.nome
                 FROM recebimentomp_produto AS rp 
                     JOIN apresentacao AS a ON (rp.apresentacaoID = a.apresentacaoID)
                 WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
+                LIMIT 1
             ) AS apresentacaoNome,            
 
             -- Fornecedor (opções de produtos habilitados pro fornecedor selecionado)

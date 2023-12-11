@@ -127,13 +127,22 @@ class FornecedorController {
             SELECT 
                 f.fornecedorID AS id,
                 CONCAT(f.nome, " (", f.cnpj, ")") AS nome,
+                f.nome AS nome_, 
+                f.cnpj AS cnpj_,
                 f.telefone,
-                CONCAT(f.cidade, "/", f.estado) AS cidade
+                IF(f.cidade, CONCAT(f.cidade, "/", f.estado), null) AS cidade,
+                u.cabecalhoRelatorio AS foto
             FROM fornecedor AS f
+                LEFT JOIN unidade AS u ON (f.cnpj = u.cnpj)
             WHERE f.unidadeID = ? AND f.status IN (60, 70)
             GROUP BY f.cnpj
             ORDER BY f.nome ASC`
         const [result] = await db.promise().query(sql, [unidadeID])
+
+        for (const fornecedor of result) {
+            fornecedor['foto'] = fornecedor.foto ? `${process.env.BASE_URL_API}${fornecedor.foto}` : null
+        }
+
         return res.status(200).json(result)
     }
 
