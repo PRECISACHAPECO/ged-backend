@@ -439,16 +439,6 @@ class RecebimentoMpController {
                         const sqlInsertProduto = `
                         INSERT INTO recebimentomp_produto(recebimentoMpID, produtoID, quantidade, dataFabricacao, lote, nf, dataValidade, apresentacaoID)
                         VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
-                        // const [resultInsertProduto] = await db.promise().query(sqlInsertProduto, [
-                        //     id,
-                        //     produto.produtoID,
-                        //     produto.quantidade ?? null,
-                        //     produto.dataFabricacao ?? null,
-                        //     produto.lote ?? null,
-                        //     produto.nf ?? null,
-                        //     produto.dataValidade ?? null,
-                        //     produto.apresentacao?.id ?? null
-                        // ])
                         const resultInsertProduto = await executeQuery(sqlInsertProduto, [
                             id,
                             produto.produtoID,
@@ -959,7 +949,7 @@ const insertNc = async (nc, id, logID) => {
 }
 
 const updateNc = async (nc, id, logID) => {
-    console.log("🚀 ~ updateNc:", nc)
+    console.log("🚀 ~ updateNc:", nc.status)
 
     const sqlUpdateNaoConformidade = `
     UPDATE recebimentomp_naoconformidade
