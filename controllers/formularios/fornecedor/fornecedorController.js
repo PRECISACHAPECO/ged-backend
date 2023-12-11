@@ -422,6 +422,7 @@ class FornecedorController {
                 us.usuarioID,
                 us.nome AS preenche,
                 f.quemPreenche,
+            
                 f.razaoSocial,
                 f.nome,                
                 
@@ -429,6 +430,7 @@ class FornecedorController {
                 DATE_FORMAT(f.dataFim, '%H:%i') AS horaFim, 
                 f.aprovaProfissionalID,
                 pa.nome AS profissionalAprova,
+                p.nome AS modelo,
 
                 u.nomeFantasia, 
                 u.cnpj, 
@@ -438,6 +440,7 @@ class FornecedorController {
                 LEFT JOIN usuario AS us ON (f.usuarioID = us.usuarioID)
                 LEFT JOIN profissional AS pab ON (f.profissionalID = pab.profissionalID)
                 LEFT JOIN profissional AS pa ON (f.aprovaProfissionalID = pa.profissionalID)
+                LEFT JOIN par_fornecedor_modelo AS p ON (f.parFornecedorModeloID = p.parFornecedorModeloID)
             WHERE f.fornecedorID = ? `
             const [resultFornecedor] = await db.promise().query(sqlUnidade, [id])
             const unidade = {
@@ -445,6 +448,7 @@ class FornecedorController {
                 parFornecedorModeloID: resultFornecedor[0]['parFornecedorModeloID'] ?? 0,
                 unidadeID: resultFornecedor[0]['unidadeID'],
                 nomeFantasia: resultFornecedor[0]['nomeFantasia'],
+                modelo: resultFornecedor[0].modelo,
                 cnpj: resultFornecedor[0]['cnpj'],
                 obrigatorioProdutoFornecedor: resultFornecedor[0]['obrigatorioProdutoFornecedor'] == 1 ? true : false
             }
@@ -799,17 +803,14 @@ class FornecedorController {
         data.fieldsHeader.razaoSocial ?? null,
         data.fieldsHeader.nomeFantasia ?? null], 'update', 'fornecedor', 'fornecedorID', id, logID)
 
-
-
-        //? Atualizar o header dinâmico e setar o status        
-        if (data.fields > 0) {
+        //? Atualizar o header dinâmico e setar o status     
+        if (data.fields.length > 0) {
             //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
             let dataHeader = await formatFieldsToTable('par_fornecedor', data.fields)
             const sqlHeader = `UPDATE fornecedor SET ? WHERE fornecedorID = ${id} `;
-            // const [resultHeader] = await db.promise().query(sqlHeader, [dataHeader])
+
             const resultHeader = await executeQuery(sqlHeader, [dataHeader], 'update', 'fornecedor', 'fornecedorID', id, logID)
             if (!resultHeader) { return res.status(500).json('Error'); }
-
         }
 
         //? Blocos 

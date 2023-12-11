@@ -23,6 +23,10 @@ routes.use(urlBase, fornecedorRouter);
 const recebimentoMpRouter = require("./formularios/recebimento-mp/recebimentoMpRoutes");
 routes.use(urlBase, recebimentoMpRouter);
 
+// Recebimento de MP / Conformidade
+const conformidadeRouter = require("./formularios/recebimento-mp/nao-conformidade/naoConformidadeRoutes");
+routes.use(urlBase, conformidadeRouter);
+
 // Recebimento de MP / Não Conformidade
 // const naoConformidadeRouter = require("./formularios/recebimento-mp/nao-conformidade/naoConformidadeRoutes");
 // routes.use(urlBase, naoConformidadeRouter);
