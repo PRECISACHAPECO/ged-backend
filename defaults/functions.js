@@ -98,45 +98,45 @@ const accessPermissions = (data, logID) => {
 
             // //? Submenus 
             menu.submenu && menu.submenu.length > 0 && menu.submenu.map(async (submenu, indexSubmenu) => {
-                if (submenu.edit) { //? Editou submenu 
-                    //? Verifica se já existe essa unidade com esse papel para esse usuário
-                    const verifySubmenu = `
+                // if (submenu.edit) { //? Editou submenu 
+                //? Verifica se já existe essa unidade com esse papel para esse usuário
+                const verifySubmenu = `
                     SELECT permissaoID
                     FROM permissao
                     WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
-                    const [resultVerifySubmenu] = await db.promise().query(verifySubmenu, [submenu.rota, data.fields.unidadeID, data.fields.usuarioID, 1])
+                const [resultVerifySubmenu] = await db.promise().query(verifySubmenu, [submenu.rota, data.fields.unidadeID, data.fields.usuarioID, 1])
 
-                    if (resultVerifySubmenu.length > 0) { //? Ok, pode atualizar o submenu
-                        const sqlSubmenu = `
+                if (resultVerifySubmenu.length > 0) { //? Ok, pode atualizar o submenu
+                    const sqlSubmenu = `
                         UPDATE permissao
                         SET ler = ?, inserir = ?, editar = ?, excluir = ?
                         WHERE rota = ? AND unidadeID = ? AND usuarioID = ? AND papelID = ?`
 
-                        await executeQuery(sqlSubmenu, [
-                            boolToNumber(submenu.ler),
-                            boolToNumber(submenu.inserir),
-                            boolToNumber(submenu.editar),
-                            boolToNumber(submenu.excluir),
-                            submenu.rota,
-                            data.fields.unidadeID,
-                            data.fields.usuarioID,
-                            1,], 'update', 'permissao', 'usuarioID', data.fields.usuarioID, logID)
-
-                    } else { //? Não existe, então insere
-                        const sqlSubmenu = `
-                        INSERT INTO permissao (rota, unidadeID, usuarioID, papelID, ler, inserir, editar, excluir)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-
-                        await executeQuery(sqlSubmenu, [submenu.rota,
-                        data.fields.unidadeID,
-                        data.fields.usuarioID,
-                            1,
+                    await executeQuery(sqlSubmenu, [
                         boolToNumber(submenu.ler),
                         boolToNumber(submenu.inserir),
                         boolToNumber(submenu.editar),
-                        boolToNumber(submenu.excluir)], 'insert', 'permissao', 'permissaoID', null, logID)
-                    }
+                        boolToNumber(submenu.excluir),
+                        submenu.rota,
+                        data.fields.unidadeID,
+                        data.fields.usuarioID,
+                        1,], 'update', 'permissao', 'usuarioID', data.fields.usuarioID, logID)
+
+                } else { //? Não existe, então insere
+                    const sqlSubmenu = `
+                        INSERT INTO permissao (rota, unidadeID, usuarioID, papelID, ler, inserir, editar, excluir)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+
+                    await executeQuery(sqlSubmenu, [submenu.rota,
+                    data.fields.unidadeID,
+                    data.fields.usuarioID,
+                        1,
+                    boolToNumber(submenu.ler),
+                    boolToNumber(submenu.inserir),
+                    boolToNumber(submenu.editar),
+                    boolToNumber(submenu.excluir)], 'insert', 'permissao', 'permissaoID', null, logID)
                 }
+                // }
             })
         })
     })

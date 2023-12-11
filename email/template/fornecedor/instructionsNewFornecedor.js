@@ -1,6 +1,7 @@
 const cabecalho = require('../defaults/cabecalho');
 const selectRodape = require('../defaults/rodape/index');
 const css = require('../defaults/css');
+const rodape = require('../defaults/rodape/rodape');
 require('dotenv/config');
 const urlBase = process.env.BASE_URL;
 
@@ -50,7 +51,8 @@ async function instructionsNewFornecedor(values) {
                 </div>
             </div>`;
     // Rodapé
-    html += selectRodape(values);
+    // html += selectRodape(values);
+    html += rodape(values);
     html += `
         </body>
     </html>`;
