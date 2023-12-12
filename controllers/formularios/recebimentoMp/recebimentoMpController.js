@@ -20,7 +20,8 @@ class RecebimentoMpController {
             p.nome AS profissional, 
             IF(l.fornecedorID > 0, CONCAT(f.nome, ' (', f.cnpj, ')'), '--') AS fornecedor,
             s.nome AS status,
-            s.cor
+            s.cor,
+            l.concluido
         FROM recebimentomp AS l
             JOIN par_recebimentomp_modelo AS plm ON (l.parRecebimentoMpModeloID = plm.parRecebimentoMpModeloID)
             JOIN status AS s ON (l.status = s.statusID)
@@ -82,6 +83,7 @@ class RecebimentoMpController {
                 r.abreProfissionalID,
                 pa.nome AS abreProfissionalNome,
                 r.naoConformidade,
+                r.concluido,
 
                 -- Fornecedor
                 f.fornecedorID,
@@ -375,6 +377,7 @@ class RecebimentoMpController {
                     obs: resultOtherInformations[0].obs,
                     status: resultOtherInformations[0].status,
                     naoConformidade: result[0].naoConformidade == 1 ? true : false,
+                    concluido: result[0].concluido == 1 ? true : false,
                     cabecalhoModelo: resultCabecalhoModelo[0].cabecalho
                 },
                 link: `${process.env.BASE_URL} formularios / recebimento - mp ? id = ${id} `,
@@ -533,12 +536,13 @@ class RecebimentoMpController {
         //* Status
         const newStatus = data.info.status < 30 ? 30 : data.info.status
 
-        const sqlUpdateStatus = `UPDATE recebimentomp SET status = ?, naoConformidade = ?, dataFim = ?, finalizaProfissionalID = ? WHERE recebimentoMpID = ? `
+        const sqlUpdateStatus = `UPDATE recebimentomp SET status = ?, naoConformidade = ?, dataFim = ?, finalizaProfissionalID = ?, concluido = ? WHERE recebimentoMpID = ? `
         const resultUpdateStatus = await executeQuery(sqlUpdateStatus, [
             newStatus,
             data.info.naoConformidade ? '1' : '0',
             newStatus >= 40 ? new Date() : null,
             newStatus >= 40 ? profissionalID : null,
+            data?.concluido ? '1' : '0',
             id
         ], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
 
