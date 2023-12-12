@@ -1,6 +1,6 @@
 const cabecalho = require('../defaults/cabecalho');
-const selectRodape = require('../defaults/rodape/index');
 const css = require('../defaults/css');
+const rodape = require('../defaults/rodape');
 require('dotenv/config');
 const urlBase = process.env.BASE_URL;
 
@@ -41,7 +41,7 @@ async function newUser(values) {
       `
 
     // Rodapé
-    html += selectRodape(values);
+    html += await rodape(values);
     html += `
         </body>
     </html>`;

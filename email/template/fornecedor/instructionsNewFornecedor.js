@@ -1,14 +1,10 @@
 const cabecalho = require('../defaults/cabecalho');
-const selectRodape = require('../defaults/rodape/index');
 const css = require('../defaults/css');
-const rodape = require('../defaults/rodape/rodape');
+const rodape = require('../defaults/rodape');
 require('dotenv/config');
-const urlBase = process.env.BASE_URL;
 
 
 async function instructionsNewFornecedor(values) {
-    // link login e registro enviando cnpj e unidade como parâmetros
-    const linkLogin = `${urlBase}/fornecedor/?f=${values.fornecedorID}`;
 
     let html = `
     <html>`;
@@ -35,7 +31,7 @@ async function instructionsNewFornecedor(values) {
                         <p>Dados para acessar o sistema:</p>
                     </div>
                     <div style="margin-top: 10px;">
-                        <p>Link  <br/><a style="font-weight: bold; color: #4c4e64de; "  href="${linkLogin}">${urlBase}fornecedor/?f=${values.fornecedorID}</a></p>
+                        <p>Link  <br/><a style="font-weight: bold; color: #4c4e64de; "  href="${values.link}">${values.link}</a></p>
                         <p>Usuário  <br/><strong>${values.cnpjFornecedor}</strong></p>
                         <p>Senha  <br/><strong>${values.senhaFornecedor}</strong></p>
                     </div>
@@ -52,7 +48,7 @@ async function instructionsNewFornecedor(values) {
             </div>`;
     // Rodapé
     // html += selectRodape(values);
-    html += rodape(values);
+    html += await rodape(values);
     html += `
         </body>
     </html>`;
