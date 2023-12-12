@@ -1,6 +1,6 @@
 const cabecalho = require("../../defaults/cabecalho");
 const css = require("../../defaults/css");
-const rodape = require("../../defaults/rodape/rodape");
+const rodape = require("../../defaults/rodape");
 
 
 async function fornecedorPreenche(values) {
@@ -16,7 +16,15 @@ async function fornecedorPreenche(values) {
     // Conteúdo
     html += `
                 <div class="content">
-                  <h1>Ola formnecedorrrr</h1>
+                    <p><strong>Olá, ${values.nomeFantasia}!</strong></p>
+                    <p>A ${values.nomeFantasiaFabrica} solicita o preenchimento da não conformidade.</p>
+                    
+                    <div>
+                    <p>Atenciosamente, <br/>
+                        ${values.nomeProfissional} <br/>
+                        ${values.cargoProfissional} <br/>
+                    </p>
+                </div>
                 </div>
             </div>`;
     // Rodapé

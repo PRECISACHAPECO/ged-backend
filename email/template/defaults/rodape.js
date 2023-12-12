@@ -1,7 +1,6 @@
-const db = require('../../../../config/db');
+const db = require('../../../config/db');
 
 const rodape = async (values) => {
-    console.log("🚀 ~ values:", values)
     //   Obtem dados da fabrica
     const sqlUnity = `
        SELECT a.*   
