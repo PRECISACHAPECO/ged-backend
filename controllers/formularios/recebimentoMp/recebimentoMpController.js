@@ -1,6 +1,7 @@
 const db = require('../../../config/db');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 require('dotenv/config')
 const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
 const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts } = require('../../../config/defaultConfig');

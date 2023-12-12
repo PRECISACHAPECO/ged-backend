@@ -21,13 +21,12 @@ class NaoConformidade {
 
         //Dados profissional logado
         const sqlProfessional = `
-          SELECT 
-              a.nome,
-              b.formacaoCargo AS cargo
-          FROM profissional AS a 
-              LEFT JOIN profissional_cargo AS b ON (a.profissionalID = b.profissionalID)
-          WHERE a.profissionalID = ?
-          `
+        SELECT 
+            a.nome,
+            b.formacaoCargo AS cargo
+        FROM profissional AS a 
+            LEFT JOIN profissional_cargo AS b ON (a.profissionalID = b.profissionalID)
+        WHERE a.profissionalID = ?`
         const [resultSqlProfessional] = await db.promise().query(sqlProfessional, [data.usuarioID])
 
         const values = {
@@ -50,13 +49,13 @@ class NaoConformidade {
             papelID: data.papelID,
             fornecedorID: data.fornecedorID,
             stage: 's3',
-            link: `${process.env.BASE_URL}formularios/recebimento-mp?r=${data.recebimentoMp}`,
+            link: `${process.env.BASE_URL}formularios/recebimento-mp?r=${data.recebimentoMpID}`,
 
         }
 
         // Envia email para preencher não conformidade no recebimentoMp 
         const logID = await executeLog('Email para preencher não conformidade no recebimentoMp', data.usuarioID, data.unidadeID, req)
-        const destinatario = data.email
+        const destinatario = resultFornecedor[0].email
         let assunto = `GEDagro - Prencher não conformidade `
         const html = await fornecedorPreenche(values);
         await sendMailConfig(destinatario, assunto, html, logID, values)
@@ -85,8 +84,8 @@ class NaoConformidade {
 
                 // Salva usuario_unidade
                 const sqlNewUserUnity = `
-                      INSERT INTO usuario_unidade(usuarioID, unidadeID, papelID)
-                      VALUES(?, ?, ?)
+                INSERT INTO usuario_unidade(usuarioID, unidadeID, papelID)
+                VALUES(?, ?, ?)
                       `
                 await executeQuery(sqlNewUserUnity, [usuarioID, newUnidadeID, 2], 'insert', 'usuario_unidade', 'usuarioUnidadeID', null, logID)
 
@@ -94,8 +93,12 @@ class NaoConformidade {
                 const html = await instructionsNewFornecedor(values)
                 await sendMailConfig(destinatario, assunto, html, logID, values)
             }
-
         }
+
+        //? Atualiza tabela recebimentoMp
+        const sqlUpdateRecebimentoMp = `UPDATE recebimentoMp SET naoConformidadeEmailFornecedor = 1 WHERE recebimentoMpID = ?`
+        await db.promise().query(sqlUpdateRecebimentoMp, [data.recebimentoMpID])
+
         res.status(200).json('ok')
     }
 }
