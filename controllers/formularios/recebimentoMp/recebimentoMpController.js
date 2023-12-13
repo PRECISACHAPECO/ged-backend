@@ -448,7 +448,7 @@ class RecebimentoMpController {
 
         const logID = await executeLog('Edição formulário do Recebimento Mp', usuarioID, unidadeID, req)
 
-        const sqlSelect = `SELECT status, naoConformidadeEmailFornecedor FROM recebimentomp WHERE recebimentoMpID = ? `
+        const sqlSelect = `SELECT status, naoConformidade, naoConformidadeEmailFornecedor FROM recebimentomp WHERE recebimentoMpID = ? `
         const [result] = await db.promise().query(sqlSelect, [id])
 
         //? Atualiza header e footer fixos
@@ -578,6 +578,8 @@ class RecebimentoMpController {
 
         //* Status
         const newStatus = data.info.status < 30 ? 30 : data.info.status
+        //* Fecha formulário: se concluiu e não gerou NC ou já existia NC e concluiu novamente!
+        const concluido = data.concluiForm && (!data.info.naoConformidade || result[0]['naoConformidade'] == 1) ? '1' : '0'
 
         const sqlUpdateStatus = `UPDATE recebimentomp SET status = ?, naoConformidade = ?, dataFim = ?, finalizaProfissionalID = ?, concluido = ? WHERE recebimentoMpID = ? `
         const resultUpdateStatus = await executeQuery(sqlUpdateStatus, [
@@ -585,7 +587,7 @@ class RecebimentoMpController {
             data.info.naoConformidade ? '1' : '0',
             newStatus >= 40 ? new Date() : null,
             newStatus >= 40 ? profissionalID : null,
-            data?.concluido ? '1' : '0',
+            concluido,
             id
         ], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
 
@@ -791,33 +793,33 @@ const getNaoConformidades = async (recebimentoMpID) => {
                 'fornecedorPreenche': row.fornecedorPreenche == 1 ? true : false,
                 'data': row.data,
                 'hora': row.hora,
-                'profissionalPreenchimento': {
+                'profissionalPreenchimento': row.profissionalIDPreenchimento > 0 ? {
                     id: row.profissionalIDPreenchimento,
-                    nome: row.profissionalNomePreenchimento,
-                    options: profissionaisAssinatura.profissionaisPreenchimento ?? []
-                },
+                    nome: row.profissionalNomePreenchimento
+                } : null,
                 'tipo': row.tipo,
-                'produto': {
+                'produto': row.produtoID > 0 ? {
                     id: row.produtoID,
                     nome: row.produtoNome
-                },
+                } : null,
                 dynamicFields: dynamicFields,
-                // 'descricao': row.descricao,
-                // 'acoesSolicitadas': row.acoesSolicitadas,
                 'obsFornecedor': row.obsFornecedor,
                 'dataFornecedor': row.dataFornecedor,
                 'horaFornecedor': row.horaFornecedor,
-                'usuarioFornecedor': {
+                'usuarioFornecedor': row.usuarioIDFornecedor > 0 ? {
                     id: row.usuarioIDFornecedor,
                     nome: row.usuarioNomeFornecedor
-                },
+                } : null,
                 'conclusao': row.conclusao,
                 'dataConclusao': row.dataConclusao,
                 'horaConclusao': row.horaConclusao,
-                'profissionalConclusao': {
+                'profissionalConclusao': row.profissionalIDConclusao > 0 ? {
                     id: row.profissionalIDConclusao,
-                    nome: row.profissionalNomeConclusao,
-                    options: profissionaisAssinatura.profissionaisConclusao ?? []
+                    nome: row.profissionalNomeConclusao
+                } : null,
+                'profissionaisOptions': {
+                    'preenchimento': profissionaisAssinatura.profissionaisPreenchimento ?? [],
+                    'conclusao': profissionaisAssinatura.profissionaisConclusao ?? []
                 },
                 'status': row.status
             }
