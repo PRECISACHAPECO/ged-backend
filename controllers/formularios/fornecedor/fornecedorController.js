@@ -1413,7 +1413,7 @@ class FornecedorController {
                 noBaseboard: false, // Se falso mostra o rodapé com os dados da fabrica, senão mostra dados do GEDagro,
                 link: `${process.env.BASE_URL}/fornecedor?f=${fornecedorID}`,
             }
-            // sendMail(dataEmail, logID)
+            sendMail(dataEmail, logID)
 
             const result = {
                 status: true,
