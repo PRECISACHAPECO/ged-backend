@@ -1232,7 +1232,7 @@ class FornecedorController {
     }
 
     async makeFornecedor(req, res) {
-        const { usuarioID, unidadeID, papelID, habilitaQuemPreencheFormFornecedor, values } = req.body;
+        const { usuarioID, unidadeID, papelID, profissionalID, habilitaQuemPreencheFormFornecedor, values } = req.body;
         const quemPreenche = habilitaQuemPreencheFormFornecedor ?? 2
 
         const logID = await executeLog('Habilitar fornecedor', usuarioID, unidadeID, req)
@@ -1246,7 +1246,7 @@ class FornecedorController {
             const sqlFornecedor = `
         INSERT INTO fornecedor(parFornecedorModeloID, cnpj, razaoSocial, nome, email, unidadeID, status, atual, dataInicio, profissionalID, quemPreenche) 
         VALUES(?, "${values.cnpj}", ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            const fornecedorID = await executeQuery(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nomeFantasia, values.email, unidadeID, initialStatus, 1, new Date(), usuarioID, quemPreenche], 'insert', 'fornecedor', 'fornecedorID', null, logID)
+            const fornecedorID = await executeQuery(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nomeFantasia, values.email, unidadeID, initialStatus, 1, new Date(), profissionalID, quemPreenche], 'insert', 'fornecedor', 'fornecedorID', null, logID)
 
             //? Grava grupos de anexo do fornecedor
             if (values.gruposAnexo && values.gruposAnexo.length > 0) {
@@ -1297,7 +1297,7 @@ class FornecedorController {
             const sqlFornecedor = `
         INSERT INTO fornecedor(parFornecedorModeloID, cnpj, razaoSocial, nome, email, unidadeID, status, atual, dataInicio, profissionalID, quemPreenche) 
         VALUES(?, "${values.cnpj}", ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            const fornecedorID = await executeQuery(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nomeFantasia, values.email, unidadeID, initialStatus, 1, new Date(), usuarioID, quemPreenche], 'insert', 'fornecedor', 'fornecedorID', null, logID)
+            const fornecedorID = await executeQuery(sqlFornecedor, [values.modelo.id, values.razaoSocial, values.nomeFantasia, values.email, unidadeID, initialStatus, 1, new Date(), profissionalID, quemPreenche], 'insert', 'fornecedor', 'fornecedorID', null, logID)
 
             //? Grava grupos de anexo do fornecedor
             if (values.gruposAnexo && values.gruposAnexo.length > 0) {
