@@ -539,7 +539,7 @@ class RecebimentoMpController {
                             const sqlUpdate = `
                             UPDATE recebimentomp_resposta 
                             SET resposta = ?, respostaID = ?, obs = ?, recebimentoMpID = ?
-            WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
+                            WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
                             // const [resultUpdate] = await db.promise().query(sqlUpdate, [
                             //     resposta,
                             //     respostaID,
@@ -597,10 +597,6 @@ class RecebimentoMpController {
                 for (const nc of data.naoConformidade.itens) {
                     nc.recebimentoMpNaoConformidadeID > 0 ? await updateNc(nc, id, logID) : await insertNc(nc, id, logID)
                 }
-            } else {
-                //? Gerou não conformidade, insere uma vazia
-                const sqlInsert = `INSERT INTO recebimentomp_naoconformidade(recebimentoMpID, data, profissionalIDPreenchimento) VALUES(?, ?, ?)`
-                const [resultInsert] = await db.promise().query(sqlInsert, [id, new Date(), profissionalID])
             }
 
             //? Se ainda não enviou email ao fornecedor preencher NC, verifica se precisa enviar
@@ -738,6 +734,34 @@ class RecebimentoMpController {
     async saveRelatorio(req, res) {
         const pathDestination = req.pathDestination
         const files = req.files;
+    }
+
+    async getNaoConformidadeModels(req, res) {
+        const { unidadeID } = req.params
+
+        try {
+            const sqlModel = `
+            SELECT parRecebimentoMpNaoConformidadeModeloID, nome, ciclo, cabecalho
+            FROM par_recebimentomp_naoconformidade_modelo                
+            WHERE unidadeID = ? AND status = 1
+            ORDER BY nome ASC`
+            const [resultModels] = await db.promise().query(sqlModel, [unidadeID])
+
+            for (const model of resultModels) {
+                const sqlFields = `
+                SELECT prnmc.obrigatorio, prnmc.ordem, prn.nomeCampo, prn.tabela, prn.nomeColuna, prn.tipo
+                FROM par_recebimentomp_naoconformidade_modelo_cabecalho AS prnmc
+                    LEFT JOIN par_recebimentomp_naoconformidade AS prn ON (prn.parRecebimentoMpNaoConformidadeID = prnmc.parRecebimentoMpNaoConformidadeID)
+                WHERE prnmc.parRecebimentoMpNaoConformidadeModeloID = ?
+                ORDER BY prn.ordem ASC`
+                const [resultFields] = await db.promise().query(sqlFields, [model.parRecebimentoMpNaoConformidadeModeloID])
+                model['dynamicFields'] = resultFields ?? []
+            }
+
+            return res.status(200).json(resultModels)
+        } catch (error) {
+            console.log(error)
+        }
     }
 }
 
@@ -1052,12 +1076,13 @@ const insertNc = async (nc, id, logID) => {
     }
 
     const sqlInsertNaoConformidade = `
-    INSERT INTO recebimentomp_naoconformidade(${arrayDynamicFields.join('')} recebimentoMpID, data, profissionalIDPreenchimento, tipo, produtoID, fornecedorPreenche, obsFornecedor, dataFornecedor, usuarioID, conclusao, dataConclusao, profissionalIDConclusao, status) VALUES (${arrayDynamicOptions.join('')} ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    INSERT INTO recebimentomp_naoconformidade(${arrayDynamicFields.join('')} parRecebimentoMpNaoConformidadeModeloID, recebimentoMpID, data, profissionalIDPreenchimento, tipo, produtoID, fornecedorPreenche, obsFornecedor, dataFornecedor, usuarioID, conclusao, dataConclusao, profissionalIDConclusao, status) VALUES (${arrayDynamicOptions.join('')} ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     nc.hora = nc.hora ? nc.hora : '00:00'
     nc.horaFornecedor = nc.horaFornecedor ? nc.horaFornecedor : '00:00'
     nc.horaConclusao = nc.horaConclusao ? nc.horaConclusao : '00:00'
     const dataInsert = [
         ...arrayDynamicValues,
+        nc.parRecebimentoMpNaoConformidadeModeloID,
         id,
         nc.data ? nc.data.substring(0, 10) + ' ' + nc.hora : null,
         nc.profissionalPreenchimento?.id ? nc.profissionalPreenchimento?.id : null,
@@ -1072,7 +1097,6 @@ const insertNc = async (nc, id, logID) => {
         nc.profissionalConclusao?.id ? nc.profissionalConclusao?.id : null,
         nc.status ?? null
     ]
-
 
     const resultInsertNaoConformidade = await executeQuery(sqlInsertNaoConformidade, dataInsert, 'insert', 'recebimentomp_naoconformidade', 'recebimentoMpNaoConformidadeID', null, logID)
 
