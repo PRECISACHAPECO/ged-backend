@@ -48,7 +48,6 @@ async function instructionsNewFornecedor(values) {
                 </div>
             </div>`;
     // Rodapé
-    // html += selectRodape(values);
     html += await rodape(values);
     html += `
         </body>
