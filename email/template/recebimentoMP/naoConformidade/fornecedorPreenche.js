@@ -2,8 +2,8 @@ const cabecalho = require("../../defaults/cabecalho");
 const css = require("../../defaults/css");
 const rodape = require("../../defaults/rodape");
 
-
 async function fornecedorPreenche(values) {
+    console.log("🚀 ~ values:", values)
     let html = `
     <html>`;
     // CSS
@@ -18,13 +18,17 @@ async function fornecedorPreenche(values) {
                 <div class="content">
                     <p><strong>Olá, ${values.nomeFantasia}!</strong></p>
                     <p>A ${values.nomeFantasiaFabrica} solicita o preenchimento da não conformidade.</p>
-                    
                     <div>
-                    <p>Atenciosamente, <br/>
-                        ${values.nomeProfissional} <br/>
-                        ${values.cargoProfissional} <br/>
-                    </p>
-                </div>
+                        <p>${values.products.length > 1 ? 'Produtos:' : 'Produto:'}
+                            ${values.products ? values.products.map(product => `<span>${product}</span>`).join(', ') : ''}.
+                        </p>
+                    </div>
+                    <div>
+                        <p>Atenciosamente, <br/>
+                            ${values.nomeProfissional} <br/>
+                            ${values.cargoProfissional} <br/>
+                        </p>
+                    </div>
                 </div>
             </div>`;
     // Rodapé

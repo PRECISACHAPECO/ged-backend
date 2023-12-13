@@ -1071,8 +1071,6 @@ const insertNc = async (nc, id, logID) => {
         nc.status ?? null
     ]
 
-    console.log("🚀 ~ sqlInsertNaoConformidade:", sqlInsertNaoConformidade)
-    console.log("🚀 ~ dataInsert:", dataInsert)
 
     const resultInsertNaoConformidade = await executeQuery(sqlInsertNaoConformidade, dataInsert, 'insert', 'recebimentomp_naoconformidade', 'recebimentoMpNaoConformidadeID', null, logID)
 
@@ -1132,7 +1130,6 @@ const updateNc = async (nc, id, logID) => {
 }
 
 const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoConformidades, unidadeID, usuarioID, papelID) => {
-    console.log("🚀 ~ arrNaoConformidades:", arrNaoConformidades)
     if (arrNaoConformidades.length === 0) return
 
     const arrProducts = []
@@ -1158,7 +1155,8 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
 
         const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
         const result = await axios.post(url, data)
-        console.log("🚀 ~ result:", result)
+        // console.log("🚀 ~ result:", result)
+
 
     }
 

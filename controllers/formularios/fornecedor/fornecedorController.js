@@ -1411,7 +1411,7 @@ class FornecedorController {
                 ifFornecedor: resultUserExists.length == 0 ? false : true,
                 stage: 's1', // estagio que o formulario se encontra
                 noBaseboard: false, // Se falso mostra o rodapé com os dados da fabrica, senão mostra dados do GEDagro,
-                link: `${process.env.BASE_URL}formularios/fornecedor?f=${fornecedorID}`,
+                link: `${process.env.BASE_URL}/fornecedor?f=${fornecedorID}`,
             }
             sendMail(dataEmail, logID)
 

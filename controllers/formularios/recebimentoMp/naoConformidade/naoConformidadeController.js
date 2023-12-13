@@ -17,6 +17,7 @@ class NaoConformidade {
         //Dados fornecedor
         const sqlFornecedor = `SELECT * FROM fornecedor WHERE fornecedorID = ?`
         const [resultFornecedor] = await db.promise().query(sqlFornecedor, [data.fornecedorID])
+
         const password = gerarSenhaCaracteresIniciais(resultFornecedor[0].cnpj, 4)
 
         //Dados profissional logado
@@ -49,7 +50,8 @@ class NaoConformidade {
             papelID: data.papelID,
             fornecedorID: data.fornecedorID,
             stage: 's3',
-            link: `${process.env.BASE_URL}formularios/recebimento-mp?r=${data.recebimentoMpID}`,
+            link: `${process.env.BASE_URL}/fornecedor?r=${data.recebimentoMpID}`,
+            products: data.products
 
         }
 
@@ -75,7 +77,8 @@ class NaoConformidade {
                 const sqlNewUuser = `
                   INSERT INTO usuario(nome, cnpj, email, senha)
                   VALUES(?, ?, ?, ?)`
-                const usuarioID = await executeQuery(sqlNewUuser, [resultFornecedor[0].nome, resultFornecedor[0].cnpj, data.email, criptoMd5(password)], 'insert', 'usuario', 'usuarioID', null, logID)
+                const usuarioID = await executeQuery(sqlNewUuser, [resultFornecedor[0].nome, resultFornecedor[0].cnpj, resultFornecedor[0].email, criptoMd5(password)], 'insert', 'usuario', 'usuarioID', null, logID)
+                // return
 
                 // Salva a unidade
                 const sqlInsertUnity = `
