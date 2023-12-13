@@ -2,6 +2,7 @@ const cabecalho = require('../defaults/cabecalho');
 const css = require('../defaults/css');
 const rodape = require('../defaults/rodape');
 require('dotenv/config');
+const urlBase = process.env.BASE_URL;
 
 
 async function instructionsNewFornecedor(values) {
