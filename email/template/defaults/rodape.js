@@ -10,12 +10,12 @@ const rodape = async (values) => {
     const [resultUnity] = await db.promise().query(sqlUnity, [values.unidadeID])
 
     const endereco = {
-        logradouro: resultUnity[0].logradouro,
-        numero: resultUnity[0].numero,
-        complemento: resultUnity[0].complemento,
-        bairro: resultUnity[0].bairro,
-        cidade: resultUnity[0].cidade,
-        uf: resultUnity[0].uf,
+        logradouro: resultUnity[0]?.logradouro,
+        numero: resultUnity[0]?.numero,
+        complemento: resultUnity[0]?.complemento,
+        bairro: resultUnity[0]?.bairro,
+        cidade: resultUnity[0]?.cidade,
+        uf: resultUnity[0]?.uf,
     }
 
     const enderecoCompleto = Object.entries(endereco).map(([key, value]) => {
