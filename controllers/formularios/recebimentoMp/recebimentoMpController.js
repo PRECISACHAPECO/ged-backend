@@ -10,30 +10,63 @@ const { send } = require('process');
 
 class RecebimentoMpController {
     async getList(req, res) {
-        const { unidadeID } = req.params;
+        const { unidadeID, papelID, usuarioID } = req.params;
 
-        if (!unidadeID) return res.status(400).json({ error: 'unidadeID não informado!' })
+        if (!unidadeID || !papelID) return res.status(400).json({ error: 'unidadeID não informado!' })
 
-        const sql = `
-        SELECT 
-            l.recebimentoMpID AS id, 
-            IF(MONTH(l.data) > 0, DATE_FORMAT(l.data, "%d/%m/%Y"), '--') AS data, 
-            plm.nome AS modelo,
-            p.nome AS profissional, 
-            IF(l.fornecedorID > 0, CONCAT(f.nome, ' (', f.cnpj, ')'), '--') AS fornecedor,
-            s.nome AS status,
-            s.cor,
-            l.concluido
-        FROM recebimentomp AS l
-            JOIN par_recebimentomp_modelo AS plm ON (l.parRecebimentoMpModeloID = plm.parRecebimentoMpModeloID)
-            JOIN status AS s ON (l.status = s.statusID)
-            LEFT JOIN profissional AS p ON (l.preencheProfissionalID = p.profissionalID)
-            LEFT JOIN fornecedor AS f ON (l.fornecedorID = f.fornecedorID)
-        WHERE l.unidadeID = ?
-        ORDER BY l.recebimentoMpID DESC, l.status ASC`
-        const [result] = await db.promise().query(sql, [unidadeID])
+        if (papelID == 1) {        //? Fábrica
+            const sql = `
+            SELECT 
+                l.recebimentoMpID AS id, 
+                IF(MONTH(l.data) > 0, DATE_FORMAT(l.data, "%d/%m/%Y"), '--') AS data, 
+                plm.nome AS modelo,
+                p.nome AS profissional, 
+                IF(l.fornecedorID > 0, CONCAT(f.nome, ' (', f.cnpj, ')'), '--') AS fornecedor,
+                s.nome AS status,
+                s.cor,
+                l.concluido
+            FROM recebimentomp AS l
+                JOIN par_recebimentomp_modelo AS plm ON (l.parRecebimentoMpModeloID = plm.parRecebimentoMpModeloID)
+                JOIN status AS s ON (l.status = s.statusID)
+                LEFT JOIN profissional AS p ON (l.preencheProfissionalID = p.profissionalID)
+                LEFT JOIN fornecedor AS f ON (l.fornecedorID = f.fornecedorID)
+            WHERE l.unidadeID = ?
+            ORDER BY l.recebimentoMpID DESC, l.status ASC`
 
-        return res.json(result);
+            const [result] = await db.promise().query(sql, [unidadeID])
+            return res.json(result);
+
+        } else if (papelID == 2) { //? Fornecedor
+            //? Obtém o CNPJ do usuário logado 
+            const sqlCnpj = `SELECT cnpj FROM usuario WHERE usuarioID = ?`
+            const [resultCnpj] = await db.promise().query(sqlCnpj, [usuarioID])
+
+            if (!resultCnpj[0]['cnpj']) return res.status(400).json({ error: 'Fornecedor não possui CNPJ!' })
+
+            const sql = `
+            SELECT 
+                l.recebimentoMpID AS id, 
+                IF(MONTH(l.data) > 0, DATE_FORMAT(l.data, "%d/%m/%Y"), '--') AS data, 
+                plm.nome AS modelo,
+                p.nome AS profissional, 
+                CONCAT(u.nomeFantasia, ' (', u.cnpj, ')') AS fabrica,
+                s.nome AS status,
+                s.cor,
+                l.concluido
+            FROM recebimentomp AS l
+                JOIN recebimentomp_naoconformidade AS rnc ON (l.recebimentoMpID = rnc.recebimentoMpID)
+                JOIN par_recebimentomp_modelo AS plm ON (l.parRecebimentoMpModeloID = plm.parRecebimentoMpModeloID)
+                JOIN status AS s ON (l.status = s.statusID)
+                LEFT JOIN profissional AS p ON (l.preencheProfissionalID = p.profissionalID)
+                LEFT JOIN unidade AS u ON (l.unidadeID = u.unidadeID)
+                JOIN fornecedor AS f ON (l.fornecedorID = f.fornecedorID)
+            WHERE f.cnpj = ? AND rnc.fornecedorPreenche = 1
+            GROUP BY l.recebimentoMpID
+            ORDER BY l.recebimentoMpID DESC, l.status ASC`
+
+            const [result] = await db.promise().query(sql, [resultCnpj[0]['cnpj']])
+            return res.json(result);
+        }
     }
 
     async getModels(req, res) {
