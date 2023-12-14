@@ -112,6 +112,8 @@ class RecebimentoMpController {
             const sqlResult = `
             SELECT
                 r.parRecebimentoMpModeloID,
+                prm.nome AS modeloNome,
+
                 r.unidadeID,
                 DATE_FORMAT(r.dataInicio, '%Y-%m-%d') AS dataInicio,
                 DATE_FORMAT(r.dataInicio, '%H:%i') AS horaInicio,
@@ -160,10 +162,14 @@ class RecebimentoMpController {
                 LEFT JOIN profissional AS pf ON(r.finalizaProfissionalID = pf.profissionalID)
                 LEFT JOIN fornecedor AS f ON(r.fornecedorID = f.fornecedorID)
                 LEFT JOIN unidade AS uf ON (f.cnpj = uf.cnpj)
+                LEFT JOIN par_recebimentomp_modelo AS prm ON (prm.parRecebimentoMpModeloID = r.parRecebimentoMpModeloID)
             WHERE r.recebimentoMpID = ? `
             const [result] = await db.promise().query(sqlResult, [id])
             const unidade = {
-                parRecebimentoMpModeloID: result[0]['parRecebimentoMpModeloID'] ?? 0,
+                modelo: {
+                    id: result[0]['parRecebimentoMpModeloID'] ?? 0,
+                    nome: result[0]['modeloNome']
+                },
                 unidadeID: result[0]['unidadeID'],
                 nomeFantasia: result[0]['nomeFantasia'],
                 cnpj: result[0]['cnpj']
@@ -748,6 +754,9 @@ class RecebimentoMpController {
             const [resultModels] = await db.promise().query(sqlModel, [unidadeID])
 
             for (const model of resultModels) {
+
+                const profissionaisAssinatura = await getNcDynamicProfessionals(model.parRecebimentoMpNaoConformidadeModeloID)
+
                 const sqlFields = `
                 SELECT prnmc.obrigatorio, prnmc.ordem, prn.nomeCampo, prn.tabela, prn.nomeColuna, prn.tipo
                 FROM par_recebimentomp_naoconformidade_modelo_cabecalho AS prnmc
@@ -756,6 +765,10 @@ class RecebimentoMpController {
                 ORDER BY prn.ordem ASC`
                 const [resultFields] = await db.promise().query(sqlFields, [model.parRecebimentoMpNaoConformidadeModeloID])
                 model['dynamicFields'] = resultFields ?? []
+                model['profissionaisOptions'] = {
+                    'preenchimento': profissionaisAssinatura.profissionaisPreenchimento ?? [],
+                    'conclusao': profissionaisAssinatura.profissionaisConclusao ?? []
+                }
             }
 
             return res.status(200).json(resultModels)
@@ -775,6 +788,7 @@ const getNaoConformidades = async (recebimentoMpID) => {
         SELECT 
             rn.recebimentoMpNaoConformidadeID,
             rn.parRecebimentoMpNaoConformidadeModeloID,
+            prnm.nome AS modeloNome,
             DATE_FORMAT(rn.data, '%Y-%m-%d') AS data,
             DATE_FORMAT(rn.data, '%H:%i') AS hora,
             pp.profissionalID AS profissionalIDPreenchimento,
@@ -801,19 +815,24 @@ const getNaoConformidades = async (recebimentoMpID) => {
             LEFT JOIN produto AS pr ON (rn.produtoID = pr.produtoID)
             LEFT JOIN usuario AS u ON (rn.usuarioID = u.usuarioID)
             LEFT JOIN profissional AS pc ON (rn.profissionalIDConclusao = pc.profissionalID)
+            LEFT JOIN par_recebimentomp_naoconformidade_modelo AS prnm ON (rn.parRecebimentoMpNaoConformidadeModeloID = prnm.parRecebimentoMpNaoConformidadeModeloID)
         WHERE rn.recebimentoMpID = ? `
         const [result] = await db.promise().query(sql, [recebimentoMpID])
 
         if (result.length === 0) return []
 
-        //? Obtém os campos dinâmicos da não conformidade baseada no modelo
-        const dynamicFields = await getNcDynamicFields(result[0].recebimentoMpNaoConformidadeID, result[0].parRecebimentoMpNaoConformidadeModeloID)
-        const profissionaisAssinatura = await getNcDynamicProfessionals(result[0].recebimentoMpNaoConformidadeID, result[0].parRecebimentoMpNaoConformidadeModeloID)
-
         let arrData = []
         for (const row of result) {
+            //? Obtém os campos dinâmicos da não conformidade baseada no modelo
+            const dynamicFields = await getNcDynamicFields(row.recebimentoMpNaoConformidadeID, row.parRecebimentoMpNaoConformidadeModeloID)
+            const profissionaisAssinatura = await getNcDynamicProfessionals(row.parRecebimentoMpNaoConformidadeModeloID)
+
             const data = {
                 'recebimentoMpNaoConformidadeID': row.recebimentoMpNaoConformidadeID,
+                'modelo': {
+                    id: row.parRecebimentoMpNaoConformidadeModeloID,
+                    nome: row.modeloNome
+                },
                 'fornecedorPreenche': row.fornecedorPreenche == 1 ? true : false,
                 'data': row.data,
                 'hora': row.hora,
@@ -882,7 +901,7 @@ const getNcDynamicFields = async (recebimentoMpNaoConformidadeID, parRecebimento
     return resultDynamicFields ?? []
 }
 
-const getNcDynamicProfessionals = async (recebimentoMpNaoConformidadeID, parRecebimentoMpNaoConformidadeModeloID) => {
+const getNcDynamicProfessionals = async (parRecebimentoMpNaoConformidadeModeloID) => {
     const sqlConfig = `
     SELECT p.profissionalID AS id, p.nome, prnmp.tipo
     FROM par_recebimentomp_naoconformidade_modelo AS prnm
@@ -1163,7 +1182,7 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
     for (const nc of arrNaoConformidades) {
         if (nc.fornecedorPreenche) {
             needNotify = true
-            if (nc.produto.nome != '') arrProducts.push(nc.produto?.nome)
+            if (nc.produto && nc.produto.nome != '') arrProducts.push(nc.produto?.nome)
         }
     }
 
@@ -1176,7 +1195,7 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
             recebimentoMpID: recebimentoMpID,
             fornecedorID: fornecedor.id,
             isUser: fornecedor.isUser,
-            products: arrProducts
+            products: arrProducts ?? []
         }
 
         const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
