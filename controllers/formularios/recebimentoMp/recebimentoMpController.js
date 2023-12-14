@@ -448,7 +448,7 @@ class RecebimentoMpController {
 
         const logID = await executeLog('Edição formulário do Recebimento Mp', usuarioID, unidadeID, req)
 
-        const sqlSelect = `SELECT status, naoConformidadeEmailFornecedor FROM recebimentomp WHERE recebimentoMpID = ? `
+        const sqlSelect = `SELECT status, naoConformidade, naoConformidadeEmailFornecedor FROM recebimentomp WHERE recebimentoMpID = ? `
         const [result] = await db.promise().query(sqlSelect, [id])
 
         //? Atualiza header e footer fixos
@@ -539,7 +539,7 @@ class RecebimentoMpController {
                             const sqlUpdate = `
                             UPDATE recebimentomp_resposta 
                             SET resposta = ?, respostaID = ?, obs = ?, recebimentoMpID = ?
-            WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
+                            WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
                             // const [resultUpdate] = await db.promise().query(sqlUpdate, [
                             //     resposta,
                             //     respostaID,
@@ -578,6 +578,8 @@ class RecebimentoMpController {
 
         //* Status
         const newStatus = data.info.status < 30 ? 30 : data.info.status
+        //* Fecha formulário: se concluiu e não gerou NC ou já existia NC e concluiu novamente!
+        const concluido = data.concluiForm && (!data.info.naoConformidade || result[0]['naoConformidade'] == 1) ? '1' : '0'
 
         const sqlUpdateStatus = `UPDATE recebimentomp SET status = ?, naoConformidade = ?, dataFim = ?, finalizaProfissionalID = ?, concluido = ? WHERE recebimentoMpID = ? `
         const resultUpdateStatus = await executeQuery(sqlUpdateStatus, [
@@ -585,7 +587,7 @@ class RecebimentoMpController {
             data.info.naoConformidade ? '1' : '0',
             newStatus >= 40 ? new Date() : null,
             newStatus >= 40 ? profissionalID : null,
-            data?.concluido ? '1' : '0',
+            concluido,
             id
         ], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
 
@@ -595,10 +597,6 @@ class RecebimentoMpController {
                 for (const nc of data.naoConformidade.itens) {
                     nc.recebimentoMpNaoConformidadeID > 0 ? await updateNc(nc, id, logID) : await insertNc(nc, id, logID)
                 }
-            } else {
-                //? Gerou não conformidade, insere uma vazia
-                const sqlInsert = `INSERT INTO recebimentomp_naoconformidade(recebimentoMpID, data, profissionalIDPreenchimento) VALUES(?, ?, ?)`
-                const [resultInsert] = await db.promise().query(sqlInsert, [id, new Date(), profissionalID])
             }
 
             //? Se ainda não enviou email ao fornecedor preencher NC, verifica se precisa enviar
@@ -737,6 +735,34 @@ class RecebimentoMpController {
         const pathDestination = req.pathDestination
         const files = req.files;
     }
+
+    async getNaoConformidadeModels(req, res) {
+        const { unidadeID } = req.params
+
+        try {
+            const sqlModel = `
+            SELECT parRecebimentoMpNaoConformidadeModeloID, nome, ciclo, cabecalho
+            FROM par_recebimentomp_naoconformidade_modelo                
+            WHERE unidadeID = ? AND status = 1
+            ORDER BY nome ASC`
+            const [resultModels] = await db.promise().query(sqlModel, [unidadeID])
+
+            for (const model of resultModels) {
+                const sqlFields = `
+                SELECT prnmc.obrigatorio, prnmc.ordem, prn.nomeCampo, prn.tabela, prn.nomeColuna, prn.tipo
+                FROM par_recebimentomp_naoconformidade_modelo_cabecalho AS prnmc
+                    LEFT JOIN par_recebimentomp_naoconformidade AS prn ON (prn.parRecebimentoMpNaoConformidadeID = prnmc.parRecebimentoMpNaoConformidadeID)
+                WHERE prnmc.parRecebimentoMpNaoConformidadeModeloID = ?
+                ORDER BY prn.ordem ASC`
+                const [resultFields] = await db.promise().query(sqlFields, [model.parRecebimentoMpNaoConformidadeModeloID])
+                model['dynamicFields'] = resultFields ?? []
+            }
+
+            return res.status(200).json(resultModels)
+        } catch (error) {
+            console.log(error)
+        }
+    }
 }
 
 //! Não conformidade 
@@ -791,33 +817,33 @@ const getNaoConformidades = async (recebimentoMpID) => {
                 'fornecedorPreenche': row.fornecedorPreenche == 1 ? true : false,
                 'data': row.data,
                 'hora': row.hora,
-                'profissionalPreenchimento': {
+                'profissionalPreenchimento': row.profissionalIDPreenchimento > 0 ? {
                     id: row.profissionalIDPreenchimento,
-                    nome: row.profissionalNomePreenchimento,
-                    options: profissionaisAssinatura.profissionaisPreenchimento ?? []
-                },
+                    nome: row.profissionalNomePreenchimento
+                } : null,
                 'tipo': row.tipo,
-                'produto': {
+                'produto': row.produtoID > 0 ? {
                     id: row.produtoID,
                     nome: row.produtoNome
-                },
+                } : null,
                 dynamicFields: dynamicFields,
-                // 'descricao': row.descricao,
-                // 'acoesSolicitadas': row.acoesSolicitadas,
                 'obsFornecedor': row.obsFornecedor,
                 'dataFornecedor': row.dataFornecedor,
                 'horaFornecedor': row.horaFornecedor,
-                'usuarioFornecedor': {
+                'usuarioFornecedor': row.usuarioIDFornecedor > 0 ? {
                     id: row.usuarioIDFornecedor,
                     nome: row.usuarioNomeFornecedor
-                },
+                } : null,
                 'conclusao': row.conclusao,
                 'dataConclusao': row.dataConclusao,
                 'horaConclusao': row.horaConclusao,
-                'profissionalConclusao': {
+                'profissionalConclusao': row.profissionalIDConclusao > 0 ? {
                     id: row.profissionalIDConclusao,
-                    nome: row.profissionalNomeConclusao,
-                    options: profissionaisAssinatura.profissionaisConclusao ?? []
+                    nome: row.profissionalNomeConclusao
+                } : null,
+                'profissionaisOptions': {
+                    'preenchimento': profissionaisAssinatura.profissionaisPreenchimento ?? [],
+                    'conclusao': profissionaisAssinatura.profissionaisConclusao ?? []
                 },
                 'status': row.status
             }
@@ -1050,12 +1076,13 @@ const insertNc = async (nc, id, logID) => {
     }
 
     const sqlInsertNaoConformidade = `
-    INSERT INTO recebimentomp_naoconformidade(${arrayDynamicFields.join('')} recebimentoMpID, data, profissionalIDPreenchimento, tipo, produtoID, fornecedorPreenche, obsFornecedor, dataFornecedor, usuarioID, conclusao, dataConclusao, profissionalIDConclusao, status) VALUES (${arrayDynamicOptions.join('')} ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    INSERT INTO recebimentomp_naoconformidade(${arrayDynamicFields.join('')} parRecebimentoMpNaoConformidadeModeloID, recebimentoMpID, data, profissionalIDPreenchimento, tipo, produtoID, fornecedorPreenche, obsFornecedor, dataFornecedor, usuarioID, conclusao, dataConclusao, profissionalIDConclusao, status) VALUES (${arrayDynamicOptions.join('')} ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     nc.hora = nc.hora ? nc.hora : '00:00'
     nc.horaFornecedor = nc.horaFornecedor ? nc.horaFornecedor : '00:00'
     nc.horaConclusao = nc.horaConclusao ? nc.horaConclusao : '00:00'
     const dataInsert = [
         ...arrayDynamicValues,
+        nc.parRecebimentoMpNaoConformidadeModeloID,
         id,
         nc.data ? nc.data.substring(0, 10) + ' ' + nc.hora : null,
         nc.profissionalPreenchimento?.id ? nc.profissionalPreenchimento?.id : null,
@@ -1070,7 +1097,6 @@ const insertNc = async (nc, id, logID) => {
         nc.profissionalConclusao?.id ? nc.profissionalConclusao?.id : null,
         nc.status ?? null
     ]
-
 
     const resultInsertNaoConformidade = await executeQuery(sqlInsertNaoConformidade, dataInsert, 'insert', 'recebimentomp_naoconformidade', 'recebimentoMpNaoConformidadeID', null, logID)
 
