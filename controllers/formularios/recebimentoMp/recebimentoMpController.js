@@ -242,6 +242,7 @@ class RecebimentoMpController {
                 DATE_FORMAT(rp.dataValidade, '%Y-%m-%d') AS dataValidade,
                 p.produtoID,
                 p.nome AS produto,
+                um.nome AS unidadeMedida,
                 a.apresentacaoID,
                 a.nome AS apresentacao                
             FROM recebimentomp_produto AS rp

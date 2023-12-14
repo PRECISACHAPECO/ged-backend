@@ -1,5 +1,6 @@
 const db = require('../../../../config/db');
 
+
 const dynamic = async (data, modelo) => {
     const resultData = [];
 
@@ -149,6 +150,7 @@ const dynamic = async (data, modelo) => {
         p.produtoID,
         p.nome AS produto,
         a.apresentacaoID,
+        um.nome AS unidadeMedida,
         a.nome AS apresentacao                
     FROM recebimentomp_produto AS rp
         JOIN produto AS p ON(rp.produtoID = p.produtoID)
@@ -159,16 +161,51 @@ const dynamic = async (data, modelo) => {
 
     const [resultProdutos] = await db.promise().query(getProdutos, [data.id]);
 
+    // Não conformidades
+    const sqlNaoConformidades = `
+    SELECT 
+        rn.recebimentoMpNaoConformidadeID,
+        rn.parRecebimentoMpNaoConformidadeModeloID,
+        prnm.nome AS modeloNome,
+        DATE_FORMAT(rn.data, '%Y-%m-%d') AS data,
+        DATE_FORMAT(rn.data, '%H:%i') AS hora,
+        pp.profissionalID AS profissionalIDPreenchimento,
+        pp.nome AS profissionalNomePreenchimento,
+        rn.tipo,
+        pr.produtoID,
+        pr.nome AS produtoNome,
+        rn.descricao,
+        rn.acoesSolicitadas,
+        rn.fornecedorPreenche,
+        rn.obsFornecedor, 
+        DATE_FORMAT(rn.dataFornecedor, '%Y-%m-%d') AS dataFornecedor,
+        DATE_FORMAT(rn.dataFornecedor, '%H:%i') AS horaFornecedor,
+        u.usuarioID AS usuarioIDFornecedor,
+        u.nome AS usuarioNomeFornecedor,
+        rn.conclusao,
+        DATE_FORMAT(rn.dataConclusao, '%Y-%m-%d') AS dataConclusao,
+        DATE_FORMAT(rn.dataConclusao, '%H:%i') AS horaConclusao,
+        pc.profissionalID AS profissionalIDConclusao,
+        pc.nome AS profissionalNomeConclusao,
+        rn.status
+    FROM recebimentomp_naoconformidade AS rn
+        LEFT JOIN profissional AS pp ON (rn.profissionalIDPreenchimento = pp.profissionalID)                
+        LEFT JOIN produto AS pr ON (rn.produtoID = pr.produtoID)
+        LEFT JOIN usuario AS u ON (rn.usuarioID = u.usuarioID)
+        LEFT JOIN profissional AS pc ON (rn.profissionalIDConclusao = pc.profissionalID)
+        LEFT JOIN par_recebimentomp_naoconformidade_modelo AS prnm ON (rn.parRecebimentoMpNaoConformidadeModeloID = prnm.parRecebimentoMpNaoConformidadeModeloID)
+    WHERE rn.recebimentoMpID = ? `
+
+    const [resultNaoConformidades] = await db.promise().query(sqlNaoConformidades, [data.id]);
 
     const values = {
         header: resultData,
         blocks,
-        produtos: resultProdutos
+        produtos: resultProdutos,
+        naoConformidades: resultNaoConformidades
 
     };
 
-
-    console.log("🚀 ~ values:", values)
     return values
 }
 
