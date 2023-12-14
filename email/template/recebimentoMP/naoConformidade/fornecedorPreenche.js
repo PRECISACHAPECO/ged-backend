@@ -17,12 +17,18 @@ async function fornecedorPreenche(values) {
     html += `
                 <div class="content">
                     <p><strong>Olá, ${values.nomeFantasia}!</strong></p>
-                    <p>A ${values.nomeFantasiaFabrica} solicita o preenchimento da não conformidade.</p>
+                    <p>A ${values.nomeFantasiaFabrica} solicita o preenchimento da não conformidade.</p>`;
+
+    if (values.products) {
+        html += `
                     <div>
                         <p>${values.products.length > 1 ? 'Produtos:' : 'Produto:'}
-                            ${values.products ? values.products.map(product => `<span>${product}</span>`).join(', ') : ''}.
+                            ${values.products.map(product => `<span>${product}</span>`).join(', ')}.
                         </p>
-                    </div>
+                    </div>`;
+    }
+
+    html += `
                     <div>
                         <p>Atenciosamente, <br/>
                             ${values.nomeProfissional} <br/>

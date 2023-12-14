@@ -1,7 +1,6 @@
 
 const { arraysIguais } = require('../../../configs/config');
 const db = require('../../../../config/db');
-const static = require('./static');
 const dynamic = require('./dynamic');
 
 const dadosFornecedor = async (req, res) => {
@@ -29,7 +28,7 @@ const dadosFornecedor = async (req, res) => {
 
 
     // Se status maior ou igual a 40 busca os dados do fornecedor senão da configurações_fornecedor
-    let statusData = status >= 40 ? await static(data) : await dynamic(data, modelo)
+    let statusData = status >= 40 ? await dynamic(data) : await dynamic(data, modelo)
     const result = {
         ...statusData,
         unidade: resultSqlDataUnity[0].nomeFantasia,

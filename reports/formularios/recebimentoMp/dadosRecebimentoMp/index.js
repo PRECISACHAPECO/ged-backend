@@ -1,6 +1,5 @@
 
 const db = require('../../../../config/db');
-const static = require('./static');
 const dynamic = require('./dynamic');
 
 const dadosRecebimentoMp = async (req, res) => {
@@ -19,7 +18,7 @@ const dadosRecebimentoMp = async (req, res) => {
 
 
     // Se status maior ou igual a 40 busca os dados do recebimentoMP senão da configurações_recebimentoMP
-    let statusData = status >= 40 ? await static(data) : await dynamic(data, modelo)
+    let statusData = status >= 40 ? await dynamic(data, modelo) : await dynamic(data, modelo)
     const result = {
         ...statusData,
         unidade: resultSqlDataUnity[0].nomeFantasia,
