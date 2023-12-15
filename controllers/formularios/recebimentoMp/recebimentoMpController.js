@@ -1115,7 +1115,7 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
             products: arrProducts ?? []
         }
 
-        const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
+        const url = `https://demo.gedagro.com.br/api/formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
         const result = await axios.post(url, data)
 
         //? Atualiza flag de envio de email
