@@ -1,7 +1,7 @@
 const db = require('../../../config/db');
 const fs = require('fs');
 const path = require('path');
-const axios = require('axios');
+// const axios = require('axios');
 require('dotenv/config')
 const { addFormStatusMovimentation, formatFieldsToTable, hasUnidadeID } = require('../../../defaults/functions');
 const { hasPending, deleteItem, criptoMd5, onlyNumbers, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts } = require('../../../config/defaultConfig');
@@ -614,7 +614,7 @@ class RecebimentoMpController {
                 //? Se ainda não enviou email ao fornecedor preencher NC, verifica se precisa enviar
                 // if (result[0]['naoConformidadeEmailFornecedor'] != 1) 
                 // naoConformidadeEmailFornecedor
-                checkNotificationFornecedor(id, data.fieldsHeader.fornecedor, data.naoConformidade.itens, unidadeID, usuarioID, papelID, req)
+                await checkNotificationFornecedor(id, data.fieldsHeader.fornecedor, data.naoConformidade.itens, unidadeID, usuarioID, papelID, req)
             }
 
             //? Gera histórico de alteração de status (se houve alteração)
@@ -1220,7 +1220,7 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
         // }
 
         // Atualiza tabela recebimentoMp
-        const sqlUpdateRecebimentoMp = `UPDATE recebimentoMp SET naoConformidadeEmailFornecedor = 1 WHERE recebimentoMpID = ?`
+        const sqlUpdateRecebimentoMp = `UPDATE recebimentoMp SET naoConformidadeEmailFornecedor = 69 WHERE recebimentoMpID = ?`
         await db.promise().query(sqlUpdateRecebimentoMp, [data.recebimentoMpID])
 
     }
