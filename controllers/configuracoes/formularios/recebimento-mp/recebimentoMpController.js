@@ -85,7 +85,7 @@ class RecebimentoMpController {
             ORDER BY pfmbi.ordem ASC`
 
             //? Options
-            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 1 AND unidadeID = ? AND status = 1 ORDER BY nome ASC`;
+            const sqlOptionsItem = `SELECT itemID AS id, nome FROM item WHERE parFormularioID = 2 AND unidadeID = ? AND status = 1 ORDER BY nome ASC`;
             const [resultItem] = await db.promise().query(sqlOptionsItem, [unidadeID]);
             const objOptionsBlock = {
                 itens: resultItem ?? [],
@@ -131,7 +131,7 @@ class RecebimentoMpController {
             };
 
             //? Orientações
-            const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 1`;
+            const sqlOrientacoes = `SELECT obs FROM par_formulario WHERE parFormularioID = 2`;
             const [resultOrientacoes] = await db.promise().query(sqlOrientacoes)
 
             const result = {
@@ -371,10 +371,10 @@ class RecebimentoMpController {
             const sqlOrientacoes = `
             UPDATE par_formulario
             SET obs = ? 
-            WHERE parFormularioID = 1`
+            WHERE parFormularioID = 2`
             const [resultOrientacoes] = await db.promise().query(sqlOrientacoes, [orientacoes?.obs])
 
-            await executeQuery(sqlOrientacoes, [orientacoes?.obs], 'update', 'par_formulario', 'parFormularioID', 1, logID)
+            await executeQuery(sqlOrientacoes, [orientacoes?.obs], 'update', 'par_formulario', 'parFormularioID', 2, logID)
 
             res.status(200).json({ message: "Dados atualizados com sucesso." });
 
