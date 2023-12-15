@@ -1207,12 +1207,7 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
         }
 
         const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
-        try {
-            const result = await axios.post(url, data)
-            console.log("Email enviado com sucesso")
-        } catch (err) {
-            res.status(500).json(err)
-        }
+        const result = await axios.post(url, data)
     }
 
 }
