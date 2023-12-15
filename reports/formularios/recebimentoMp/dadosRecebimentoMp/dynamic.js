@@ -29,35 +29,35 @@ const dynamic = async (data, modelo) => {
     const header = [
         {
             'name': 'Data Inicio',
-            'value': resultDataFixos.dataInicio
+            'value': resultDataFixos?.dataInicio
         },
         {
             'name': 'Data Fim',
-            'value': resultDataFixos.dataFim
+            'value': resultDataFixos?.dataFim
         },
         {
             'name': 'Hora Inicio',
-            'value': resultDataFixos.horaInicio
+            'value': resultDataFixos?.horaInicio
         },
         {
             'name': 'Hora Fim',
-            'value': resultDataFixos.horaFim
+            'value': resultDataFixos?.horaFim
         },
         {
             'name': 'Fornecedor',
-            'value': resultDataFixos.nomeFantasia
+            'value': resultDataFixos?.nomeFantasia
         },
         {
             'name': 'Profissional que abriu',
-            'value': resultDataFixos.quemAbriu
+            'value': resultDataFixos?.quemAbriu
         },
         {
             'name': 'Profissional que preenche',
-            'value': resultDataFixos.preenche
+            'value': resultDataFixos?.preenche
         },
         {
             'name': 'Profissional que aprova',
-            'value': resultDataFixos.aprova
+            'value': resultDataFixos?.aprova
         },
     ]
 

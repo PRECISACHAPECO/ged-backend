@@ -152,12 +152,6 @@ class FornecedorController {
 
                 -- Recebimento de MP (valores)
                 (
-                    SELECT IF(COUNT(*) > 0, 1, 0)
-                    FROM recebimentomp_produto AS rp 
-                    WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
-                    LIMIT 1
-                ) AS checked,            
-                (
                     SELECT rp.quantidade
                     FROM recebimentomp_produto AS rp 
                     WHERE rp.recebimentoMpID = ${recebimentoMpID} AND rp.produtoID = fp.produtoID
@@ -225,6 +219,15 @@ class FornecedorController {
             GROUP BY p.produtoID
             ORDER BY p.nome ASC`
             const [resultProdutos] = await db.promise().query(sqlProdutos)
+
+            for (const produto of resultProdutos) {
+                // produto.checked_ = true //produto.checked == '1' ? true : false //! descontinuado
+                produto.apresentacao = produto.apresentacaoID > 0 ? {
+                    id: produto.apresentacaoID,
+                    nome: produto.apresentacaoNome
+                } : null
+            }
+
             fornecedor['produtos'] = resultProdutos ?? []
         }
 

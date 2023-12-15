@@ -256,7 +256,7 @@ class RecebimentoMpController {
             const [resultProdutos] = await db.promise().query(sqlProdutos, [id])
 
             for (const produto of resultProdutos) {
-                produto['checked'] = true
+                produto['checked_'] = true
                 produto['apresentacao'] = produto['apresentacaoID'] > 0 ? {
                     id: produto['apresentacaoID'],
                     nome: produto['apresentacao']
@@ -463,8 +463,8 @@ class RecebimentoMpController {
 
             //? Atualiza header e footer fixos
             const sqlStaticlHeader = `
-        UPDATE recebimentomp SET data = ?, preencheProfissionalID = ?, fornecedorID = ?, dataConclusao = ?, aprovaProfissionalID = ?
-        WHERE recebimentoMpID = ? `
+            UPDATE recebimentomp SET data = ?, preencheProfissionalID = ?, fornecedorID = ?, dataConclusao = ?, aprovaProfissionalID = ?
+            WHERE recebimentoMpID = ? `
             const resultStaticHeader = await executeQuery(sqlStaticlHeader, [
                 data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora}` : null,
                 data.fieldsHeader?.profissional?.id ?? null,
@@ -490,7 +490,7 @@ class RecebimentoMpController {
                 // const [resultDeleteProduto] = await db.promise().query(sqlDeleteProduto, [id])
                 const resultDeleteProduto = await executeQuery(sqlDeleteProduto, [id], 'delete', 'recebimentomp_produto', 'recebimentoMpID', id, logID)
                 for (const produto of data.produtos) {
-                    if (produto && produto.checked) { //? Marcou o produto no checkbox
+                    if (produto && produto.checked_) { //? Marcou o produto no checkbox
                         if (produto && produto.produtoID > 0) {
                             const sqlInsertProduto = `
                         INSERT INTO recebimentomp_produto(recebimentoMpID, produtoID, quantidade, dataFabricacao, lote, nf, dataValidade, apresentacaoID)
