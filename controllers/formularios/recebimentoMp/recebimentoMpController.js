@@ -1184,40 +1184,40 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
         await sendMailConfig(destinatario, assunto, html, logID, values)
 
         // Novo fornecedor, envia email como dados de acesso
-        if (!data.isUser) {
-            const logID = await executeLog('Email e criação de novo fornecedor', data.usuarioID, data.unidadeID, req)
+        // if (!data.isUser) {
+        //     const logID = await executeLog('Email e criação de novo fornecedor', data.usuarioID, data.unidadeID, req)
 
-            // Verifica se CNPJ já está cadastrado
-            const cnpjExists = "SELECT * FROM usuario WHERE cnpj = ?"
-            const [resultCnpjExists] = await db.promise().query(cnpjExists, [resultFornecedor[0].cnpj])
+        //     // Verifica se CNPJ já está cadastrado
+        //     const cnpjExists = "SELECT * FROM usuario WHERE cnpj = ?"
+        //     const [resultCnpjExists] = await db.promise().query(cnpjExists, [resultFornecedor[0].cnpj])
 
-            if (resultCnpjExists.length > 0) {
-                return
-            } else {
-                // Cadastra novo usuário
-                const sqlNewUuser = `
-                   INSERT INTO usuario(nome, cnpj, email, senha)
-                  VALUES(?, ?, ?, ?)`
-                const usuarioID = await executeQuery(sqlNewUuser, [resultFornecedor[0].nome, resultFornecedor[0].cnpj, resultFornecedor[0].email, criptoMd5(password)], 'insert', 'usuario', 'usuarioID', null, logID)
-                // return
+        //     if (resultCnpjExists.length > 0) {
+        //         return
+        //     } else {
+        //         // Cadastra novo usuário
+        //         const sqlNewUuser = `
+        //            INSERT INTO usuario(nome, cnpj, email, senha)
+        //           VALUES(?, ?, ?, ?)`
+        //         const usuarioID = await executeQuery(sqlNewUuser, [resultFornecedor[0].nome, resultFornecedor[0].cnpj, resultFornecedor[0].email, criptoMd5(password)], 'insert', 'usuario', 'usuarioID', null, logID)
+        //         // return
 
-                // Salva a unidade
-                const sqlInsertUnity = `
-                  INSERT INTO unidade (razaoSocial, nomeFantasia, cnpj, email) VALUES (?,?, ?, ?)`
-                const newUnidadeID = await executeQuery(sqlInsertUnity, [resultFornecedor[0].nome, resultFornecedor[0].nome, resultFornecedor[0].cnpj, data.email], 'insert', 'unidade', 'unidadeID', null, logID)
+        //         // Salva a unidade
+        //         const sqlInsertUnity = `
+        //           INSERT INTO unidade (razaoSocial, nomeFantasia, cnpj, email) VALUES (?,?, ?, ?)`
+        //         const newUnidadeID = await executeQuery(sqlInsertUnity, [resultFornecedor[0].nome, resultFornecedor[0].nome, resultFornecedor[0].cnpj, data.email], 'insert', 'unidade', 'unidadeID', null, logID)
 
-                // Salva usuario_unidade
-                const sqlNewUserUnity = `
-                INSERT INTO usuario_unidade(usuarioID, unidadeID, papelID)
-                VALUES(?, ?, ?)
-                      `
-                await executeQuery(sqlNewUserUnity, [usuarioID, newUnidadeID, 2], 'insert', 'usuario_unidade', 'usuarioUnidadeID', null, logID)
+        //         // Salva usuario_unidade
+        //         const sqlNewUserUnity = `
+        //         INSERT INTO usuario_unidade(usuarioID, unidadeID, papelID)
+        //         VALUES(?, ?, ?)
+        //               `
+        //         await executeQuery(sqlNewUserUnity, [usuarioID, newUnidadeID, 2], 'insert', 'usuario_unidade', 'usuarioUnidadeID', null, logID)
 
-                let assunto = `Bem-vindo ao GEDagro`
-                const html = await instructionsNewFornecedor(values)
-                await sendMailConfig(destinatario, assunto, html, logID, values)
-            }
-        }
+        //         let assunto = `Bem-vindo ao GEDagro`
+        //         const html = await instructionsNewFornecedor(values)
+        //         await sendMailConfig(destinatario, assunto, html, logID, values)
+        //     }
+        // }
 
         // Atualiza tabela recebimentoMp
         const sqlUpdateRecebimentoMp = `UPDATE recebimentoMp SET naoConformidadeEmailFornecedor = 1 WHERE recebimentoMpID = ?`
