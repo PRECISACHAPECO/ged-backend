@@ -1208,9 +1208,6 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
 
         const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
         const result = await axios.post(url, data)
-        // console.log("🚀 ~ result:", result)
-
-
     }
 
 }
