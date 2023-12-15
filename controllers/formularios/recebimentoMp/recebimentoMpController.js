@@ -1115,8 +1115,18 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
             products: arrProducts ?? []
         }
 
-        const url = `https://demo.gedagro.com.br/api/formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
-        const result = await axios.post(url, data)
+        const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
+        // requisição fetch
+        const result = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data),
+        })
+
+
+        // const result = await axios.post(url, data)
 
         //? Atualiza flag de envio de email
         const sqlUpdate = `UPDATE recebimentomp SET naoConformidadeEmailFornecedor = ? WHERE recebimentoMpID = ? `
