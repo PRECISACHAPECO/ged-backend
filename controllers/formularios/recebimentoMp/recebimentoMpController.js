@@ -610,7 +610,8 @@ class RecebimentoMpController {
                 }
 
                 //? Se ainda não enviou email ao fornecedor preencher NC, verifica se precisa enviar
-                if (result[0]['naoConformidadeEmailFornecedor'] != 1) checkNotificationFornecedor(id, data.fieldsHeader.fornecedor, data.naoConformidade.itens, unidadeID, usuarioID, papelID)
+                // if (result[0]['naoConformidadeEmailFornecedor'] != 1) 
+                checkNotificationFornecedor(id, data.fieldsHeader.fornecedor, data.naoConformidade.itens, unidadeID, usuarioID, papelID)
             }
 
             //? Gera histórico de alteração de status (se houve alteração)
