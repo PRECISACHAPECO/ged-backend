@@ -1116,16 +1116,10 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
         }
 
         const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
-        // requisição fetch
         const result = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
             body: JSON.stringify(data),
         })
-
-
         // const result = await axios.post(url, data)
 
         //? Atualiza flag de envio de email
