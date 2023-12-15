@@ -12,7 +12,7 @@ produtoRoutes.post(`${route}/updateData/:id`, produtoController.updateData);
 produtoRoutes.delete(`${route}/:id/:usuarioID/:unidadeID`, produtoController.deleteData);
 produtoRoutes.post(`${route}/new/getData`, produtoController.getNewData);
 produtoRoutes.post(`${route}/new/insertData`, produtoController.insertData);
-produtoRoutes.post(`${route}/getProdutosFornecedor`, produtoController.getProdutosFornecedor);
+// produtoRoutes.post(`${route}/getProdutosFornecedor`, produtoController.getProdutosFornecedor); //! descontinuado
 produtoRoutes.post(`${route}/getFormularios`, produtoController.getFormularios);
 
 module.exports = produtoRoutes;

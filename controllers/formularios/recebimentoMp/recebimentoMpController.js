@@ -113,6 +113,7 @@ class RecebimentoMpController {
             SELECT
                 r.parRecebimentoMpModeloID,
                 prm.nome AS modeloNome,
+                prm.ciclo AS modeloCiclo,
 
                 r.unidadeID,
                 DATE_FORMAT(r.dataInicio, '%Y-%m-%d') AS dataInicio,
@@ -168,7 +169,8 @@ class RecebimentoMpController {
             const unidade = {
                 modelo: {
                     id: result[0]['parRecebimentoMpModeloID'] ?? 0,
-                    nome: result[0]['modeloNome']
+                    nome: result[0]['modeloNome'],
+                    ciclo: result[0]['modeloCiclo']
                 },
                 unidadeID: result[0]['unidadeID'],
                 nomeFantasia: result[0]['nomeFantasia'],
