@@ -1094,11 +1094,6 @@ const getSqlOtherInfos = () => {
 const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoConformidades, unidadeID, usuarioID, papelID) => {
     if (arrNaoConformidades.length === 0) return
 
-    //? Atualiza flag de envio de email
-    const sqlUpdate = `UPDATE recebimentomp SET naoConformidadeEmailFornecedor = ? WHERE recebimentoMpID = ? `
-    const [resultUpdate] = await db.promise().query(sqlUpdate, [1, recebimentoMpID])
-
-
     const arrProducts = []
     let needNotify = false
     for (const nc of arrNaoConformidades) {
@@ -1108,21 +1103,25 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
         }
     }
 
-    // if (needNotify) {
-    //     // send axios post to api
-    //     const data = {
-    //         unidadeID: unidadeID,
-    //         usuarioID: usuarioID,
-    //         papelID: papelID,
-    //         recebimentoMpID: recebimentoMpID,
-    //         fornecedorID: fornecedor.id,
-    //         isUser: fornecedor.isUser,
-    //         products: arrProducts ?? []
-    //     }
+    if (needNotify) {
+        // send axios post to api
+        const data = {
+            unidadeID: unidadeID,
+            usuarioID: usuarioID,
+            papelID: papelID,
+            recebimentoMpID: recebimentoMpID,
+            fornecedorID: fornecedor.id,
+            isUser: fornecedor.isUser,
+            products: arrProducts ?? []
+        }
 
-    //     const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
-    //     const result = await axios.post(url, data)
-    // }
+        //? Atualiza flag de envio de email
+        const sqlUpdate = `UPDATE recebimentomp SET naoConformidadeEmailFornecedor = ? WHERE recebimentoMpID = ? `
+        const [resultUpdate] = await db.promise().query(sqlUpdate, [1, recebimentoMpID])
+
+        // const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
+        // const result = await axios.post(url, data)
+    }
 
 }
 
