@@ -611,6 +611,7 @@ class RecebimentoMpController {
 
                 //? Se ainda não enviou email ao fornecedor preencher NC, verifica se precisa enviar
                 // if (result[0]['naoConformidadeEmailFornecedor'] != 1) 
+                naoConformidadeEmailFornecedor
                 checkNotificationFornecedor(id, data.fieldsHeader.fornecedor, data.naoConformidade.itens, unidadeID, usuarioID, papelID)
             }
 
@@ -1186,6 +1187,11 @@ const updateNc = async (nc, id, logID) => {
 const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoConformidades, unidadeID, usuarioID, papelID) => {
     if (arrNaoConformidades.length === 0) return
 
+    //? Atualiza flag de envio de email
+    const sqlUpdate = `UPDATE recebimentomp SET naoConformidadeEmailFornecedor = 1 WHERE recebimentoMpID = ? `
+    const [resultUpdate] = await db.promise().query(sqlUpdate, [recebimentoMpID])
+
+
     const arrProducts = []
     let needNotify = false
     for (const nc of arrNaoConformidades) {
@@ -1209,11 +1215,6 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
 
         const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
         const result = await axios.post(url, data)
-
-        //? Atualiza flag de envio de email
-        const sqlUpdate = `UPDATE recebimentomp SET naoConformidadeEmailFornecedor = 1 WHERE recebimentoMpID = ? `
-        const [resultUpdate] = await db.promise().query(sqlUpdate, [recebimentoMpID])
-
 
     }
 
