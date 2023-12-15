@@ -1092,7 +1092,7 @@ const getSqlOtherInfos = () => {
 }
 
 const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoConformidades, unidadeID, usuarioID, papelID) => {
-    // if (arrNaoConformidades.length === 0) return
+    if (arrNaoConformidades.length === 0) return
 
     //? Atualiza flag de envio de email
     const sqlUpdate = `UPDATE recebimentomp SET naoConformidadeEmailFornecedor = ? WHERE recebimentoMpID = ? `
