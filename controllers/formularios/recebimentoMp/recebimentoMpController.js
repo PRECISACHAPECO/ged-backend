@@ -1184,7 +1184,7 @@ const updateNc = async (nc, id, logID) => {
 
 const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoConformidades, unidadeID, usuarioID, papelID) => {
     // if (arrNaoConformidades.length === 0) return
-    if (arrNaoConformidades.length === 0) res.status(200).json({ message: 'Nenhuma não conformidade encontrada' })
+    if (arrNaoConformidades.length === 0) res.status(400).json({ message: 'Nenhuma não conformidade encontrada' })
 
     const arrProducts = []
     let needNotify = false
