@@ -1091,6 +1091,41 @@ const getSqlOtherInfos = () => {
     return sql
 }
 
+const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoConformidades, unidadeID, usuarioID, papelID) => {
+    if (arrNaoConformidades.length === 0) return
+
+    //? Atualiza flag de envio de email
+    const sqlUpdate = `UPDATE recebimentomp SET naoConformidadeEmailFornecedor = ? WHERE recebimentoMpID = ? `
+    const [resultUpdate] = await db.promise().query(sqlUpdate, [1, recebimentoMpID])
+
+
+    // const arrProducts = []
+    // let needNotify = false
+    // for (const nc of arrNaoConformidades) {
+    //     if (nc.fornecedorPreenche) {
+    //         needNotify = true
+    //         if (nc.produto && nc.produto.nome != '') arrProducts.push(nc.produto?.nome)
+    //     }
+    // }
+
+    // if (needNotify) {
+    //     // send axios post to api
+    //     const data = {
+    //         unidadeID: unidadeID,
+    //         usuarioID: usuarioID,
+    //         papelID: papelID,
+    //         recebimentoMpID: recebimentoMpID,
+    //         fornecedorID: fornecedor.id,
+    //         isUser: fornecedor.isUser,
+    //         products: arrProducts ?? []
+    //     }
+
+    //     const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
+    //     const result = await axios.post(url, data)
+    // }
+
+}
+
 const insertNc = async (nc, id, logID) => {
     //? Atualiza colunas dinâmicas
     const arrayDynamicFields = []
@@ -1182,42 +1217,6 @@ const updateNc = async (nc, id, logID) => {
     ]
 
     const resultUpdateNaoConformidade = await executeQuery(sqlUpdateNaoConformidade, dataUpdate, 'update', 'recebimentomp_naoconformidade', 'recebimentoMpNaoConformidadeID', nc.recebimentoMpNaoConformidadeID, logID)
-}
-
-const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoConformidades, unidadeID, usuarioID, papelID) => {
-    if (arrNaoConformidades.length === 0) return
-
-    //? Atualiza flag de envio de email
-    const sqlUpdate = `UPDATE recebimentomp SET naoConformidadeEmailFornecedor = 1 WHERE recebimentoMpID = ? `
-    const [resultUpdate] = await db.promise().query(sqlUpdate, [recebimentoMpID])
-
-
-    const arrProducts = []
-    let needNotify = false
-    for (const nc of arrNaoConformidades) {
-        if (nc.fornecedorPreenche) {
-            needNotify = true
-            if (nc.produto && nc.produto.nome != '') arrProducts.push(nc.produto?.nome)
-        }
-    }
-
-    if (needNotify) {
-        // send axios post to api
-        const data = {
-            unidadeID: unidadeID,
-            usuarioID: usuarioID,
-            papelID: papelID,
-            recebimentoMpID: recebimentoMpID,
-            fornecedorID: fornecedor.id,
-            isUser: fornecedor.isUser,
-            products: arrProducts ?? []
-        }
-
-        const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
-        const result = await axios.post(url, data)
-
-    }
-
 }
 
 module.exports = RecebimentoMpController;
