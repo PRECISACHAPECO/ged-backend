@@ -1208,6 +1208,12 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
 
         const url = `${process.env.BASE_URL_API}formularios/recebimento-mp/nao-conformidade/fornecedor-preenche`
         const result = await axios.post(url, data)
+
+        //? Atualiza flag de envio de email
+        const sqlUpdate = `UPDATE recebimentomp SET naoConformidadeEmailFornecedor = 1 WHERE recebimentoMpID = ? `
+        const [resultUpdate] = await db.promise().query(sqlUpdate, [recebimentoMpID])
+
+
     }
 
 }
