@@ -453,172 +453,177 @@ class RecebimentoMpController {
         const data = req.body.form
         const { usuarioID, profissionalID, papelID, unidadeID } = req.body.auth
 
-        if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
+        try {
+            if (!id || id == 'undefined') { return res.json({ message: 'ID não recebido!' }); }
 
-        const logID = await executeLog('Edição formulário do Recebimento Mp', usuarioID, unidadeID, req)
+            const logID = await executeLog('Edição formulário do Recebimento Mp', usuarioID, unidadeID, req)
 
-        const sqlSelect = `SELECT status, naoConformidade, naoConformidadeEmailFornecedor FROM recebimentomp WHERE recebimentoMpID = ? `
-        const [result] = await db.promise().query(sqlSelect, [id])
+            const sqlSelect = `SELECT status, naoConformidade, naoConformidadeEmailFornecedor FROM recebimentomp WHERE recebimentoMpID = ? `
+            const [result] = await db.promise().query(sqlSelect, [id])
 
-        //? Atualiza header e footer fixos
-        const sqlStaticlHeader = `
+            //? Atualiza header e footer fixos
+            const sqlStaticlHeader = `
         UPDATE recebimentomp SET data = ?, preencheProfissionalID = ?, fornecedorID = ?, dataConclusao = ?, aprovaProfissionalID = ?
         WHERE recebimentoMpID = ? `
-        const resultStaticHeader = await executeQuery(sqlStaticlHeader, [
-            data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora}` : null,
-            data.fieldsHeader?.profissional?.id ?? null,
-            data.fieldsHeader?.fornecedor?.id ?? null,
-            data.fieldsFooter?.dataConclusao ? `${data.fieldsFooter.dataConclusao} ${data.fieldsFooter.horaConclusao} ` : null,
-            data.fieldsFooter?.profissional?.id ?? null,
-            id
-        ], 'update', 'recebimentomp', 'recebimentompID', id, logID)
+            const resultStaticHeader = await executeQuery(sqlStaticlHeader, [
+                data.fieldsHeader?.data ? `${data?.fieldsHeader?.data} ${data?.fieldsHeader?.hora}` : null,
+                data.fieldsHeader?.profissional?.id ?? null,
+                data.fieldsHeader?.fornecedor?.id ?? null,
+                data.fieldsFooter?.dataConclusao ? `${data.fieldsFooter.dataConclusao} ${data.fieldsFooter.horaConclusao} ` : null,
+                data.fieldsFooter?.profissional?.id ?? null,
+                id
+            ], 'update', 'recebimentomp', 'recebimentompID', id, logID)
 
-        //? Atualizar o header dinâmico e setar o status        
-        if (data.fields) {
-            //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
-            let dataHeader = await formatFieldsToTable('par_recebimentomp', data.fields)
-            const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentoMpID = ${id} `;
-            const resultHeader = await executeQuery(sqlHeader, [dataHeader], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
-            if (resultHeader.length === 0) { return res.status(500).json('Error'); }
-        }
+            //? Atualizar o header dinâmico e setar o status        
+            if (data.fields) {
+                //* Função verifica na tabela de parametrizações do formulário e ve se objeto se referencia ao campo tabela, se sim, insere "ID" no final da coluna a ser atualizada no BD
+                let dataHeader = await formatFieldsToTable('par_recebimentomp', data.fields)
+                const sqlHeader = `UPDATE recebimentomp SET ? WHERE recebimentoMpID = ${id} `;
+                const resultHeader = await executeQuery(sqlHeader, [dataHeader], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
+                if (resultHeader.length === 0) { return res.status(500).json('Error'); }
+            }
 
-        //? Produtos
-        if (data.info.status < 40 && data.produtos && data.produtos.length > 0) {
-            // Deleta produtos do recebimento
-            const sqlDeleteProduto = `DELETE FROM recebimentomp_produto WHERE recebimentoMpID = ? `
-            // const [resultDeleteProduto] = await db.promise().query(sqlDeleteProduto, [id])
-            const resultDeleteProduto = await executeQuery(sqlDeleteProduto, [id], 'delete', 'recebimentomp_produto', 'recebimentoMpID', id, logID)
-            for (const produto of data.produtos) {
-                if (produto && produto.checked) { //? Marcou o produto no checkbox
-                    if (produto && produto.produtoID > 0) {
-                        const sqlInsertProduto = `
+            //? Produtos
+            if (data.info.status < 40 && data.produtos && data.produtos.length > 0) {
+                // Deleta produtos do recebimento
+                const sqlDeleteProduto = `DELETE FROM recebimentomp_produto WHERE recebimentoMpID = ? `
+                // const [resultDeleteProduto] = await db.promise().query(sqlDeleteProduto, [id])
+                const resultDeleteProduto = await executeQuery(sqlDeleteProduto, [id], 'delete', 'recebimentomp_produto', 'recebimentoMpID', id, logID)
+                for (const produto of data.produtos) {
+                    if (produto && produto.checked) { //? Marcou o produto no checkbox
+                        if (produto && produto.produtoID > 0) {
+                            const sqlInsertProduto = `
                         INSERT INTO recebimentomp_produto(recebimentoMpID, produtoID, quantidade, dataFabricacao, lote, nf, dataValidade, apresentacaoID)
                         VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
-                        const resultInsertProduto = await executeQuery(sqlInsertProduto, [
-                            id,
-                            produto.produtoID,
-                            produto.quantidade ?? null,
-                            produto.dataFabricacao ?? null,
-                            produto.lote ?? null,
-                            produto.nf ?? null,
-                            produto.dataValidade ?? null,
-                            produto.apresentacao?.id ?? null
-                        ], 'insert', 'recebimentomp_produto', 'recebimentoMpProdutoID', null, logID)
-                        if (!resultInsertProduto) { return res.json('Error'); }
+                            const resultInsertProduto = await executeQuery(sqlInsertProduto, [
+                                id,
+                                produto.produtoID,
+                                produto.quantidade ?? null,
+                                produto.dataFabricacao ?? null,
+                                produto.lote ?? null,
+                                produto.nf ?? null,
+                                produto.dataValidade ?? null,
+                                produto.apresentacao?.id ?? null
+                            ], 'insert', 'recebimentomp_produto', 'recebimentoMpProdutoID', null, logID)
+                            if (!resultInsertProduto) { return res.json('Error'); }
+                        }
                     }
                 }
             }
-        }
 
-        //? Blocos 
-        for (const bloco of data.blocos) {
-            // Itens 
-            if (bloco && bloco.parRecebimentoMpModeloBlocoID && bloco.parRecebimentoMpModeloBlocoID > 0 && bloco.itens) {
-                for (const item of bloco.itens) {
-                    if (item && item.itemID && item.itemID > 0) {
-                        // Verifica se já existe registro em recebimentomp_resposta, com o recebimentompID, parRecebimentoMpModeloBlocoID e itemID, se houver, faz update, senao faz insert 
-                        const sqlVerificaResposta = `SELECT * FROM recebimentomp_resposta WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
-                        const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parRecebimentoMpModeloBlocoID, item.itemID])
+            //? Blocos 
+            for (const bloco of data.blocos) {
+                // Itens 
+                if (bloco && bloco.parRecebimentoMpModeloBlocoID && bloco.parRecebimentoMpModeloBlocoID > 0 && bloco.itens) {
+                    for (const item of bloco.itens) {
+                        if (item && item.itemID && item.itemID > 0) {
+                            // Verifica se já existe registro em recebimentomp_resposta, com o recebimentompID, parRecebimentoMpModeloBlocoID e itemID, se houver, faz update, senao faz insert 
+                            const sqlVerificaResposta = `SELECT * FROM recebimentomp_resposta WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
+                            const [resultVerificaResposta] = await db.promise().query(sqlVerificaResposta, [id, bloco.parRecebimentoMpModeloBlocoID, item.itemID])
 
-                        const resposta = item.resposta && item.resposta.nome ? item.resposta.nome : item.resposta
-                        const respostaID = item.resposta && item.resposta.id > 0 ? item.resposta.id : null
-                        const observacao = item.observacao != undefined ? item.observacao : ''
+                            const resposta = item.resposta && item.resposta.nome ? item.resposta.nome : item.resposta
+                            const respostaID = item.resposta && item.resposta.id > 0 ? item.resposta.id : null
+                            const observacao = item.observacao != undefined ? item.observacao : ''
 
-                        if (resposta && resultVerificaResposta.length === 0) {
-                            const sqlInsert = `INSERT INTO recebimentomp_resposta(recebimentoMpID, parRecebimentoMpModeloBlocoID, itemID, resposta, respostaID, obs) VALUES(?, ?, ?, ?, ?, ?)`
-                            // const [resultInsert] = await db.promise().query(sqlInsert, [
-                            //     id,
-                            //     bloco.parRecebimentoMpModeloBlocoID,
-                            //     item.itemID,
-                            //     resposta,
-                            //     respostaID,
-                            //     observacao
-                            // ])
-                            const resultInsert = await executeQuery(sqlInsert, [
-                                id,
-                                bloco.parRecebimentoMpModeloBlocoID,
-                                item.itemID,
-                                resposta,
-                                respostaID,
-                                observacao
-                            ], 'insert', 'recebimentomp_resposta', 'recebimentoMpRespostaID', null, logID)
+                            if (resposta && resultVerificaResposta.length === 0) {
+                                const sqlInsert = `INSERT INTO recebimentomp_resposta(recebimentoMpID, parRecebimentoMpModeloBlocoID, itemID, resposta, respostaID, obs) VALUES(?, ?, ?, ?, ?, ?)`
+                                // const [resultInsert] = await db.promise().query(sqlInsert, [
+                                //     id,
+                                //     bloco.parRecebimentoMpModeloBlocoID,
+                                //     item.itemID,
+                                //     resposta,
+                                //     respostaID,
+                                //     observacao
+                                // ])
+                                const resultInsert = await executeQuery(sqlInsert, [
+                                    id,
+                                    bloco.parRecebimentoMpModeloBlocoID,
+                                    item.itemID,
+                                    resposta,
+                                    respostaID,
+                                    observacao
+                                ], 'insert', 'recebimentomp_resposta', 'recebimentoMpRespostaID', null, logID)
 
-                            if (!resultInsert) { return res.json('Error'); }
-                        } else if (resposta && resultVerificaResposta.length > 0) {
-                            const sqlUpdate = `
+                                if (!resultInsert) { return res.json('Error'); }
+                            } else if (resposta && resultVerificaResposta.length > 0) {
+                                const sqlUpdate = `
                             UPDATE recebimentomp_resposta 
                             SET resposta = ?, respostaID = ?, obs = ?, recebimentoMpID = ?
                             WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
-                            // const [resultUpdate] = await db.promise().query(sqlUpdate, [
-                            //     resposta,
-                            //     respostaID,
-                            //     observacao,
-                            //     id,
-                            //     id,
-                            //     bloco.parRecebimentoMpModeloBlocoID,
-                            //     item.itemID
-                            // ])
-                            const resultUpdate = await executeQuery(sqlUpdate, [
-                                resposta,
-                                respostaID,
-                                observacao,
-                                id,
-                                id,
-                                bloco.parRecebimentoMpModeloBlocoID,
-                                item.itemID
-                            ], 'update', 'recebimentomp_resposta', 'recebimentoMpID', id, logID)
-                            if (!resultUpdate) { return res.json('Error'); }
+                                // const [resultUpdate] = await db.promise().query(sqlUpdate, [
+                                //     resposta,
+                                //     respostaID,
+                                //     observacao,
+                                //     id,
+                                //     id,
+                                //     bloco.parRecebimentoMpModeloBlocoID,
+                                //     item.itemID
+                                // ])
+                                const resultUpdate = await executeQuery(sqlUpdate, [
+                                    resposta,
+                                    respostaID,
+                                    observacao,
+                                    id,
+                                    id,
+                                    bloco.parRecebimentoMpModeloBlocoID,
+                                    item.itemID
+                                ], 'update', 'recebimentomp_resposta', 'recebimentoMpID', id, logID)
+                                if (!resultUpdate) { return res.json('Error'); }
+                            }
+                            else if (!resposta) {
+                                const sqlDelete = `DELETE FROM recebimentomp_resposta WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
+                                // const [resultDelete] = await db.promise().query(sqlDelete, [id, bloco.parRecebimentoMpModeloBlocoID, item.itemID])
+                                const resultDelete = await executeQuery(sqlDelete, [id, bloco.parRecebimentoMpModeloBlocoID, item.itemID], 'delete', 'recebimentomp_resposta', 'recebimentoMpID', id, logID)
+                            }
                         }
-                        else if (!resposta) {
-                            const sqlDelete = `DELETE FROM recebimentomp_resposta WHERE recebimentoMpID = ? AND parRecebimentoMpModeloBlocoID = ? AND itemID = ? `
-                            // const [resultDelete] = await db.promise().query(sqlDelete, [id, bloco.parRecebimentoMpModeloBlocoID, item.itemID])
-                            const resultDelete = await executeQuery(sqlDelete, [id, bloco.parRecebimentoMpModeloBlocoID, item.itemID], 'delete', 'recebimentomp_resposta', 'recebimentoMpID', id, logID)
-                        }
+                    }
+
+                }
+            } // laço blocos..
+
+            // Observação
+            const sqlUpdateObs = `UPDATE recebimentomp SET obs = ?, obsConclusao = ? WHERE recebimentoMpID = ? `
+            const resultUpdateObs = await executeQuery(sqlUpdateObs, [data.info?.obs, data?.obsConclusao, id], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
+            if (!resultUpdateObs) { return res.json('Error'); }
+
+            //* Status
+            const newStatus = data.info.status < 30 ? 30 : data.info.status
+            //* Fecha formulário: se concluiu e não gerou NC ou já existia NC e concluiu novamente!
+            const concluido = data.concluiForm && (!data.info.naoConformidade || result[0]['naoConformidade'] == 1) ? '1' : '0'
+
+            const sqlUpdateStatus = `UPDATE recebimentomp SET status = ?, naoConformidade = ?, dataFim = ?, finalizaProfissionalID = ?, concluido = ? WHERE recebimentoMpID = ? `
+            const resultUpdateStatus = await executeQuery(sqlUpdateStatus, [
+                newStatus,
+                data.info.naoConformidade ? '1' : '0',
+                newStatus >= 40 ? new Date() : null,
+                newStatus >= 40 ? profissionalID : null,
+                concluido,
+                id
+            ], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
+
+            //! Atualiza não conformidades, caso haja
+            if (data.info.naoConformidade) {
+                if (data.naoConformidade.itens.length > 0) {
+                    for (const nc of data.naoConformidade.itens) {
+                        nc.recebimentoMpNaoConformidadeID > 0 ? await updateNc(nc, id, logID) : await insertNc(nc, id, logID)
                     }
                 }
 
-            }
-        } // laço blocos..
-
-        // Observação
-        const sqlUpdateObs = `UPDATE recebimentomp SET obs = ?, obsConclusao = ? WHERE recebimentoMpID = ? `
-        const resultUpdateObs = await executeQuery(sqlUpdateObs, [data.info?.obs, data?.obsConclusao, id], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
-        if (!resultUpdateObs) { return res.json('Error'); }
-
-        //* Status
-        const newStatus = data.info.status < 30 ? 30 : data.info.status
-        //* Fecha formulário: se concluiu e não gerou NC ou já existia NC e concluiu novamente!
-        const concluido = data.concluiForm && (!data.info.naoConformidade || result[0]['naoConformidade'] == 1) ? '1' : '0'
-
-        const sqlUpdateStatus = `UPDATE recebimentomp SET status = ?, naoConformidade = ?, dataFim = ?, finalizaProfissionalID = ?, concluido = ? WHERE recebimentoMpID = ? `
-        const resultUpdateStatus = await executeQuery(sqlUpdateStatus, [
-            newStatus,
-            data.info.naoConformidade ? '1' : '0',
-            newStatus >= 40 ? new Date() : null,
-            newStatus >= 40 ? profissionalID : null,
-            concluido,
-            id
-        ], 'update', 'recebimentomp', 'recebimentoMpID', id, logID)
-
-        //! Atualiza não conformidades, caso haja
-        if (data.info.naoConformidade) {
-            if (data.naoConformidade.itens.length > 0) {
-                for (const nc of data.naoConformidade.itens) {
-                    nc.recebimentoMpNaoConformidadeID > 0 ? await updateNc(nc, id, logID) : await insertNc(nc, id, logID)
-                }
+                //? Se ainda não enviou email ao fornecedor preencher NC, verifica se precisa enviar
+                if (result[0]['naoConformidadeEmailFornecedor'] != 1) checkNotificationFornecedor(id, data.fieldsHeader.fornecedor, data.naoConformidade.itens, unidadeID, usuarioID, papelID)
             }
 
-            //? Se ainda não enviou email ao fornecedor preencher NC, verifica se precisa enviar
-            if (result[0]['naoConformidadeEmailFornecedor'] != 1) checkNotificationFornecedor(id, data.fieldsHeader.fornecedor, data.naoConformidade.itens, unidadeID, usuarioID, papelID)
-        }
+            //? Gera histórico de alteração de status (se houve alteração)
+            if (result[0]['status'] != newStatus) {
+                const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, result[0]['status'] ?? '0', newStatus, data?.obsConclusao)
+                if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
+            }
 
-        //? Gera histórico de alteração de status (se houve alteração)
-        if (result[0]['status'] != newStatus) {
-            const movimentation = await addFormStatusMovimentation(2, id, usuarioID, unidadeID, papelID, result[0]['status'] ?? '0', newStatus, data?.obsConclusao)
-            if (!movimentation) { return res.status(201).json({ message: "Erro ao atualizar status do formulário! " }) }
-        }
+            res.status(200).json({ message: 'Função do email sucesso' })
 
-        res.status(200).json({})
+        } catch (error) {
+            console.log({ error, message: 'Função email errrooo' })
+        }
     }
 
     //* Salva os anexos do formulário na pasta uploads/anexo e insere os dados na tabela anexo

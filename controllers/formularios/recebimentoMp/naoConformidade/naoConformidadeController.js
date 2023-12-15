@@ -9,6 +9,7 @@ const fornecedorPreenche = require('../../../../email/template/recebimentoMP/nao
 class NaoConformidade {
     async fornecedorPreenche(req, res) {
         const data = req.body
+        console.log("🚀 ~ data do email:", data)
 
         // Dados unidade fabrica
         const sqlFabrica = `SELECT * FROM unidade WHERE unidadeID = ?`
@@ -75,7 +76,7 @@ class NaoConformidade {
             } else {
                 // Cadastra novo usuário
                 const sqlNewUuser = `
-                  INSERT INTO usuario(nome, cnpj, email, senha)
+                   INSERT INTO usuario(nome, cnpj, email, senha)
                   VALUES(?, ?, ?, ?)`
                 const usuarioID = await executeQuery(sqlNewUuser, [resultFornecedor[0].nome, resultFornecedor[0].cnpj, resultFornecedor[0].email, criptoMd5(password)], 'insert', 'usuario', 'usuarioID', null, logID)
                 // return
@@ -98,11 +99,11 @@ class NaoConformidade {
             }
         }
 
-        //? Atualiza tabela recebimentoMp
+        // Atualiza tabela recebimentoMp
         const sqlUpdateRecebimentoMp = `UPDATE recebimentoMp SET naoConformidadeEmailFornecedor = 1 WHERE recebimentoMpID = ?`
         await db.promise().query(sqlUpdateRecebimentoMp, [data.recebimentoMpID])
 
-        res.status(200).json('ok')
+        res.status(200).json('Email enviado!')
     }
 }
 
