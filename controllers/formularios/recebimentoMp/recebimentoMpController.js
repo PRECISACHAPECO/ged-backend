@@ -1099,14 +1099,14 @@ const checkNotificationFornecedor = async (recebimentoMpID, fornecedor, arrNaoCo
     const [resultUpdate] = await db.promise().query(sqlUpdate, [1, recebimentoMpID])
 
 
-    // const arrProducts = []
-    // let needNotify = false
-    // for (const nc of arrNaoConformidades) {
-    //     if (nc.fornecedorPreenche) {
-    //         needNotify = true
-    //         if (nc.produto && nc.produto.nome != '') arrProducts.push(nc.produto?.nome)
-    //     }
-    // }
+    const arrProducts = []
+    let needNotify = false
+    for (const nc of arrNaoConformidades) {
+        if (nc.fornecedorPreenche) {
+            needNotify = true
+            if (nc.produto && nc.produto.nome != '') arrProducts.push(nc.produto?.nome)
+        }
+    }
 
     // if (needNotify) {
     //     // send axios post to api
