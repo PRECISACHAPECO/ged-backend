@@ -1,7 +1,9 @@
 const db = require('../../config/db');
+// const dbFile = require('../../config/dbFile');
 require('dotenv/config')
 const { getMenu, criptoMd5 } = require('../../config/defaultConfig');
 const sendMailConfig = require('../../config/email');
+const { executeLog, executeQuery } = require('../../config/executeQuery');
 const NewPassword = require('../../email/template/EsqueciSenha/NewPassword');
 
 // ** JWT import
@@ -15,8 +17,45 @@ const jwtConfig = {
 }
 
 class AuthController {
+
+    // async testeFoto(req, res) {
+    //     const sql = `SELECT * FROM fotos WHERE unidadeID = ?`
+    //     const [result] = await dbFile.promise().query(sql, [1]);
+
+    //     for (const foto of result) {
+
+    //         if (foto.tipo == 'image/jpeg') {
+    //             foto.url = `data:${foto.tipo};base64,${foto.url}`;
+    //         } else {
+    //             // Converte para blob
+    //             const blob = Buffer.from(foto.url, 'base64');
+
+    //             // Converte para objectUrl pra conseguir abrir o arquivo em uma nova aba no frontend
+    //             const objectUrl = URL.createObjectURL(new Blob([blob]));
+    //             foto.url = objectUrl;
+    //         }
+    //     }
+
+    //     res.status(200).json(result);
+    // }
+
+    // async enviaFoto(req, res) {
+    //     console.log('chegou...')
+    //     const files = req.files;
+
+    //     for (const file of files) {
+    //         console.log("🚀 ~ file:", file)
+    //         const base64 = file.binary.toString('base64');
+    //         // Gravar arquivos no banco de dados no formato blob
+    //         const sql = `INSERT INTO fotos (url, tipo, unidadeID) VALUES (?, ?, ?)`
+    //         const [result] = await dbFile.promise().query(sql, [base64, file.mimetype, 1]);
+    //     }
+
+    //     res.status(200).json({ message: 'Fotos salvas no BD!' });
+    // }
+
     //* Login da fábrica (CPF)
-    login(req, res) {
+    async login(req, res) {
         const { cpf, password } = req.body;
 
         let error = {
@@ -25,46 +64,64 @@ class AuthController {
 
         // LEFT JOIN profissao AS pr ON (uu.profissaoID = pr.profissaoID) , pr.nome as profissao
         const sql = `
-        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel
+        SELECT u.*, un.unidadeID, un.nomeFantasia, p.papelID, p.nome as papel, COALESCE(pr.profissionalID, 0) AS profissionalID, pr.imagem
         FROM usuario AS u 
             LEFT JOIN usuario_unidade AS uu ON (u.usuarioID = uu.usuarioID)
             LEFT JOIN unidade AS un ON (uu.unidadeID = un.unidadeID)
             LEFT JOIN papel AS p ON (uu.papelID = p.papelID)
-        WHERE u.cpf = ? AND u.senha = "${criptoMd5(password)}" AND uu.status = 1
+            LEFT JOIN profissional AS pr ON (u.usuarioID = pr.usuarioID)
+        WHERE u.cpf = ? AND u.senha = ? AND uu.status = 1
         ORDER BY un.nomeFantasia ASC`;
 
-        db.query(sql, [cpf], (err, result) => {
-            if (err) { res.status(500).json({ message: err.message }); }
+        try {
+            const [result] = await db.promise().query(sql, [cpf, criptoMd5(password)]);
 
             if (result.length === 0) {
-                return res.status(401).json({ message: 'CPF ou senha incorretos' });
+                return res.status(401).json({ message: 'CPF ou senha incorretos!' });
             }
 
             const accessToken = jwt.sign({ id: result[0]['usuarioID'] }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
 
             // +1 UNIDADE, SELECIONA UNIDADE ANTES DE LOGAR
-
             if (result.length > 1) {
                 const response = {
                     accessToken,
                     userData: {
                         ...result[0],
                         senha: undefined,
-                        imagem: result[0].imagem ? `${process.env.BASE_URL_UPLOADS}profile/${result[0].imagem}` : null,
+                        imagem: result[0].imagem ? `${process.env.BASE_URL_API}${result[0].imagem}` : null,
                     },
                     unidades: result.map(unidade => ({ unidadeID: unidade.unidadeID, nomeFantasia: unidade.nomeFantasia, papelID: unidade.papelID, papel: unidade.papel }))
                 }
-                res.status(202).json(response);
+
+                return res.status(202).json(response);
             }
 
             // 1 UNIDADE, LOGA DIRETO
             else if (result.length === 1) {
                 const response = {
                     accessToken,
-                    userData: { ...result[0], senha: undefined },
+                    userData: {
+                        ...result[0],
+                        imagem: result[0].imagem ? `${process.env.BASE_URL_API}${result[0].imagem}` : null,
+                        senha: undefined
+                    },
                     unidades: [{ unidadeID: result[0].unidadeID, nomeFantasia: result[0].nomeFantasia, papelID: result[0].papelID, papel: result[0].papel }]
                 }
-                res.status(200).json(response);
+                const logID = await executeLog('Login', response.userData.usuarioID, result[0].unidadeID, req)
+                const sqlLatestAcess = 'UPDATE usuario SET ultimoAcesso = NOW() WHERE usuarioID = ?';
+
+                const responseFormat = {
+                    userData: response.userData,
+                    unidades: response.unidades
+                }
+
+                const loginObj = {
+                    responseFormat
+                }
+                await executeQuery(sqlLatestAcess, [response.userData.usuarioID], 'login', 'usuario', 'usuarioID', null, logID, null, loginObj)
+
+                return res.status(200).json(response);
             }
 
             // ERRO AO FAZER LOGIN
@@ -73,9 +130,27 @@ class AuthController {
                     email: ['CPF ou senha inválidos!']
                 }
 
-                res.status(400).json(error);
+                return res.status(400).json(error);
             }
-        })
+        } catch (err) {
+            console.log(err)
+            return res.status(500).json({ message: err.message });
+        }
+    }
+
+    async saveDataLogMultiUnit(req, res) {
+        const data = req.body
+
+        const logID = await executeLog('LogOut', data.userData.usuarioID, data.unidadeID.unidadeID, req)
+        const sqlLatestAcess = 'UPDATE usuario SET ultimoAcesso = NOW() WHERE usuarioID = ?';
+
+        const responseFormat = data
+
+        const loginObj = {
+            responseFormat
+        }
+        await executeQuery(sqlLatestAcess, [data.userData.usuarioID], 'login', 'usuario', 'usuarioID', null, logID, null, loginObj)
+
     }
 
     async getAvailableRoutes(req, res) {
@@ -161,9 +236,7 @@ class AuthController {
     //? Função que valida se o CPF é válido e retorna o mesmo para o front / para redefinir senha
     async routeForgotEmailValidation(req, res) {
         const { data } = req.body;
-        console.log("🚀 ~ data:", data)
         const type = req.query.type;
-        console.log("🚀 ~ type:", type)
 
         if (type == 'login') {
             let sql = `SELECT * FROM usuario WHERE cpf = ?`;
@@ -181,7 +254,6 @@ class AuthController {
     //? Função que recebe os dados e envia o email com os dados de acesso
     async forgotPassword(req, res) {
         const { data } = req.body;
-        console.log("🚀 ~ data:", data)
         const type = req.query.type;
 
         let assunto = 'Redefinir senha'
@@ -200,9 +272,11 @@ class AuthController {
     //? Função que redefine a senha do usuário
     async routeForgotNewPassword(req, res) {
         const { data } = req.body;
+        const logID = await executeLog('Redefinir senha', data.usuarioID, 1, req)
 
         let sql = `UPDATE usuario SET senha = ? WHERE usuarioID = ?`;
-        const [result] = await db.promise().query(sql, [criptoMd5(data.senha), data.usuarioID]);
+        await executeQuery(sql, [criptoMd5(data.senha), data.usuarioID], 'update', 'usuario', 'usuarioID', data.usuarioID, logID)
+
         return res.status(200).json({ message: 'Senha alterada com sucesso!' });
     }
 }

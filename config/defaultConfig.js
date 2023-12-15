@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { executeQuery } = require('./executeQuery');
 
 const getMenu = async (papelID) => {
     const menu = []
@@ -80,6 +81,7 @@ const getMenuPermissions = async (papelID, usuarioID, unidadeID) => {
                 WHERE s.menuID = ${rotaMenu.menuID} AND s.status = 1 
                 ORDER BY s.ordem ASC`;
                 const [resultSubmenu] = await db.promise().query(sqlSubmenu);
+
                 if (resultSubmenu) {
                     rotaMenu.submenu = resultSubmenu;
                 }
@@ -94,20 +96,28 @@ const getMenuPermissions = async (papelID, usuarioID, unidadeID) => {
     return menu;
 }
 
-const hasPending = async (id, column, tables) => {
-    if (!tables) {
-        // Se tables é nulo, você pode retornar uma Promise rejeitada com uma mensagem de erro
-        return Promise.resolve('Erro hasPending: parâmetro tables é nulo');
+const hasPending = async (id, arrPending) => {
+    if (!arrPending) {
+        // Se arrPending é nulo, você pode retornar uma Promise rejeitada com uma mensagem de erro
+        return Promise.reject('Erro hasPending: parâmetro arrPending é nulo');
     }
-    const promises = tables.map((table) => {
-        return new Promise((resolve, reject) => {
-            db.query(`SELECT * FROM ${table} WHERE ${column} = ?`, [id], (err, result) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(result.length > 0);
-                }
+
+    const promises = arrPending.map(async (entry) => {
+        const { table, column } = entry;
+        const columnPromises = column.map((columnName) => {
+            return new Promise((resolve, reject) => {
+                db.query(`SELECT * FROM ${table} WHERE ${columnName} = ?`, [id], (err, result) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(result.length > 0);
+                    }
+                });
             });
+        });
+
+        return Promise.all(columnPromises).then((results) => {
+            return results.some((hasPending) => hasPending);
         });
     });
 
@@ -115,7 +125,6 @@ const hasPending = async (id, column, tables) => {
         return results.some((hasPending) => hasPending);
     });
 };
-
 
 const hasConflict = async ({ columns, values, table, id }) => {
     if (columns && values && table) {
@@ -163,11 +172,59 @@ function gerarSenha() {
     return senha;
 }
 
+function gerarSenhaCaracteresIniciais(value, numCaracteres) {
+    const numeros = value.replace(/[^0-9]/g, '')
+    const senha = numeros.substring(0, numCaracteres)
+    return senha
+}
 
-const deleteItem = async (id, table, column, res) => {
+const removeSpecialCharts = (str) => {
+    let newStr = ''
+    const arr = str.split(' ')
+
+    arr.map((item, index) => {
+        let onlyLetters = ''
+        onlyLetters = item.replace(/Ã£/g, 'a')
+        onlyLetters = onlyLetters.replace(/Ã¡/g, 'a')
+        onlyLetters = onlyLetters.replace(/Ã¢/g, 'a')
+        onlyLetters = onlyLetters.replace(/Ãª/g, 'e')
+        onlyLetters = onlyLetters.replace(/Ã©/g, 'e')
+        onlyLetters = onlyLetters.replace(/Ã­/g, 'i')
+        onlyLetters = onlyLetters.replace(/Ã³/g, 'o')
+        onlyLetters = onlyLetters.replace(/Ã´/g, 'o')
+        onlyLetters = onlyLetters.replace(/Ãµ/g, 'o')
+        onlyLetters = onlyLetters.replace(/Ãº/g, 'u')
+        onlyLetters = onlyLetters.replace(/Ã¼/g, 'u')
+        onlyLetters = onlyLetters.replace(/Ã§/g, 'c')
+        onlyLetters = onlyLetters.replace(/Ã±/g, 'n')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'A')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'A')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'A')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'E')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'I')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'O')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'O')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'O')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'U')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'U')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'C')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'N')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'E')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'I')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'O')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'O')
+        onlyLetters = onlyLetters.replace(/Ã/g, 'O')
+        // separa cada palavra com _
+        newStr += index === 0 ? onlyLetters : `_${onlyLetters}`
+    })
+
+    return newStr ?? 'undefined...'
+}
+
+const deleteItem = async (id, table, column, logID, res) => {
     for (const item of table) {
-        console.log("🚀 ~ item:", id, item, column)
-        const [result] = await db.promise().query(`DELETE FROM ${item} WHERE ${column} = ?`, [id])
+        const sqlDelete = `DELETE FROM ${item} WHERE ${column} = ?`
+        executeQuery(sqlDelete, [id], 'delete', item, column, id, logID)
     }
     return res.json({})
 }
@@ -183,4 +240,40 @@ const onlyNumbers = (string) => {
     return string.replace(/[^0-9]/g, '');
 }
 
-module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict, gerarSenha };
+function extrairEnderecoCompleto(unidade) {
+    const {
+        logradouro,
+        numero,
+        complemento,
+        bairro,
+        cidade,
+        uf,
+        cep
+    } = unidade;
+
+    // Verificar se os campos obrigatórios existem
+    if (logradouro && numero && bairro && cidade && uf && cep) {
+        // Construir o endereço apenas com os campos existentes
+        let enderecoCompleto = `${logradouro}, ${numero}`;
+
+        // Adicionar complemento se existir
+        if (complemento) enderecoCompleto += `, ${complemento}`;
+
+        enderecoCompleto += `, ${bairro}, ${cidade}, ${uf}, ${cep}`;
+        return enderecoCompleto;
+    } else {
+        // Identificar campos ausentes
+        const camposAusentes = [];
+        if (!logradouro) camposAusentes.push('logradouro');
+        if (!numero) camposAusentes.push('numero');
+        if (!bairro) camposAusentes.push('bairro');
+        if (!cidade) camposAusentes.push('cidade');
+        if (!uf) camposAusentes.push('uf');
+        if (!cep) camposAusentes.push('cep');
+
+        return `Campos ausentes: ${camposAusentes.join(', ')}. Verifique os dados.`;
+    }
+}
+
+
+module.exports = { hasPending, deleteItem, getMenu, getMenuPermissions, criptoMd5, onlyNumbers, hasConflict, gerarSenha, gerarSenhaCaracteresIniciais, removeSpecialCharts, extrairEnderecoCompleto };

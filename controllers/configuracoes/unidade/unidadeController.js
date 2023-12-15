@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const alterPassword = require('../../../email/template/user/alterPassword');
 const sendMailConfig = require('../../../config/email');
+const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class UnidadeController {
     async getList(req, res) {
@@ -54,8 +55,11 @@ class UnidadeController {
     }
 
     async insertData(req, res) {
+        const data = req.body;
         try {
-            const data = req.body;
+
+            const logID = await executeLog('Crição de unidade', data.usuarioID, data.unidadeID, req)
+
             const sqlExist = 'SELECT * FROM unidade'
             const [resultSqlExist] = await db.promise().query(sqlExist, [data.fields])
 
@@ -63,9 +67,8 @@ class UnidadeController {
 
             if (!rows) {
                 const sqlInsert = 'INSERT INTO unidade SET ?'
-                const resultSqlInsert = await db.promise().query(sqlInsert, data.fields)
-                const id = resultSqlInsert[0].insertId
-                res.json(id)
+                const id = await executeQuery(sqlInsert, [data.fields], 'insert', 'unidade', 'unidadeID', null, logID)
+                return res.status(200).json(id)
 
             }
         } catch (error) {
@@ -74,9 +77,11 @@ class UnidadeController {
     }
 
     async updateData(req, res) {
+        const { id } = req.params
+        const data = req.body
+
         try {
-            const { id } = req.params
-            const data = req.body
+            const logID = await executeLog('Edição de unidade', data.usuarioID, data.unidadeID, req)
 
             const extensoes = data.fields.extensoes
             delete data.fields.extensoes
@@ -89,22 +94,30 @@ class UnidadeController {
             const rows = resultSqlExist.find(row => row.cnpj == data.fields.cnpj && row.unidadeID !== id);
             if (rows > 0) return res.status(409).json({ message: "CNPJ já cadastrado!" });
 
+            delete data.fields.cabecalhoRelatorio
             const sqlUpdate = 'UPDATE unidade SET ? WHERE unidadeID = ?'
-            const resultSqlUpdate = await db.promise().query(sqlUpdate, [data.fields, id])
+            // const resultSqlUpdate = await db.promise().query(sqlUpdate, [data.fields, id])
+            const resultSqlUpdate = await executeQuery(sqlUpdate, [data.fields, id], 'update', 'unidade', 'unidadeID', id, logID)
 
             //? Atualiza extensões da unidade na tabela unidade_extensao 
             if (extensoes.length > 0) {
                 const sqlDelete = 'DELETE FROM unidade_extensao WHERE unidadeID = ?'
                 await db.promise().query(sqlDelete, id)
+                const resultDelete = await executeQuery(sqlDelete, [id], 'delete', 'unidade_extensao', 'unidadeID', id, logID)
 
                 const sqlInsert = 'INSERT INTO unidade_extensao (unidadeID, extensaoID) VALUES ?'
                 const values = extensoes.map(extensao => [id, extensao.id])
-                await db.promise().query(sqlInsert, [values])
+                // await db.promise().query(sqlInsert, [values])
+                const resultInsert = await executeQuery(sqlInsert, [values], 'insert', 'unidade_extensao', 'unidadeExtensaoID', null, logID)
             }
 
             if (data.senha) {
+
                 const sqlUpdateUser = 'UPDATE usuario SET senha = ? WHERE usuarioID = ?'
-                const [resultSqlUpdateUser] = await db.promise().query(sqlUpdateUser, [criptoMd5(data.senha), data.usuarioID])
+                // const [resultSqlUpdateUser] = await db.promise().query(sqlUpdateUser, [criptoMd5(data.senha), data.usuarioID])
+
+                const [resultSqlUpdateUser] = await executeQuery(sqlUpdateUser, [criptoMd5(data.senha), data.usuarioID], 'update', 'usuario', 'usuarioID', id,
+                    logID)
 
                 const sqlUnity = `
                 SELECT 
@@ -146,7 +159,8 @@ class UnidadeController {
                     }
 
                     const html = await alterPassword(values);
-                    await sendMailConfig(destinatario, assunto, html)
+                    // await sendMailConfig(destinatario, assunto, html)
+                    await sendMailConfig(destinatario, assunto, html, logID, values)
 
                 }
 
@@ -160,8 +174,11 @@ class UnidadeController {
 
     //! Atualiza a imagem de cabeçalho do relatório
     async updateDataReport(req, res) {
+        const { id, usuarioID, unidadeID } = req.params;
         try {
-            const { id } = req.params;
+
+            const logID = await executeLog('Edição da foto da unidade', usuarioID, unidadeID, req)
+
             const pathDestination = req.pathDestination
             const file = req.files[0]; //? Somente 1 arquivo
 
@@ -178,7 +195,8 @@ class UnidadeController {
             const previousFileReport = rows[0]?.cabecalhoRelatorio;
 
             // Atualizar a foto de perfil no banco de dados
-            await db.promise().query(sqlUpdateFileReport, [`${pathDestination}${file.filename}`, id]);
+            // await db.promise().query(sqlUpdateFileReport, [`${pathDestination}${file.filename}`, id]);
+            await executeQuery(sqlUpdateFileReport, [`${pathDestination}${file.filename}`, id], 'update', 'unidade', 'unidadeID', id, logID);
 
             // Excluir a foto de perfil anterior
             if (previousFileReport) {
@@ -200,18 +218,19 @@ class UnidadeController {
 
     //! Deleta a imagem no banco de dados e no caminho uploads/report
     async handleDeleteImage(req, res) {
-        const { id } = req.params;
-
-        const sqlSelectPreviousPhoto = `SELECT cabecalhoRelatorio FROM unidade WHERE unidadeID = ?`;
-        const sqlUpdatePhotoProfile = `UPDATE unidade SET cabecalhoRelatorio = ? WHERE unidadeID = ?`;
+        const { id, usuarioID, unidadeID } = req.params;
 
         try {
+            const logID = await executeLog('Exclusão da foto da unidade', usuarioID, unidadeID, req)
+
+            const sqlSelectPreviousPhoto = `SELECT cabecalhoRelatorio FROM unidade WHERE unidadeID = ?`;
+            const sqlUpdatePhotoProfile = `UPDATE unidade SET cabecalhoRelatorio = ? WHERE unidadeID = ?`;
             // Obter o nome da foto de perfil anterior
             const [rows] = await db.promise().query(sqlSelectPreviousPhoto, [id]);
             const previousPhotoProfile = rows[0]?.cabecalhoRelatorio;
 
             // Atualizar a foto de perfil no banco de dados
-            await db.promise().query(sqlUpdatePhotoProfile, [null, id]);
+            await executeQuery(sqlUpdatePhotoProfile, [null, id], 'update', 'unidade', 'unidadeID', id, logID);
 
             // Excluir a foto de perfil anterior
             if (previousPhotoProfile) {
@@ -232,23 +251,73 @@ class UnidadeController {
     }
 
     async deleteData(req, res) {
-        const { id } = req.params
-        const objModule = {
+        const { id, usuarioID, unidadeID } = req.params
+        console.log("🚀 ~ unidadeeeeee id, usuarioID, unidadeID:", id, usuarioID, unidadeID)
+        const objDelete = {
             table: ['unidade'],
             column: 'unidadeID'
         }
-        const tablesPending = []
+        const arrPending = [
+            {
+                table: 'anexo',
+                column: ['unidadeID'],
 
-        if (!tablesPending || tablesPending.length === 0) {
-            return deleteItem(id, objModule.table, objModule.column, res)
+            },
+            {
+                table: 'fornecedor',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'recebimentomp',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'limpeza',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'item',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'produto',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'profissional',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'usuario_unidade',
+                column: ['unidadeID'],
+
+            },
+            {
+                table: 'grupoanexo',
+                column: ['unidadeID'],
+
+            },
+
+        ]
+
+        if (!arrPending || arrPending.length === 0) {
+            const logID = await executeLog('Exclusão da unidade', usuarioID, unidadeID, req)
+            return deleteItem(id, objDelete.table, objDelete.column, logID, res)
         }
 
-        hasPending(id, objModule.column, tablesPending)
-            .then((hasPending) => {
+        hasPending(id, arrPending)
+            .then(async (hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objModule.table, objModule.column, res)
+                    const logID = await executeLog('Exclusão da unidade', usuarioID, unidadeID, req)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
                 }
             })
             .catch((err) => {

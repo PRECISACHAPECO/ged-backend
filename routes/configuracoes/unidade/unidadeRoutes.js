@@ -10,11 +10,11 @@ const route = '/unidade';
 unidadeRoutes.get(`${route}`, unidadeController.getList);
 unidadeRoutes.get(`${route}/:id`, unidadeController.getData);
 unidadeRoutes.post(`${route}/updateData/:id`, unidadeController.updateData);
-unidadeRoutes.delete(`${route}/fileReport/:id`, unidadeController.handleDeleteImage);
-unidadeRoutes.delete(`${route}/:id`, unidadeController.deleteData);
+unidadeRoutes.delete(`${route}/fileReport/:id/:usuarioID/:unidadeID`, unidadeController.handleDeleteImage);
+unidadeRoutes.delete(`${route}/:id/:usuarioID/:unidadeID`, unidadeController.deleteData);
 unidadeRoutes.post(`${route}/new/insertData`, unidadeController.insertData);
 //? MULTER: Upload de arquivo
-unidadeRoutes.post(`${route}/updateData/report/:id/:usuarioID`, (req, res, next) => {
+unidadeRoutes.post(`${route}/updateData/report/:id/:usuarioID/:unidadeID`, (req, res, next) => {
     const pathDestination = `uploads/${req.params.id}/unidade/`
     req.pathDestination = pathDestination
     configureMulterMiddleware(req, res, next, req.params.usuarioID, req.params.id, pathDestination)

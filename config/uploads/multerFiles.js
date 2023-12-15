@@ -1,23 +1,19 @@
 const multer = require('multer');
 const path = require('path');
 const sharp = require('sharp');
-const fs = require('fs').promises;
+// const fs = require('fs').promises;
+const fs = require('fs');
 const { mkdirSync } = require('fs');
+const { removeSpecialCharts } = require('../defaultConfig');
 
-const removeSpecialCharts = (str) => {
-    // remover acentos e manter formato nome-de-arquivo.extensao
-    const newStr = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9-_.]/g, '-');
-    return newStr;
-};
-
-const defineFileName = (originalName, usuarioID) => {
+const defineFileName = (originalName, usuarioID, nameWithTime) => {
     //? yyyymmdd-hms
     const dateTimeNow = new Date().toISOString().replace(/[-:.]/g, '').replace('T', '-').split('.')[0].slice(0, 15);
-    const fileName = `${dateTimeNow}-${usuarioID}-${removeSpecialCharts(originalName)}`;
+    const fileName = nameWithTime ? `${dateTimeNow}-${usuarioID}-${removeSpecialCharts(originalName)}` : `${usuarioID}-${removeSpecialCharts(originalName)}`;
     return fileName;
 };
 
-const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOriginalSize, maxSize, allowedUnityExtensions, imageMaxDimensionToResize) => {
+const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOriginalSize, maxSize, allowedUnityExtensions, imageMaxDimensionToResize, nameWithTime) => {
     //* Verifica se o diretório de destino existe, senão cria recursivamente
     try {
         mkdirSync(pathDestination, { recursive: true }); // Cria diretórios recursivamente
@@ -37,7 +33,7 @@ const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOrigin
             }
         },
         filename: function (req, file, cb) {
-            cb(null, defineFileName(file.originalname, usuarioID));
+            cb(null, defineFileName(file.originalname, usuarioID, nameWithTime));
         }
     });
 
@@ -77,50 +73,53 @@ const multerFiles = async (req, res, next, usuarioID, pathDestination, maxOrigin
                 return res.status(400).send({ message: err.field });
             }
         } else {
-            // Crie um array de promessas para as operações de redimensionamento
-            const resizePromises = req.files
-                .filter(file => file.mimetype.startsWith('image'))
-                .map(file => {
+
+            // Processa todos os tipos de arquivos
+            const filePromises = req.files.map(file => {
+                const fileName = defineFileName(file.originalname, usuarioID, nameWithTime);
+                if (file.mimetype.startsWith('image')) {
+                    // Se for uma imagem, redimensione
                     return new Promise((resolve, reject) => {
-                        const fileName = defineFileName(file.originalname, usuarioID);
                         sharp(file.path)
                             .resize({
-                                width: imageMaxDimensionToResize,
-                                height: imageMaxDimensionToResize
+                                width: imageMaxDimensionToResize
                             })
                             .toFile(path.join(pathDestination, fileName), async (err, info) => {
                                 if (err) {
                                     reject(err);
                                 } else {
-                                    // Atualize as informações do arquivo
                                     file.filename = fileName;
-                                    file.path = pathDestination + fileName;
+                                    file.path = path.join(pathDestination, fileName);
                                     file.size = info.size;
+                                    file.binary = fs.readFileSync(file.path);
                                     console.log(`📸 ~ Imagem redimensionada para ${(file.size / 1024 / 1024).toFixed(2)} MB`);
 
-                                    //! Imagem redimensionada continua maior que o tamanho máximo permitido pela unidade
                                     if (info.size > maxSize * 1024 * 1024) {
-                                        //! Exclui imagem redimensionada
                                         fs.unlinkSync(path.join(pathDestination, fileName));
-
                                         return res.status(400).send({ message: `O arquivo enviado é muito grande. Tamanho máximo permitido: ${maxSize} MB` });
                                     }
                                     resolve();
                                 }
                             });
                     });
-                });
+                } else {
+                    // Se não for uma imagem, apenas obtenha o binário
+                    file.path = path.join(pathDestination, fileName);
+                    file.binary = fs.readFileSync(file.path);
+                    return Promise.resolve();
+                }
+            });
 
             try {
-                await Promise.all(resizePromises); //? Aguarda todas as operações de redimensionamento serem concluídas
+                await Promise.all(filePromises); //? Aguarda todas as operações de redimensionamento serem concluídas
 
                 //? Excluir tudo que estiver na pasta temp/* (imagens originais)
                 try {
                     const tempPath = path.join('uploads/temp');
-                    const tempFiles = await fs.readdir(tempPath);
+                    const tempFiles = await fs.promises.readdir(tempPath);
                     for (const file of tempFiles) {
                         const filePath = path.join(tempPath, file);
-                        await fs.unlink(filePath); // Use fs.promises.unlink para excluir cada arquivo
+                        await fs.promises.unlink(filePath); // Use fs.promises.unlink para excluir cada arquivo
                     }
                 } catch (error) {
                     console.error('Erro ao excluir arquivos da pasta temp:', error);

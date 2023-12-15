@@ -1,5 +1,6 @@
 const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class TipoVeiculoController {
     async getList(req, res) {
@@ -49,9 +50,11 @@ class TipoVeiculoController {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
+            const logID = await executeLog('Criação de tipo veículo', values.usuarioID, values.unidadeID, req)
+
             const sqlInsert = 'INSERT INTO tipoveiculo (nome, status) VALUES (?, ?)'
-            const [resultSqlInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.status])
-            const id = resultSqlInsert.insertId
+            const id = await executeQuery(sqlInsert, [values.fields.nome, values.fields.status], 'insert', 'tipoveiculo', 'tipoveiculoID', null, logID)
+
             return res.status(200).json(id)
 
         } catch (error) {
@@ -66,17 +69,19 @@ class TipoVeiculoController {
 
             //* Valida conflito
             const validateConflicts = {
-                columns: ['tipoveiculoID', 'nome'],
+                columns: ['tipoVeiculoID', 'nome'],
                 values: [id, values.fields.nome],
-                table: 'tipoveiculo',
+                table: 'tipoVeiculo',
                 id: id
             }
             if (await hasConflict(validateConflicts)) {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
-            const sqlUpdate = `UPDATE tipoveiculo SET nome = ?, status = ? WHERE tipoVeiculoID = ?`
-            const [resultSqlUpdat] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.status, id])
+            const logID = await executeLog('Atualização de tipo veículo', values.usuarioID, values.unidadeID, req)
+
+            const sqlUpdate = `UPDATE tipoVeiculo SET nome = ?, status = ? WHERE tipoVeiculoID = ?`
+            await executeQuery(sqlUpdate, [values.fields.nome, values.fields.status, id], 'update', 'tipoVeiculo', 'tipoVeiculoID', id, logID)
 
             return res.status(200).json({ message: 'Dados atualizados com sucesso' })
         } catch (error) {
@@ -84,24 +89,34 @@ class TipoVeiculoController {
         }
     }
 
-    deleteData(req, res) {
-        const { id } = req.params
-        const objModule = {
+    async deleteData(req, res) {
+        const { id, usuarioID, unidadeID } = req.params
+        const objDelete = {
             table: ['tipoveiculo'],
             column: 'tipoVeiculoID'
         }
-        const tablesPending = ['recebimentomp'] // Tabelas que possuem relacionamento com a tabela atual
 
-        if (!tablesPending || tablesPending.length === 0) {
-            return deleteItem(id, objModule.table, objModule.column, res)
+        const arrPending = [
+            {
+                table: 'recebimentomp',
+                column: ['tipoVeiculoID',],
+            },
+
+        ]
+
+
+        if (!arrPending || arrPending.length === 0) {
+            const logID = await executeLog('Exclusão de tipo veículo', usuarioID, unidadeID, req)
+            return deleteItem(id, objDelete.table, objDelete.column, logID, res)
         }
 
-        hasPending(id, objModule.column, tablesPending)
-            .then((hasPending) => {
+        hasPending(id, arrPending)
+            .then(async (hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objModule.table, objModule.column, res)
+                    const logID = await executeLog('Exclusão de tipo veículo', usuarioID, unidadeID, req)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
                 }
             })
             .catch((err) => {

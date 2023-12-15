@@ -1,7 +1,9 @@
 const db = require('../../../../config/db');
 const fs = require('fs');
 const path = require('path');
+const { hasPending, deleteItem } = require('../../../../config/defaultConfig');
 require('dotenv/config')
+const { executeLog, executeQuery } = require('../../../../config/executeQuery');
 
 class FornecedorController {
     async getList(req, res) {
@@ -22,9 +24,9 @@ class FornecedorController {
     async getData(req, res) {
         const { id } = req.params;
         const { unidadeID } = req.body;
+
         try {
             if (!id || id == 'undefined') { return res.json({ message: 'Sem ID recebido!' }) }
-            console.log("🚀 ~~~~~ id:", id)
 
             //? Model
             const sql = `
@@ -38,33 +40,32 @@ class FornecedorController {
             SELECT pf.*, 
                 (SELECT COUNT(*)
                 FROM par_fornecedor_modelo AS pfm 
-                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
-                WHERE pfm.parFornecedorModeloID = ${id}
+                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
+                WHERE pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = ${id}
                 LIMIT 1
                 ) AS mostra, 
                 
                 COALESCE((SELECT pfmc.obrigatorio
                 FROM par_fornecedor_modelo AS pfm 
-                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
-                WHERE pfm.parFornecedorModeloID = ${id}
+                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
+                WHERE pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = ${id}
                 LIMIT 1
                 ), 0) AS obrigatorio,
 
                 COALESCE((SELECT pfmc.ordem
                 FROM par_fornecedor_modelo AS pfm 
-                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
-                WHERE pfm.parFornecedorModeloID = ${id}
+                    JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
+                WHERE pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = ${id}
                 LIMIT 1
                 ), 100) AS ordem
             FROM par_fornecedor AS pf
             ORDER BY 
                 COALESCE((SELECT pfmc.ordem
                     FROM par_fornecedor_modelo AS pfm 
-                        JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
-                    WHERE pfm.parFornecedorModeloID = ${id}
+                        JOIN par_fornecedor_modelo_cabecalho AS pfmc ON (pfm.parFornecedorModeloID = pfmc.parFornecedorModeloID)
+                    WHERE pfmc.parFornecedorID = pf.parFornecedorID AND pfm.parFornecedorModeloID = ${id}
                     LIMIT 1
                 ), 100) ASC`;
-            // console.log("🚀 ~ sqlHeader:", sqlHeader)
             const [resultHeader] = await db.promise().query(sqlHeader);
 
             //? Blocks
@@ -149,15 +150,17 @@ class FornecedorController {
 
     async insertData(req, res) {
         try {
-            const { unidadeID, model } = req.body
-            console.log("🚀 ~ unidadeID, model:", unidadeID, model)
+            const { unidadeID, usuarioID, model } = req.body
+
 
             if (!unidadeID || unidadeID == 'undefined') { return res.json({ message: 'Erro ao receber ID!' }) }
 
+            const logID = await executeLog('Criação modelo fornecedor', usuarioID, unidadeID, req)
+
             //? Model
             const sqlModel = `INSERT INTO par_fornecedor_modelo(nome, ciclo, cabecalho, unidadeID, status) VALUES (?, ?, ?, ?, ?)`
-            const [resultModel] = await db.promise().query(sqlModel, [model.nome, model.ciclo, model.cabecalho ?? '', unidadeID, (model.status ? 1 : 0)])
-            const parFornecedorModeloID = resultModel.insertId
+            const parFornecedorModeloID = await executeQuery(sqlModel, [model.nome, model.ciclo, model.cabecalho ?? '', unidadeID, (model.status ? 1 : 0)], 'insert', 'par_fornecedor_modelo', 'parFornecedorModeloID', null, logID)
+
 
             return res.status(200).json({ id: parFornecedorModeloID });
 
@@ -168,20 +171,24 @@ class FornecedorController {
 
     async updateData(req, res) {
         try {
-            const { id, unidadeID, model, header, blocks, arrRemovedBlocks, arrRemovedItems, orientacoes } = req.body
+            const { id, unidadeID, usuarioID, model, header, blocks, arrRemovedBlocks, arrRemovedItems, orientacoes } = req.body
 
             if (!id || id == 'undefined') { return res.json({ message: 'Erro ao receber ID!' }) }
+
+            const logID = await executeLog('Edição modelo fornecedor', usuarioID, unidadeID, req)
 
             //? Model
             const sqlModel = `
             UPDATE par_fornecedor_modelo
             SET nome = ?, ciclo = ?, cabecalho = ?, status = ?
             WHERE parFornecedorModeloID = ?`
-            const [resultModel] = await db.promise().query(sqlModel, [model?.nome, model?.ciclo, model?.cabecalho ?? '', (model?.status ? '1' : '0'), id])
+
+            await executeQuery(sqlModel, [model?.nome, model?.ciclo, model?.cabecalho ?? '', (model?.status ? '1' : '0'), id], 'update', 'par_fornecedor_modelo', 'parFornecedorModeloID', id, logID)
 
             //? Atualiza profissionais que aprovam e assinam o modelo. tabela: par_fornecedor_modelo_profissional
             const sqlDeleteProfissionaisModelo = `DELETE FROM par_fornecedor_modelo_profissional WHERE parFornecedorModeloID = ?`
-            const [resultDeleteProfissionaisModelo] = await db.promise().query(sqlDeleteProfissionaisModelo, [id])
+            // const [resultDeleteProfissionaisModelo] = await db.promise().query(sqlDeleteProfissionaisModelo, [id])
+            await executeQuery(sqlDeleteProfissionaisModelo, [id], 'delete', 'par_fornecedor_modelo_profissional', 'parFornecedorModeloID', id, logID)
             //? Insere profissionais que aprovam
             if (model && model.profissionaisPreenchem && model.profissionaisPreenchem.length > 0) {
                 for (let i = 0; i < model.profissionaisPreenchem.length; i++) {
@@ -189,7 +196,7 @@ class FornecedorController {
                         const sqlInsertProfissionalModelo = `
                         INSERT INTO par_fornecedor_modelo_profissional(parFornecedorModeloID, profissionalID, tipo) 
                         VALUES (?, ?, ?)`
-                        const [resultInsertProfissionalModelo] = await db.promise().query(sqlInsertProfissionalModelo, [id, model.profissionaisPreenchem[i].id, 1])
+                        await executeQuery(sqlInsertProfissionalModelo, [id, model.profissionaisPreenchem[i].id, 1], 'insert', 'par_fornecedor_modelo_profissional', 'parFornecedorModeloProfissionalID', null, logID)
                     }
                 }
             }
@@ -200,7 +207,7 @@ class FornecedorController {
                         const sqlInsertProfissionalModelo = `
                         INSERT INTO par_fornecedor_modelo_profissional(parFornecedorModeloID, profissionalID, tipo) 
                         VALUES (?, ?, ?)`
-                        const [resultInsertProfissionalModelo] = await db.promise().query(sqlInsertProfissionalModelo, [id, model.profissionaisAprovam[i].id, 2])
+                        await executeQuery(sqlInsertProfissionalModelo, [id, model.profissionaisAprovam[i].id, 2], 'insert', 'par_fornecedor_modelo_profissional', 'parFornecedorModeloProfissionalID', null, logID)
                     }
                 }
             }
@@ -221,18 +228,21 @@ class FornecedorController {
                         UPDATE par_fornecedor_modelo_cabecalho
                         SET obrigatorio = ?, ordem = ?
                         WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
-                        const [resultUpdate] = await db.promise().query(sqlUpdate, [(item.obrigatorio ? '1' : '0'), (item.ordem ?? '0'), id, item.parFornecedorID]);
+
+                        await executeQuery(sqlUpdate, [(item.obrigatorio ? '1' : '0'), (item.ordem ?? '0'), id, item.parFornecedorID], 'update', 'par_fornecedor_modelo_cabecalho', 'parFornecedorModeloID', id, logID)
                     } else {                            // Insert
                         const sqlInsert = `
                         INSERT INTO par_fornecedor_modelo_cabecalho (parFornecedorModeloID, parFornecedorID, obrigatorio, ordem)
                         VALUES (?, ?, ?, ?)`
-                        const [resultInsert] = await db.promise().query(sqlInsert, [id, item.parFornecedorID, (item.obrigatorio ? '1' : '0'), (item.ordem ?? '0')]);
+
+                        await executeQuery(sqlInsert, [id, item.parFornecedorID, (item.obrigatorio ? '1' : '0'), (item.ordem ?? '0')], 'insert', 'par_fornecedor_modelo_cabecalho', 'parFornecedorModeloCabecalhoID', null, logID)
                     }
                 } else if (item) { // Deleta
                     const sqlDelete = `
                     DELETE FROM par_fornecedor_modelo_cabecalho
                     WHERE parFornecedorModeloID = ? AND parFornecedorID = ?`
-                    const [resultDelete] = await db.promise().query(sqlDelete, [id, item.parFornecedorID])
+
+                    await executeQuery(sqlDelete, [id, item.parFornecedorID], 'delete', 'par_fornecedor_modelo_cabecalho', 'parFornecedorModeloID', id, logID)
                 }
             })
 
@@ -241,11 +251,13 @@ class FornecedorController {
                 if (block && block > 0) {
                     // Blocos
                     const sqlDeleteBlock = `DELETE FROM par_fornecedor_modelo_bloco WHERE parFornecedorModeloBlocoID = ?`
-                    const [resultDeleteBlock] = await db.promise().query(sqlDeleteBlock, [block])
+
+                    await executeQuery(sqlDeleteBlock, [block], 'delete', 'par_fornecedor_modelo_bloco', 'parFornecedorModeloID', id, logID)
 
                     // Itens do bloco
                     const sqlDeleteBlockItems = `DELETE FROM par_fornecedor_modelo_bloco_item WHERE parFornecedorModeloBlocoID = ?`
-                    const [resultDeleteBlockItems] = await db.promise().query(sqlDeleteBlockItems, [block])
+
+                    await executeQuery(sqlDeleteBlockItems, [block], 'delete', 'par_fornecedor_modelo_bloco_item', 'parFornecedorModeloID', id, logID)
                 }
             })
 
@@ -253,7 +265,8 @@ class FornecedorController {
             arrRemovedItems && arrRemovedItems.forEach(async (item) => {
                 if (item) {
                     const sqlDelete = `DELETE FROM par_fornecedor_modelo_bloco_item WHERE parFornecedorModeloBlocoItemID = ?`
-                    const [resultDelete] = await db.promise().query(sqlDelete, [item.parFornecedorModeloBlocoItemID])
+
+                    await executeQuery(sqlDelete, [item.parFornecedorModeloBlocoItemID], 'delete', 'par_fornecedor_modelo_bloco_item', 'parFornecedorModeloID', id, logID)
                 }
             })
 
@@ -266,29 +279,30 @@ class FornecedorController {
                         UPDATE par_fornecedor_modelo_bloco
                         SET ordem = ?, nome = ?, obs = ?, status = ?
                         WHERE parFornecedorModeloBlocoID = ?`
-                        const [resultUpdateBlock] = await db.promise().query(sqlUpdateBlock, [
-                            block.dados.ordem,
-                            block.dados.nome,
-                            (block.dados.obs ? 1 : 0),
-                            (block.dados.status ? 1 : 0),
-                            block.dados.parFornecedorModeloBlocoID
-                        ])
-                        if (resultUpdateBlock.length === 0) { return res.json(err); }
+                        const resultUpdateBlock = await executeQuery(sqlUpdateBlock, [block.dados.ordem,
+                        block.dados.nome,
+                        (block.dados.obs ? 1 : 0),
+                        (block.dados.status ? 1 : 0),
+                        block.dados.parFornecedorModeloBlocoID], 'update', 'par_fornecedor_modelo_bloco', 'parFornecedorModeloID', id, logID)
+
+                        if (!resultUpdateBlock) { return res.json(err); }
                     } else {
                         //? Bloco novo, Insert
                         const sqlNewBlock = `
                         INSERT INTO par_fornecedor_modelo_bloco(parFornecedorModeloID, ordem, nome, obs, unidadeID, status) 
                         VALUES (?, ?, ?, ?, ?, ?)`
-                        const [resultNewBlock] = await db.promise().query(sqlNewBlock, [
+
+                        const resultNewBlock = await executeQuery(sqlNewBlock, [
                             id,
                             block.dados.ordem,
                             block.dados.nome,
                             (block.dados.obs ? 1 : 0),
                             unidadeID,
                             (block.dados.status ? 1 : 0)
-                        ])
-                        if (resultNewBlock.length === 0) { return res.json(err); }
-                        block.dados.parFornecedorModeloBlocoID = resultNewBlock.insertId //? parFornecedorModeloBlocoID que acabou de ser gerado
+                        ], 'insert', 'par_fornecedor_modelo_bloco', 'parFornecedorModeloBlocoID', null, logID)
+
+                        if (!resultNewBlock) { return res.json(err); }
+                        block.dados.parFornecedorModeloBlocoID = resultNewBlock //? parFornecedorModeloBlocoID que acabou de ser gerado
                     }
 
                     //? Itens 
@@ -298,14 +312,14 @@ class FornecedorController {
                             UPDATE par_fornecedor_modelo_bloco_item
                             SET ordem = ?, ${item.item.id ? 'itemID = ?, ' : ''} obs = ?, obrigatorio = ?, status = ?
                             WHERE parFornecedorModeloBlocoItemID = ?`
-                            const [resultUpdate] = await db.promise().query(sqlUpdate, [
-                                item.ordem,
-                                ...(item.item.id ? [item.item.id] : []),
-                                (item.obs ? 1 : 0),
-                                (item.obrigatorio ? 1 : 0),
-                                (item.status ? 1 : 0),
-                                item.parFornecedorModeloBlocoItemID
-                            ])
+
+                            await executeQuery(sqlUpdate, [item.ordem,
+                            ...(item.item.id ? [item.item.id] : []),
+                            (item.obs ? 1 : 0),
+                            (item.obrigatorio ? 1 : 0),
+                            (item.status ? 1 : 0),
+                            item.parFornecedorModeloBlocoItemID], 'update', 'par_fornecedor_modelo_bloco_item', 'parFornecedorModeloBlocoID', id, logID)
+
                         } else if (item && item.new && !item.parFornecedorModeloBlocoItemID) { //? Insert                            
                             // Valida duplicidade do item 
                             const sqlItem = `
@@ -317,14 +331,12 @@ class FornecedorController {
                                 const sqlInsert = `
                                 INSERT INTO par_fornecedor_modelo_bloco_item (parFornecedorModeloBlocoID, ordem, itemID, obs, obrigatorio, status)
                                 VALUES (?, ?, ?, ?, ?, ?)`
-                                const [resultInsert] = await db.promise().query(sqlInsert, [
-                                    block.dados.parFornecedorModeloBlocoID,
-                                    item.ordem,
-                                    item.item.id,
-                                    (item.obs ? 1 : 0),
-                                    (item.obrigatorio ? 1 : 0),
-                                    (item.status ? 1 : 0)
-                                ])
+                                await executeQuery(sqlInsert, [block.dados.parFornecedorModeloBlocoID,
+                                item.ordem,
+                                item.item.id,
+                                (item.obs ? 1 : 0),
+                                (item.obrigatorio ? 1 : 0),
+                                (item.status ? 1 : 0)], 'insert', 'par_fornecedor_modelo_bloco_item', 'parFornecedorModeloBlocoItemID', null, logID)
                             }
                         }
                     })
@@ -336,13 +348,49 @@ class FornecedorController {
             UPDATE par_formulario
             SET obs = ? 
             WHERE parFormularioID = 1`
-            const [resultOrientacoes] = await db.promise().query(sqlOrientacoes, [orientacoes?.obs])
+            await executeQuery(sqlOrientacoes, [orientacoes?.obs], 'update', 'par_formulario', 'parFormularioID', 1, logID)
 
             res.status(200).json({ message: "Dados atualizados com sucesso." });
 
         } catch (error) {
             return res.json({ message: 'Erro ao receber dados!' })
         }
+    }
+
+    async deleteData(req, res) {
+        const { id, usuarioID, unidadeID } = req.params
+        // return
+        const objDelete = {
+            table: ['par_fornecedor_modelo'],
+            column: 'parFornecedorModeloID'
+        }
+
+        const arrPending = [
+            {
+                table: 'fornecedor',
+                column: ['parFornecedorModeloID',],
+            },
+
+        ]
+
+        if (!arrPending || arrPending.length === 0) {
+            const logID = await executeLog('Exclusão de modelo de fornecedor', usuarioID, unidadeID, req)
+            return deleteItem(id, objDelete.table, objDelete.column, logID, res)
+        }
+
+        hasPending(id, arrPending)
+            .then(async (hasPending) => {
+                if (hasPending) {
+                    res.status(409).json({ message: "Dado possui pendência." });
+                } else {
+                    const logID = await executeLog('Exclusão de modelo de fornecedor', usuarioID, unidadeID, req)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
+                }
+            })
+            .catch((err) => {
+                console.log(err);
+                res.status(500).json(err);
+            });
     }
 }
 

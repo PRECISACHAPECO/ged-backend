@@ -11,7 +11,7 @@ tipoVeiculoRoutes.post(`${route}/getData/:id`, tipoVeiculoController.getData);
 
 tipoVeiculoRoutes.post(`${route}/updateData/:id`, tipoVeiculoController.updateData);
 tipoVeiculoRoutes.post(`${route}/new/insertData`, tipoVeiculoController.insertData);
-tipoVeiculoRoutes.delete(`${route}/:id`, tipoVeiculoController.deleteData);
+tipoVeiculoRoutes.delete(`${route}/:id/:unidadeID/:usuarioID`, tipoVeiculoController.deleteData);
 
 
 module.exports = tipoVeiculoRoutes;

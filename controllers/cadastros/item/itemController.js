@@ -1,5 +1,6 @@
 const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class ItemController {
 
@@ -198,17 +199,22 @@ class ItemController {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
 
+            const logID = await executeLog('Criação de item', values.usuarioID, values.unidadeID, req)
+
             //? Insert item
             const sqlInsert = `INSERT INTO item(nome, parFormularioID, alternativaID, ajuda, status, unidadeID) VALUES(?, ?, ?, ?, ?, ?)`;
-            const [resultInsert] = await db.promise().query(sqlInsert, [
-                values.fields.nome,
-                values.fields.formulario.id,
-                values.fields.alternativa.id,
-                values.fields.ajuda,
-                (values.fields.status ? '1' : '0'),
-                values.unidadeID
-            ]);
-            const id = resultInsert.insertId
+
+            const id = await executeQuery(sqlInsert, [values.fields.nome,
+            values.fields.formulario.id,
+            values.fields.alternativa.id,
+            values.fields.ajuda,
+            (values.fields.status ? '1' : '0'),
+            values.unidadeID], 'insert', 'item', 'itemID', null, logID)
+
+            // Busca dados do item inserido
+            const getItem = "SELECT * FROM item WHERE itemID = ? "
+            const [resultItem] = await db.promise().query(getItem, [id]);
+
 
             //? Atualiza item_opcao
             // Insert
@@ -216,14 +222,13 @@ class ItemController {
             if (values.fields.opcoes && values.fields.opcoes.length > 0) {
                 for (let i = 0; i < values.fields.opcoes.length; i++) {
                     const element = values.fields.opcoes[i];
-                    const [resultInsertOpcao] = await db.promise().query(sqlInsertOpcao, [
-                        id,
+                    const itemOpcaoID = await executeQuery(sqlInsertOpcao, [id,
                         element.id,
                         (element.anexo ? '1' : '0'),
                         (element.bloqueiaFormulario ? '1' : '0'),
-                        (element.observacao ? '1' : '0')
-                    ])
-                    const itemOpcaoID = resultInsertOpcao.insertId
+                        (element.observacao ? '1' : '0')], 'insert', 'item_opcao', 'itemOpcaoID', null, logID)
+
+
 
                     //? Atualiza item_opcao_anexo
                     // Insert
@@ -232,19 +237,23 @@ class ItemController {
                         for (let j = 0; j < element.anexos.length; j++) {
                             const elementAnexo = element.anexos[j];
                             if (elementAnexo.nome != '') {
-                                const [resultInsertAnexo] = await db.promise().query(sqlInsertAnexo, [
-                                    id,
+                                await executeQuery(sqlInsertAnexo, [id,
                                     itemOpcaoID,
                                     elementAnexo.nome,
-                                    (elementAnexo.obrigatorio ? '1' : '0')
-                                ])
+                                    (elementAnexo.obrigatorio ? '1' : '0')], 'insert', 'item_opcao_anexo', 'itemOpcaoAnexoID', null, logID)
                             }
                         }
                     }
                 }
             }
 
-            return res.status(200).json(id)
+            const data = {
+                id: resultItem[0].itemID,
+                nome: resultItem[0].nome,
+            }
+
+
+            return res.status(200).json(data)
         } catch (error) {
             console.log(error)
         }
@@ -267,33 +276,31 @@ class ItemController {
             if (await hasConflict(validateConflicts)) {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
+            const logID = await executeLog('Atualização de item', values.usuarioID, values.unidadeID, req)
 
             //? Atualiza item
             const sqlUpdate = `UPDATE item SET nome = ?, parFormularioID = ?, alternativaID = ?, ajuda = ?, status = ? WHERE itemID = ? `;
-            const [resultUpdate] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.formulario.id, values.fields.alternativa.id, values.fields.ajuda, (values.fields.status ? '1' : '0'), id]);
+
+            await executeQuery(sqlUpdate, [values.fields.nome, values.fields.formulario.id, values.fields.alternativa.id, values.fields.ajuda, (values.fields.status ? '1' : '0'), id], 'update', 'item', 'itemID', id, logID)
 
             //? Atualiza item_opcao
             // Delete
             const sqlDelete = `DELETE FROM item_opcao WHERE itemID = ? `
-            const [resultDelete] = await db.promise().query(sqlDelete, [id])
+            await executeQuery(sqlDelete, [id], 'delete', 'item_opcao', 'itemID', id, logID)
 
             // Delete
             const sqlDeleteAnexo = `DELETE FROM item_opcao_anexo WHERE itemID = ? `
-            const [resultDeleteAnexo] = await db.promise().query(sqlDeleteAnexo, [id])
+            await executeQuery(sqlDeleteAnexo, [id], 'delete', 'item_opcao_anexo', 'itemID', id, logID)
 
             // Insert
             const sqlInsertOpcao = `INSERT INTO item_opcao(itemID, alternativaItemID, anexo, bloqueiaFormulario, observacao) VALUES(?, ?, ?, ?, ?)`
             for (let i = 0; i < values.fields.opcoes.length; i++) {
                 const element = values.fields.opcoes[i];
-                console.log("🚀 ~ element:", element)
-                const [resultInsertOpcao] = await db.promise().query(sqlInsertOpcao, [
-                    id,
+                const itemOpcaoID = await executeQuery(sqlInsertOpcao, [id,
                     element.id,
                     (element.anexo ? '1' : '0'),
                     (element.bloqueiaFormulario ? '1' : '0'),
-                    (element.observacao ? '1' : '0')
-                ])
-                const itemOpcaoID = resultInsertOpcao.insertId
+                    (element.observacao ? '1' : '0')], 'insert', 'item_opcao', 'itemOpcaoID', null, logID)
 
                 //? Atualiza item_opcao_anexo
                 // Insert
@@ -301,12 +308,10 @@ class ItemController {
                 for (let j = 0; j < element.anexos.length; j++) {
                     const elementAnexo = element.anexos[j];
                     if (elementAnexo.nome != '') {
-                        const [resultInsertAnexo] = await db.promise().query(sqlInsertAnexo, [
-                            id,
+                        await executeQuery(sqlInsertAnexo, [id,
                             itemOpcaoID,
                             elementAnexo.nome,
-                            (elementAnexo.obrigatorio ? '1' : '0')
-                        ])
+                            (elementAnexo.obrigatorio ? '1' : '0')], 'insert', 'item_opcao_anexo', 'itemOpcaoAnexoID', null, logID)
                     }
                 }
             }
@@ -318,22 +323,33 @@ class ItemController {
     }
 
     deleteData(req, res) {
-        const { id } = req.params
+        const { id, usuarioID, unidadeID } = req.params
 
-        // Tabelas que possuem relacionamento com a tabela atual
-        const tablesPending = ['par_fornecedor_modelo_bloco_item', 'par_limpeza_modelo_bloco_item'];
         // Tabelas que quero deletar
-        const objModule = {
+        const objDelete = {
             table: ['item', 'item_opcao', 'item_opcao_anexo'],
             column: 'itemID'
         };
 
-        hasPending(id, objModule.column, tablesPending)
-            .then((hasPending) => {
+
+        const arrPending = [
+            {
+                table: 'par_fornecedor_modelo_bloco_item',
+                column: ['itemID'],
+            },
+            {
+                table: 'par_limpeza_modelo_bloco_item',
+                column: ['itemID'],
+            },
+        ]
+
+        hasPending(id, arrPending)
+            .then(async (hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objModule.table, objModule.column, res)
+                    const logID = await executeLog('Exclusão de item', usuarioID, unidadeID, req)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
                 }
             })
             .catch((err) => {

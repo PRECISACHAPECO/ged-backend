@@ -3,7 +3,11 @@ const { hasPending, deleteItem } = require('../../../config/defaultConfig');
 
 class FormulariosController {
     getList(req, res) {
-        db.query("SELECT parFormularioID AS id, nome FROM par_formulario", (err, result) => {
+        db.query(`
+        SELECT 
+            pf.parFormularioID AS id, 
+            pf.nome
+        FROM par_formulario AS pf`, (err, result) => {
             if (err) {
                 res.status(500).json(err);
             } else {

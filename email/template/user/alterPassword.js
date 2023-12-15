@@ -1,25 +1,25 @@
 const cabecalho = require('../defaults/cabecalho');
-const selectRodape = require('../defaults/rodape/index');
 const css = require('../defaults/css');
+const rodape = require('../defaults/rodape');
 require('dotenv/config');
 const urlBase = process.env.BASE_URL;
 
 
 async function alterPassword(values) {
-  const rotaDirect = values.papelID == 1 ? `${urlBase}/esqueceu-sua-senha/?type=login` : `${urlBase}/esqueceu-sua-senha/?type=fornecedor`
+    const rotaDirect = values.papelID == 1 ? `${urlBase}esqueceu-sua-senha?type=login` : `${urlBase}esqueceu-sua-senha?type=fornecedor`
 
-  let html = `
+    let html = `
     <html>`;
-  // CSS
-  html += css();
-  // Body
-  html += `
+    // CSS
+    html += css();
+    // Body
+    html += `
     <body class="body">
         <div class="box">`;
-  // Cabeçalho
-  html += cabecalho("Senha alterada com sucesso!");
-  // Conteúdo
-  html += `
+    // Cabeçalho
+    html += cabecalho("Senha alterada com sucesso!");
+    // Conteúdo
+    html += `
     <div class="content">
       <h1 class="title">Olá, ${values.nome} </h1>
       <p>Caso você não tenha realizado a alteração da senha, recomendamos redefinir a senha clicando <a href="${rotaDirect}">aqui</a></p>
@@ -42,13 +42,13 @@ async function alterPassword(values) {
                 </div>
     </div>`
 
-  // Rodapé
-  html += selectRodape(values);
-  html += `
+    // Rodapé
+    html += await rodape(values);
+    html += `
         </body>
     </html>`;
 
-  return html;
+    return html;
 }
 
 module.exports = alterPassword;

@@ -10,7 +10,7 @@ grupoAnexosRoutes.post(`${route}`, grupoAnexosController.getList);
 
 grupoAnexosRoutes.post(`${route}/getData/:id`, grupoAnexosController.getData);
 grupoAnexosRoutes.post(`${route}/updateData/:id`, grupoAnexosController.updateData);
-grupoAnexosRoutes.delete(`${route}/deleteData/:id`, grupoAnexosController.deleteData);
+grupoAnexosRoutes.delete(`${route}/deleteData/:id/:usuarioID/:unidadeID`, grupoAnexosController.deleteData);
 //
 grupoAnexosRoutes.post(`${route}/new/getData`, grupoAnexosController.getNewData);
 grupoAnexosRoutes.post(`${route}/new/insertData`, grupoAnexosController.insertData);

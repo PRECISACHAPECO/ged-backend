@@ -1,6 +1,7 @@
 const db = require('../../../../config/db');
 const fs = require('fs');
 const path = require('path');
+const { hasPending, deleteItem } = require('../../../../config/defaultConfig');
 require('dotenv/config')
 
 class LimpezaController {
@@ -274,6 +275,39 @@ class LimpezaController {
         } catch (error) {
             return res.json({ message: 'Erro ao receber dados!' })
         }
+    }
+
+    deleteData(req, res) {
+        const { id } = req.params
+        const objDelete = {
+            table: ['par_limpeza_modelo'],
+            column: 'parLimpezaModeloID'
+        }
+
+        const arrPending = [
+            {
+                table: 'limpeza',
+                column: ['parLimpezaModeloID',],
+            },
+
+        ]
+
+        if (!arrPending || arrPending.length === 0) {
+            return deleteItem(id, objDelete.table, objDelete.column, res)
+        }
+
+        hasPending(id, arrPending)
+            .then((hasPending) => {
+                if (hasPending) {
+                    res.status(409).json({ message: "Dado possui pendência." });
+                } else {
+                    return deleteItem(id, objDelete.table, objDelete.column, res)
+                }
+            })
+            .catch((err) => {
+                console.log(err);
+                res.status(500).json(err);
+            });
     }
 }
 

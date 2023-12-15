@@ -1,5 +1,6 @@
 const db = require('../../../config/db');
 const { hasConflict, hasPending, deleteItem } = require('../../../config/defaultConfig');
+const { executeLog, executeQuery } = require('../../../config/executeQuery');
 
 class AtividadeController {
     async getList(req, res) {
@@ -47,10 +48,11 @@ class AtividadeController {
             if (await hasConflict(validateConflicts)) {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
+            const logID = await executeLog('Criação de atividade', values.usuarioID, values.unidadeID, req)
 
             const sqlInsert = 'INSERT INTO atividade (nome, status) VALUES (?, ?)'
-            const [resultSqlInsert] = await db.promise().query(sqlInsert, [values.fields.nome, values.fields.status])
-            const id = resultSqlInsert.insertId
+            const id = await executeQuery(sqlInsert, [values.fields.nome, values.fields.status,], 'insert', 'atividade', 'atividadeID', null, logID)
+
             return res.status(200).json(id)
 
         } catch (error) {
@@ -73,9 +75,10 @@ class AtividadeController {
             if (await hasConflict(validateConflicts)) {
                 return res.status(409).json({ message: "Dados já cadastrados!" });
             }
+            const logID = await executeLog('Atualização de atividade', values.usuarioID, values.unidadeID, req)
 
             const sqlUpdate = `UPDATE atividade SET nome = ?, status = ? WHERE atividadeID = ?`
-            const [resultSqlUpdat] = await db.promise().query(sqlUpdate, [values.fields.nome, values.fields.status, id])
+            executeQuery(sqlUpdate, [values.fields.nome, values.fields.status, id], 'update', 'atividade', 'atividadeID', id, logID)
 
             return res.status(200).json({ message: 'Dados atualizados com sucesso' })
         } catch (error) {
@@ -83,24 +86,34 @@ class AtividadeController {
         }
     }
 
-    deleteData(req, res) {
-        const { id } = req.params
-        const objModule = {
+    async deleteData(req, res) {
+        const { id, usuarioID, unidadeID } = req.params
+
+        const objDelete = {
             table: ['atividade'],
             column: 'atividadeID'
         }
-        const tablesPending = ['fornecedor_atividade', 'par_fornecedor_bloco_atividade', 'recebimentomp_produto'] // Tabelas que possuem relacionamento com a tabela atual
 
-        if (!tablesPending || tablesPending.length === 0) {
-            return deleteItem(id, objModule.table, objModule.column, res)
+        const arrPending = [
+            {
+                table: 'recebimentomp_produto',
+                column: ['atividadeID'],
+            },
+
+        ]
+
+        if (!arrPending || arrPending.length === 0) {
+            const logID = await executeLog('Exclusão de atividade', usuarioID, unidadeID, req)
+            return deleteItem(id, objDelete.table, objDelete.column, logID, res)
         }
 
-        hasPending(id, objModule.column, tablesPending)
-            .then((hasPending) => {
+        hasPending(id, arrPending)
+            .then(async (hasPending) => {
                 if (hasPending) {
                     res.status(409).json({ message: "Dado possui pendência." });
                 } else {
-                    return deleteItem(id, objModule.table, objModule.column, res)
+                    const logID = await executeLog('Exclusão de atividade', usuarioID, unidadeID, req)
+                    return deleteItem(id, objDelete.table, objDelete.column, logID, res)
                 }
             })
             .catch((err) => {

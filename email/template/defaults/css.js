@@ -36,6 +36,7 @@ const css = () => {
                 font-size: 20px;
                 font-weight: bold;
                 color: #E5E5E5;
+                margin: 20px 0;
             }
             .subTitulo{
                 font-size: 18px;

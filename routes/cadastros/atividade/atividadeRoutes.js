@@ -11,7 +11,7 @@ atividadeRoutes.post(`${route}/getData/:id`, atividadeController.getData);
 
 atividadeRoutes.post(`${route}/updateData/:id`, atividadeController.updateData);
 atividadeRoutes.post(`${route}/new/insertData`, atividadeController.insertData);
-atividadeRoutes.delete(`${route}/:id`, atividadeController.deleteData);
+atividadeRoutes.delete(`${route}/:id/:usuarioID/:unidadeID`, atividadeController.deleteData);
 
 
 module.exports = atividadeRoutes;

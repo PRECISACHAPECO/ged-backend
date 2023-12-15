@@ -10,7 +10,7 @@ itemRoutes.get(`${route}/:unidadeID`, itemController.getList);
 
 itemRoutes.post(`${route}/getData/:id`, itemController.getData);
 itemRoutes.post(`${route}/updateData/:id`, itemController.updateData);
-itemRoutes.delete(`${route}/:id`, itemController.deleteData);
+itemRoutes.delete(`${route}/:id/:usuarioID/:unidadeID`, itemController.deleteData);
 
 itemRoutes.post(`${route}/getAlternatives`, itemController.getAlternatives);
 itemRoutes.post(`${route}/getItemConfigs`, itemController.getItemConfigs);
