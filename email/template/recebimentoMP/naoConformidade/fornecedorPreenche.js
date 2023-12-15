@@ -3,7 +3,6 @@ const css = require("../../defaults/css");
 const rodape = require("../../defaults/rodape");
 
 async function fornecedorPreenche(values) {
-    console.log("🚀 ~ values:", values)
     let html = `
     <html>`;
     // CSS
